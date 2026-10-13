@@ -1,4 +1,5 @@
 using PersoNet.Desktop.Presentation.Authentication;
+using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
@@ -10,6 +11,7 @@ namespace PersoNet.Desktop.Presentation.Tests;
 public sealed class ShellViewModelTests
 {
     private readonly FakeDialogService _dialogs = new();
+    private readonly FakeThemeService _theme = new();
 
     private EmployeesViewModel Employees(FakeOrganizationApi organization) =>
         new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), TimeProvider.System, _dialogs);
@@ -27,7 +29,7 @@ public sealed class ShellViewModelTests
     {
         var api = new FakeOrganizationApi();
         api.Add("Dział IT", "IT");
-        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs), _theme);
 
         await shell.SignInAsync(Cancellation);
 
@@ -40,7 +42,7 @@ public sealed class ShellViewModelTests
     public async Task Cancelled_sign_in_shows_a_message_and_stays_signed_out()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
+        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs), _theme);
 
         await shell.SignInAsync(Cancellation);
 
@@ -52,7 +54,7 @@ public sealed class ShellViewModelTests
     public async Task Sign_out_forgets_the_user()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs), _theme);
         await shell.SignInAsync(Cancellation);
 
         await shell.SignOutAsync(Cancellation);
@@ -65,7 +67,7 @@ public sealed class ShellViewModelTests
     public async Task Sign_in_opens_the_start_screen_and_shortcuts_open_the_right_form()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs), _theme);
 
         await shell.SignInAsync(Cancellation);
 
@@ -89,5 +91,29 @@ public sealed class ShellViewModelTests
             Cancel ? throw new OperationCanceledException() : Task.FromResult(new SignedInUser("Anna Kowalska", "anna@acme.test"));
 
         public Task SignOutAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    [Fact]
+    public void Theme_menu_marks_the_remembered_theme_and_switching_applies_the_new_one()
+    {
+        var api = new FakeOrganizationApi();
+        _theme.Theme = AppTheme.Dark;
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs), _theme);
+
+        shell.ThemeText.ShouldBe("Motyw: Ciemny");
+        shell.Themes.Single(choice => choice.IsSelected).Theme.ShouldBe(AppTheme.Dark);
+
+        shell.ChangeTheme(shell.Themes.Single(choice => choice.Theme == AppTheme.Light));
+
+        _theme.Theme.ShouldBe(AppTheme.Light);
+        shell.ThemeText.ShouldBe("Motyw: Jasny");
+        shell.Themes.Single(choice => choice.IsSelected).Theme.ShouldBe(AppTheme.Light);
+    }
+
+    private sealed class FakeThemeService : IThemeService
+    {
+        public AppTheme Theme { get; set; }
+
+        public void SetTheme(AppTheme theme) => Theme = theme;
     }
 }

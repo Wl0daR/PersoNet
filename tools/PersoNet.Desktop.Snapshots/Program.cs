@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PersoNet.Desktop;
+using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
@@ -65,7 +66,7 @@ namespace PersoNet.Desktop.Snapshots
             var leave = new LeaveViewModel(api, api, time, dialogs);
             var departments = new DepartmentsViewModel(api, dialogs);
             var positions = new PositionsViewModel(api, dialogs);
-            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, time), employees, leave, departments, positions);
+            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, time), employees, leave, departments, positions, api);
 
             var window = new MainWindow(shell)
             {
@@ -85,6 +86,7 @@ namespace PersoNet.Desktop.Snapshots
             foreach (var theme in new[] { ThemeMode.Light, ThemeMode.Dark })
             {
                 app.ThemeMode = theme;
+                shell.ChangeTheme(shell.Themes.Single(choice => choice.Theme == (theme == ThemeMode.Dark ? AppTheme.Dark : AppTheme.Light)));
                 var suffix = theme == ThemeMode.Dark ? "ciemny" : "jasny";
 
                 if (shell.IsSignedIn)

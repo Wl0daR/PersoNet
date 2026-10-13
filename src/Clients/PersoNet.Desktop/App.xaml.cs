@@ -12,6 +12,7 @@ using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
+using PersoNet.Desktop.Settings;
 
 namespace PersoNet.Desktop;
 
@@ -42,6 +43,8 @@ public partial class App : Application
         builder.Services.AddPersoNetApiClient(new Uri(apiBaseAddress));
 
         builder.Services.AddSingleton<IDialogService, DialogService>();
+        builder.Services.AddSingleton<ThemeService>();
+        builder.Services.AddSingleton<IThemeService>(services => services.GetRequiredService<ThemeService>());
         builder.Services.AddSingleton<HomeViewModel>();
         builder.Services.AddSingleton<EmployeesViewModel>();
         builder.Services.AddSingleton<LeaveViewModel>();
@@ -56,6 +59,7 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         await _host.StartAsync().ConfigureAwait(true);
+        _host.Services.GetRequiredService<ThemeService>().Apply();
 
         var window = _host.Services.GetRequiredService<MainWindow>();
         window.Show();
