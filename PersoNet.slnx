@@ -6,6 +6,7 @@
     <File Path="global.json" />
     <File Path="README.md" />
     <File Path=".github/workflows/ci.yml" />
+    <File Path="dotnet-tools.json" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/Aspire/">
@@ -39,5 +40,6 @@
     <Project Path="tests/PersoNet.Architecture.Tests/PersoNet.Architecture.Tests.csproj" />
     <Project Path="tests/PersoNet.Desktop.Presentation.Tests/PersoNet.Desktop.Presentation.Tests.csproj" />
     <Project Path="tests/PersoNet.Domain.Tests/PersoNet.Domain.Tests.csproj" />
+    <Project Path="tests/PersoNet.Infrastructure.IntegrationTests/PersoNet.Infrastructure.IntegrationTests.csproj" />
   </Folder>
 </Solution>
