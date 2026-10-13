@@ -193,31 +193,33 @@
                     </StackPanel>
 
                     <DockPanel Style="{StaticResource WhenCardOpen}">
-                        <!-- Card header: who this is, at a glance. -->
-                        <DockPanel DockPanel.Dock="Top" Margin="20,20,12,8">
-                            <Border DockPanel.Dock="Left" Style="{StaticResource Avatar}" Width="48" Height="48" CornerRadius="24" VerticalAlignment="Top">
-                                <TextBlock Text="{Binding CardInitials}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <!-- Card header: who this is, at a glance. Kept short so the form below has room on small screens. -->
+                        <DockPanel DockPanel.Dock="Top" Margin="16,16,8,4">
+                            <Border DockPanel.Dock="Left" Style="{StaticResource Avatar}" Width="40" Height="40" CornerRadius="20" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding CardInitials}" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <Button DockPanel.Dock="Right" Command="{Binding CloseCardCommand}" Padding="8" VerticalAlignment="Top"
                                     Background="Transparent" BorderThickness="0" ToolTip="Zamknij kartotekę (Esc)" AutomationProperties.Name="Zamknij kartotekę">
                                 <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="12" />
                             </Button>
-                            <StackPanel Margin="16,0,8,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding EditorTitle}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding CardSubtitle}" Style="{StaticResource SecondaryText}" Margin="0,2,0,0" />
-                                <Border Margin="0,6,0,0">
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource Badge}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsEmployed}" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
-                                                    <Setter Property="TextElement.Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Text="{Binding StatusBadge}" />
-                                </Border>
+                            <StackPanel Margin="12,0,8,0" VerticalAlignment="Center">
+                                <WrapPanel>
+                                    <TextBlock Text="{Binding EditorTitle}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,8,0" />
+                                    <Border VerticalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource Badge}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEmployed}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+                                                        <Setter Property="TextElement.Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding StatusBadge}" />
+                                    </Border>
+                                </WrapPanel>
+                                <TextBlock Text="{Binding CardSubtitle}" Style="{StaticResource SecondaryText}" FontSize="12" Margin="0,2,0,0" />
                             </StackPanel>
                         </DockPanel>
 
