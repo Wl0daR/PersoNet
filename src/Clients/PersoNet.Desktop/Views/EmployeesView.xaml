@@ -140,7 +140,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <!-- Status in words, not color alone. -->
-                                <DataGridTemplateColumn Header="Status" Width="Auto">
+                                <DataGridTemplateColumn Header="Status" Width="Auto" MinWidth="112">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Margin="0,0,8,0">

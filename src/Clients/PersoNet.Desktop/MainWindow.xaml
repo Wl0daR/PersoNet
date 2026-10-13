@@ -82,9 +82,11 @@
             </Grid.ColumnDefinitions>
 
             <!-- Side menu: wide with labels, or icons only when the window is narrow (or the user collapses it). -->
-            <DockPanel x:Name="Navigation" Grid.Column="0" Width="240">
+            <DockPanel x:Name="Navigation" Grid.Column="0">
                 <DockPanel.Style>
+                    <!-- Width only in the style: a local value would win over the trigger. -->
                     <Style TargetType="DockPanel">
+                        <Setter Property="Width" Value="240" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsNavigationCompact, ElementName=Root}" Value="True">
                                 <Setter Property="Width" Value="64" />

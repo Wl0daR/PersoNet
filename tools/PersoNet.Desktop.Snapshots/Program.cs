@@ -133,10 +133,10 @@ namespace PersoNet.Desktop.Snapshots
             const int WmGetMinMaxInfo = 0x0024;
             if (message == WmGetMinMaxInfo)
             {
-                // MINMAXINFO is five POINTs; the last one is ptMaxTrackSize.
+                // MINMAXINFO is five POINTs; the last one is ptMaxTrackSize. Not marked handled, so WPF's own handler
+                // (which runs next) reads the raised limit instead of the screen size.
                 Marshal.WriteInt32(lParam, 8 * 4, 4000);
                 Marshal.WriteInt32(lParam, (8 * 4) + 4, 4000);
-                handled = true;
             }
 
             return IntPtr.Zero;
