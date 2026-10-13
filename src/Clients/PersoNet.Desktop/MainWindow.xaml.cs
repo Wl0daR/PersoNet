@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using PersoNet.Desktop.Presentation.Shell;
 
 namespace PersoNet.Desktop;
@@ -58,6 +59,15 @@ public partial class MainWindow : Window
     }
 
     private void UpdateNavigationMode() => IsNavigationCompact = _userChoice ?? ActualWidth < CompactNavigationBelow;
+
+    // A left click opens the theme menu above the button, like a drop-down.
+    private void OnOpenThemeMenu(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.ContextMenu.DataContext = button.DataContext;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.IsOpen = true;
+    }
 
     private void OnToggleNavigation(object sender, RoutedEventArgs e)
     {

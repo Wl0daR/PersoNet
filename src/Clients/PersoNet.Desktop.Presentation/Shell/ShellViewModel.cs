@@ -15,6 +15,7 @@ namespace PersoNet.Desktop.Presentation.Shell;
 public sealed partial class ShellViewModel : ObservableObject
 {
     private readonly ISignInService _signIn;
+    private readonly IThemeService _theme;
 
     public ShellViewModel(
         ISignInService signIn,
@@ -22,9 +23,11 @@ public sealed partial class ShellViewModel : ObservableObject
         EmployeesViewModel employees,
         LeaveViewModel leave,
         DepartmentsViewModel departments,
-        PositionsViewModel positions)
+        PositionsViewModel positions,
+        IThemeService theme)
     {
         _signIn = signIn;
+        _theme = theme;
         Home = home;
         Employees = employees;
         Leave = leave;
@@ -38,6 +41,40 @@ public sealed partial class ShellViewModel : ObservableObject
         PositionsItem = new NavigationItem("Stanowiska", "\uE821", positions);
         Navigation = [HomeItem, EmployeesItem, LeaveItem, DepartmentsItem, PositionsItem];
         CurrentItem = HomeItem;
+
+        Themes =
+        [
+            new ThemeChoice(AppTheme.System, "Jak w systemie Windows", "\uE770"),
+            new ThemeChoice(AppTheme.Light, "Jasny", "\uE706"),
+            new ThemeChoice(AppTheme.Dark, "Ciemny", "\uE708"),
+        ];
+        Theme = Themes.First(choice => choice.Theme == theme.Theme);
+        Theme.IsSelected = true;
+    }
+
+    /// <summary>Options of the theme menu at the bottom of the side menu.</summary>
+    public IReadOnlyList<ThemeChoice> Themes { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ThemeText))]
+    public partial ThemeChoice Theme { get; set; }
+
+    /// <summary>Label of the theme button, e.g. "Motyw: Jasny".</summary>
+    public string ThemeText => $"Motyw: {Theme.Name}";
+
+    /// <summary>Switches the app to the picked theme at once and keeps it for the next start.</summary>
+    [RelayCommand]
+    public void ChangeTheme(ThemeChoice? choice)
+    {
+        if (choice is null || choice == Theme)
+        {
+            return;
+        }
+
+        Theme.IsSelected = false;
+        choice.IsSelected = true;
+        Theme = choice;
+        _theme.SetTheme(choice.Theme);
     }
 
     [ObservableProperty]

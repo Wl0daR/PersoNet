@@ -6,11 +6,12 @@ using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.Organization;
 using PersoNet.Desktop.Presentation.Authentication;
+using PersoNet.Desktop.Presentation.Common;
 
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISignInService
+internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISignInService, IThemeService
 {
     private readonly List<DepartmentResponse> _departments = [];
     private readonly List<PositionResponse> _positions = [];
@@ -18,6 +19,11 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
     private readonly List<ContractResponse> _contracts = [];
     private readonly List<LeaveRequestResponse> _leave = [];
     private readonly Dictionary<(Guid EmployeeId, int Year), (int Days, int CarriedOver)> _entitlements = [];
+
+    // The snapshots switch the theme themselves; the menu only shows it.
+    public AppTheme Theme { get; private set; } = AppTheme.System;
+
+    public void SetTheme(AppTheme theme) => Theme = theme;
 
     public DemoApi()
     {

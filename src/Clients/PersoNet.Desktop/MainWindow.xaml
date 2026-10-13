@@ -129,6 +129,30 @@
                     </DockPanel>
                 </Border>
 
+                <!-- Theme: light, dark or as in Windows; the menu opens above the button. -->
+                <Button DockPanel.Dock="Bottom" Margin="8,0,8,0" Padding="12,8" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                        Background="Transparent" BorderThickness="0" Click="OnOpenThemeMenu"
+                        ToolTip="Wygląd aplikacji: jasny, ciemny albo jak w systemie Windows" AutomationProperties.Name="{Binding ThemeText}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Theme.Glyph}" Style="{StaticResource Icon}" Width="16" />
+                        <TextBlock Text="{Binding ThemeText}" Margin="16,0,0,0" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding IsNavigationExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+                    <Button.ContextMenu>
+                        <ContextMenu ItemsSource="{Binding Themes}" Placement="Top">
+                            <ContextMenu.ItemContainerStyle>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                    <Setter Property="Header" Value="{Binding Name}" />
+                                    <Setter Property="IsCheckable" Value="False" />
+                                    <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                                    <Setter Property="Command" Value="{Binding DataContext.ChangeThemeCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                    <Setter Property="CommandParameter" Value="{Binding}" />
+                                </Style>
+                            </ContextMenu.ItemContainerStyle>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+
                 <ListBox ItemsSource="{Binding Navigation}" SelectedItem="{Binding CurrentItem}" Margin="8,0"
                          Background="Transparent" BorderThickness="0" AutomationProperties.Name="Menu główne"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
