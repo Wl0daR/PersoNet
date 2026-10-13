@@ -34,8 +34,14 @@ internal sealed class FakeLeaveApi : ILeaveApi
             throw new ApiException(HttpStatusCode.BadRequest, "Najpierw ustaw wymiar urlopu pracownika na ten rok.", "leave.no_entitlement");
         }
 
+        if (request.Hours is > 8)
+        {
+            throw new ApiException(HttpStatusCode.BadRequest, "Podaj liczbę godzin nie większą niż dzień pracy pracownika (8 godz.).", "leave.hours_invalid");
+        }
+
         var created = new LeaveRequestResponse(
-            Guid.CreateVersion7(), request.EmployeeId, "P001", "Nowak Jan", request.Kind, request.StartDate, request.EndDate, days, request.Note,
+            Guid.CreateVersion7(), request.EmployeeId, "P001", "Nowak Jan", request.Kind, request.StartDate, request.EndDate, days,
+            request.Hours ?? days * 8m, request.Hours is not null, request.Note,
             LeaveState.Pending, DateTimeOffset.UtcNow, null, null);
         Requests.Add(created);
         return Task.FromResult(created);
@@ -52,12 +58,12 @@ internal sealed class FakeLeaveApi : ILeaveApi
         var has = Entitlements.TryGetValue((employeeId, year), out var entitlement);
         var annual = Requests.Where(request => request.EmployeeId == employeeId && request.StartDate.Year == year
             && request.Kind is LeaveKind.Annual or LeaveKind.OnDemand).ToList();
-        var used = annual.Where(request => request.State == LeaveState.Approved).Sum(request => request.Days);
-        var pending = annual.Where(request => request.State == LeaveState.Pending).Sum(request => request.Days);
-        var total = has ? entitlement!.Days + entitlement.CarriedOverDays : 0;
+        var used = annual.Where(request => request.State == LeaveState.Approved).Sum(request => request.Hours);
+        var pending = annual.Where(request => request.State == LeaveState.Pending).Sum(request => request.Hours);
+        var total = has ? (entitlement!.Days + entitlement.CarriedOverDays) * 8m : 0;
 
         return Task.FromResult(new LeaveBalanceResponse(
-            employeeId, year, has, entitlement?.Days ?? 0, entitlement?.CarriedOverDays ?? 0, used, pending, total - used - pending, 0));
+            employeeId, year, has, entitlement?.Days ?? 0, entitlement?.CarriedOverDays ?? 0, total, used, pending, total - used - pending, 0, 8m));
     }
 
     public Task<LeaveBalanceResponse> SetEntitlementAsync(Guid employeeId, int year, SaveLeaveEntitlementRequest request, CancellationToken cancellationToken)
@@ -69,7 +75,7 @@ internal sealed class FakeLeaveApi : ILeaveApi
     public LeaveRequestResponse Add(Guid employeeId, DateOnly start, DateOnly end, LeaveState state = LeaveState.Pending)
     {
         var request = new LeaveRequestResponse(
-            Guid.CreateVersion7(), employeeId, "P001", "Nowak Jan", LeaveKind.Annual, start, end, 1, null, state, DateTimeOffset.UtcNow, null, null);
+            Guid.CreateVersion7(), employeeId, "P001", "Nowak Jan", LeaveKind.Annual, start, end, 1, 8m, false, null, state, DateTimeOffset.UtcNow, null, null);
         Requests.Add(request);
         return request;
     }

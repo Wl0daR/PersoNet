@@ -238,6 +238,15 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("end_date");
 
+                    b.Property<decimal>("Hours")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("hours");
+
+                    b.Property<bool>("IsHourly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_hourly");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")

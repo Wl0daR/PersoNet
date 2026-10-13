@@ -152,6 +152,13 @@ namespace PersoNet.Desktop.Snapshots
                     await RenderAsync(window, size, Path.Combine(output, $"16-nowy-wniosek-{size.Name}-{suffix}.png"));
                 }
 
+                // The same form for leave in hours.
+                leave.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == PersoNet.Contracts.Leave.LeaveKind.ChildCare);
+                leave.IsHourly = true;
+                leave.EditHours = "3";
+                await RenderAsync(window, Sizes[1], Path.Combine(output, $"17-wniosek-na-godziny-srodek-{suffix}.png"));
+                await RenderAsync(window, Sizes[2], Path.Combine(output, $"17-wniosek-na-godziny-laptop150-{suffix}.png"));
+
                 leave.ClosePaneCommand.Execute(null);
                 leave.StateFilter = LeaveViewModel.States[0];
             }

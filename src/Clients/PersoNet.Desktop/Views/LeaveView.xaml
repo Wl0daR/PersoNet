@@ -185,8 +185,8 @@
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding KindName}" TextWrapping="Wrap" Margin="0,4" />
                                     <TextBlock Grid.Row="1" Text="Termin" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Period}" TextWrapping="Wrap" Margin="0,4" />
-                                    <TextBlock Grid.Row="2" Text="Dni robocze" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DaysText}" FontWeight="SemiBold" Margin="0,4" />
+                                    <TextBlock Grid.Row="2" Text="Wymiar" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ExtentText}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4" />
                                     <TextBlock Grid.Row="3" Text="Uwagi" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Request.Note, TargetNullValue='—'}" TextWrapping="Wrap" Margin="0,4" />
                                 </Grid>
@@ -250,22 +250,32 @@
                                           AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
                                 <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=KindBox}" Style="{StaticResource FieldError}" />
 
-                                <!-- First and last day side by side; they wrap under each other when the pane is narrow. -->
+                                <!-- Child care, force majeure and the rest of annual leave may be taken in hours (Kodeks pracy). -->
+                                <CheckBox x:Name="HourlyBox" Content="Na _godziny (w jednym dniu)" IsChecked="{Binding IsHourly}" Margin="0,12,0,0"
+                                          Visibility="{Binding CanUseHours, Converter={StaticResource BoolToVisibility}}" />
+
+                                <!-- First and last day side by side, or the day and its hours; they wrap under each other when the pane is narrow. -->
                                 <WrapPanel>
                                     <StackPanel Width="200" Margin="0,0,12,0">
-                                        <Label Content="_Od *" Target="{Binding ElementName=StartBox}" Padding="0" Margin="0,16,0,4" />
+                                        <Label Content="{Binding StartLabel}" Target="{Binding ElementName=StartBox}" Padding="0" Margin="0,16,0,4" />
                                         <DatePicker x:Name="StartBox" SelectedDate="{Binding EditStartDate}"
                                                     AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
                                         <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=StartBox}" Style="{StaticResource FieldError}" />
                                     </StackPanel>
-                                    <StackPanel Width="200">
+                                    <StackPanel Width="200" Visibility="{Binding IsHourly, Converter={StaticResource CollapsedWhenTrue}}">
                                         <Label Content="_Do (włącznie) *" Target="{Binding ElementName=EndBox}" Padding="0" Margin="0,16,0,4" />
                                         <DatePicker x:Name="EndBox" SelectedDate="{Binding EditEndDate}"
                                                     AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
                                         <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EndBox}" Style="{StaticResource FieldError}" />
                                     </StackPanel>
+                                    <StackPanel Width="200" Visibility="{Binding IsHourly, Converter={StaticResource BoolToVisibility}}">
+                                        <Label Content="_Liczba godzin *" Target="{Binding ElementName=HoursBox}" Padding="0" Margin="0,16,0,4" />
+                                        <TextBox x:Name="HoursBox" Text="{Binding EditHours, UpdateSourceTrigger=PropertyChanged}" MaxLength="5" Width="120" HorizontalAlignment="Left"
+                                                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=HoursBox}" Style="{StaticResource FieldError}" />
+                                    </StackPanel>
                                 </WrapPanel>
-                                <TextBlock Text="Liczą się dni robocze: bez weekendów i świąt." Style="{StaticResource HelperText}" />
+                                <TextBlock Text="{Binding PeriodHint}" Style="{StaticResource HelperText}" TextWrapping="Wrap" />
 
                                 <Border Style="{StaticResource Card}" Padding="12" Margin="0,16,0,0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                                         Visibility="{Binding BalanceText, Converter={StaticResource CollapsedWhenEmpty}}">

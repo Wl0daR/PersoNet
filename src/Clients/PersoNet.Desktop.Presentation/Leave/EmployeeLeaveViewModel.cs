@@ -29,7 +29,7 @@ public sealed partial class EmployeeLeaveViewModel(ILeaveApi api, TimeProvider t
     public partial int Year { get; set; } = time.GetLocalNow().Year;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Summary), nameof(HasEntitlement))]
+    [NotifyPropertyChangedFor(nameof(Summary), nameof(HasEntitlement), nameof(RemainingText), nameof(TotalText))]
     public partial LeaveBalanceResponse? Balance { get; set; }
 
     /// <summary>Days of the yearly entitlement, as typed.</summary>
@@ -44,12 +44,19 @@ public sealed partial class EmployeeLeaveViewModel(ILeaveApi api, TimeProvider t
 
     public bool HasEntitlement => Balance?.HasEntitlement == true;
 
+    /// <summary>What is left, e.g. "13 dni 4 godz."</summary>
+    public string RemainingText => Balance is { HasEntitlement: true } balance ? LeaveTexts.Amount(balance.RemainingHours) : string.Empty;
+
+    /// <summary>The whole entitlement with carried-over days, e.g. "z 26 dni".</summary>
+    public string TotalText => Balance is { HasEntitlement: true } balance ? $"z {LeaveTexts.Amount(balance.TotalHours)}" : string.Empty;
+
     /// <summary>"Zostało 14 dni" with the parts it is made of.</summary>
     public string Summary => Balance is not { } balance
         ? string.Empty
         : !balance.HasEntitlement
             ? $"Wymiar urlopu na {balance.Year} nie jest jeszcze ustawiony. Zwykle 20 dni, a po 10 latach pracy (z nauką) 26 dni; przy niepełnym etacie proporcjonalnie mniej."
-            : $"Wykorzystano {LeaveTexts.Days(balance.UsedDays)}, {LeaveTexts.Days(balance.PendingDays)} czeka na decyzję, w tym na żądanie {LeaveTexts.Days(balance.OnDemandDays)} z 4.";
+            : $"Wykorzystano {LeaveTexts.Amount(balance.UsedHours)}, {LeaveTexts.Amount(balance.PendingHours)} czeka na decyzję, na żądanie {LeaveTexts.Days(balance.OnDemandDays)} z 4."
+                + (balance.DailyHours != LeaveTexts.HoursPerDay ? $" Niepełny etat: dzień urlopu to {LeaveTexts.Hours(balance.DailyHours)}" : string.Empty);
 
     public async Task ShowAsync(EmployeeResponse? employee, CancellationToken cancellationToken)
     {

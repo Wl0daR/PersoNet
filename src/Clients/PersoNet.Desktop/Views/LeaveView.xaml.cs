@@ -7,6 +7,6 @@ public partial class LeaveView : UserControl
     public LeaveView()
     {
         InitializeComponent();
-        FormFocus.Attach(this, EmployeeBox, KindBox, StartBox, EndBox, NoteBox, DecisionBox);
+        FormFocus.Attach(this, EmployeeBox, KindBox, StartBox, EndBox, HoursBox, NoteBox, DecisionBox);
     }
 }

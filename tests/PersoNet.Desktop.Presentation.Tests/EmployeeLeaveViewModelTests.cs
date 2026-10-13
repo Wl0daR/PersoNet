@@ -31,7 +31,8 @@ public sealed class EmployeeLeaveViewModelTests
         await viewModel.SaveEntitlementAsync(Cancellation);
 
         viewModel.HasEntitlement.ShouldBeTrue();
-        viewModel.Balance!.RemainingDays.ShouldBe(29);
+        viewModel.Balance!.RemainingHours.ShouldBe(232m);
+        viewModel.RemainingText.ShouldBe("29 dni");
         _leave.Entitlements[(employee.Id, 2025)].ShouldBe(new SaveLeaveEntitlementRequest(26, 4));
     }
 

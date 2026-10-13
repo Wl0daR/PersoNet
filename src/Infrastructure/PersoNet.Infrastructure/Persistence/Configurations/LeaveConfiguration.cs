@@ -20,6 +20,7 @@ internal sealed class LeaveRequestConfiguration : IEntityTypeConfiguration<Leave
         builder.Property(request => request.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(request => request.Note).HasMaxLength(LeaveRequest.NoteMaxLength);
         builder.Property(request => request.DecisionNote).HasMaxLength(LeaveRequest.NoteMaxLength);
+        builder.Property(request => request.Hours).HasPrecision(6, 2);
         builder.Ignore(request => request.IsActive);
         builder.Ignore(request => request.UsesAnnualLeave);
 
@@ -40,6 +41,7 @@ internal sealed class LeaveEntitlementConfiguration : IEntityTypeConfiguration<L
         builder.HasKey(entitlement => entitlement.Id);
         builder.Property(entitlement => entitlement.Id).ValueGeneratedNever();
         builder.Ignore(entitlement => entitlement.Total);
+        builder.Ignore(entitlement => entitlement.TotalHours);
 
         // One entitlement per employee and year.
         builder.HasIndex(entitlement => new { entitlement.TenantId, entitlement.EmployeeId, entitlement.Year }).IsUnique();

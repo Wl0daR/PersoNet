@@ -10,6 +10,9 @@ public sealed class LeaveEntitlement : Entity, ITenantOwned
 {
     public const int MaxDays = 60;
 
+    /// <summary>One day of leave is 8 hours when the entitlement is turned into hours (art. 154² § 1 KP), also for part-time work.</summary>
+    public const int HoursPerDay = 8;
+
     // Used by EF Core.
     private LeaveEntitlement()
     {
@@ -34,6 +37,9 @@ public sealed class LeaveEntitlement : Entity, ITenantOwned
     public int CarriedOverDays { get; private set; }
 
     public int Total => Days + CarriedOverDays;
+
+    /// <summary>The whole entitlement in hours, which leave is taken from.</summary>
+    public int TotalHours => Total * HoursPerDay;
 
     public static LeaveEntitlement Create(Guid tenantId, Guid employeeId, int year, int days, int carriedOverDays)
     {

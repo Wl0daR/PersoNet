@@ -101,7 +101,64 @@ public sealed class LeaveViewModelTests
         await viewModel.SaveEntitlementAsync(Cancellation);
 
         viewModel.HasEntitlement.ShouldBeTrue();
-        viewModel.Balance!.RemainingDays.ShouldBe(29);
+        viewModel.Balance!.RemainingHours.ShouldBe(232m);
+        viewModel.RemainingText.ShouldBe("29 dni");
         _leave.Entitlements[(employee.Id, 2025)].Days.ShouldBe(26);
     }
+
+    [Fact]
+    public async Task Leave_in_hours_is_one_day_and_only_for_kinds_that_allow_it()
+    {
+        var employee = _employees.Add("P001", "Jan", "Nowak");
+        var viewModel = CreateViewModel();
+        await viewModel.LoadAsync(Cancellation);
+        viewModel.New();
+        viewModel.EditEmployee = viewModel.Employees.Single(choice => choice.Id == employee.Id);
+
+        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.OnDemand);
+        viewModel.CanUseHours.ShouldBeFalse();
+
+        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
+        viewModel.IsHourly = true;
+        viewModel.EditStartDate = new DateTime(2025, 6, 2);
+        viewModel.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
+
+        viewModel.EditHours = "dwie";
+        await viewModel.SaveAsync(Cancellation);
+        viewModel.GetError(nameof(viewModel.EditHours)).ShouldNotBeNull();
+
+        viewModel.EditHours = "9";
+        await viewModel.SaveAsync(Cancellation);
+        viewModel.GetError(nameof(viewModel.EditHours)).ShouldNotBeNull();
+        viewModel.IsCreating.ShouldBeTrue();
+
+        viewModel.EditHours = "2:30";
+        await viewModel.SaveAsync(Cancellation);
+
+        viewModel.Selected!.Request.IsHourly.ShouldBeTrue();
+        viewModel.Selected.Request.Hours.ShouldBe(2.5m);
+        viewModel.Selected.DaysText.ShouldBe("2,5 godz.");
+
+        viewModel.New();
+        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
+        viewModel.IsHourly = true;
+        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
+        viewModel.IsHourly.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(0, "0 godz.")]
+    [InlineData(4, "4 godz.")]
+    [InlineData(8, "1 dzień")]
+    [InlineData(108, "13 dni 4 godz.")]
+    [InlineData(2.5, "2,5 godz.")]
+    [InlineData(-3, "0 godz.")]
+    public void Leave_time_reads_in_days_of_8_hours(double hours, string text) => LeaveTexts.Amount((decimal)hours).ShouldBe(text);
+
+    [Theory]
+    [InlineData("2", 2)]
+    [InlineData("2,5", 2.5)]
+    [InlineData("2.25", 2.25)]
+    [InlineData("1:45", 1.75)]
+    public void Hours_can_be_typed_in_common_ways(string text, double hours) => LeaveTexts.ParseHours(text).ShouldBe((decimal)hours);
 }
