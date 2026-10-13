@@ -32,7 +32,7 @@ Aplikacja desktopowa dla kadr (Windows), przy działającym AppHost:
 dotnet run --project src/Clients/PersoNet.Desktop
 ```
 
-Przycisk **Zaloguj przez przeglądarkę** otwiera stronę serwera logowania w domyślnej przeglądarce (np. konto demo poniżej), a po zalogowaniu aplikacja ma zakładki **Pracownicy**, **Działy** i **Stanowiska**. Adresy domyślnie wskazują lokalne środowisko (serwer logowania https://localhost:7057, API https://localhost:7016); dla innego serwera ustawia się je w `appsettings.json` obok programu (`Identity:Authority`, `PersoNetApi:BaseAddress`).
+Przycisk **Zaloguj przez przeglądarkę** otwiera stronę serwera logowania w domyślnej przeglądarce (np. konto demo poniżej), a po zalogowaniu aplikacja ma menu boczne z ekranami **Start**, **Pracownicy**, **Działy** i **Stanowiska** (Ctrl+1…4). Adresy domyślnie wskazują lokalne środowisko (serwer logowania https://localhost:7057, API https://localhost:7016); dla innego serwera ustawia się je w `appsettings.json` obok programu (`Identity:Authority`, `PersoNetApi:BaseAddress`).
 
 W środowisku Development API i serwer logowania przy starcie same stosują brakujące migracje bazy.
 
@@ -59,6 +59,12 @@ Testy integracyjne używają lokalnego PostgreSQL i same tworzą swoje bazy (`pe
 
 ```powershell
 $env:PERSONET_TEST_POSTGRES = "Host=localhost;Port=5432;Username=postgres;Password=<hasło>"
+```
+
+Zrzuty ekranów aplikacji desktopowej (wszystkie ekrany w kilku rozmiarach okna, jasny i ciemny motyw, dane demonstracyjne) robi narzędzie `tools/PersoNet.Desktop.Snapshots`; CI uruchamia je na Windows i dołącza obrazy do buildu. Lokalnie (Windows):
+
+```bash
+dotnet run --project tools/PersoNet.Desktop.Snapshots -- snapshots
 ```
 
 ## Migracje bazy

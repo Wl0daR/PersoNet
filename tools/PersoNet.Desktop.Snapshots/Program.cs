@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PersoNet.Desktop;
 using PersoNet.Desktop.Presentation.Employees;
+using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
 using PersoNet.Desktop.Snapshots;
@@ -48,7 +49,7 @@ namespace PersoNet.Desktop.Snapshots
             var api = new DemoApi();
             var time = TimeProvider.System;
             var employees = new EmployeesViewModel(api, api, time);
-            var shell = new ShellViewModel(api, employees, new DepartmentsViewModel(api), new PositionsViewModel(api));
+            var shell = new ShellViewModel(api, new HomeViewModel(api, api, time), employees, new DepartmentsViewModel(api), new PositionsViewModel(api));
 
             var window = new MainWindow(shell)
             {
@@ -74,7 +75,7 @@ namespace PersoNet.Desktop.Snapshots
 
                 await shell.SignInAsync(CancellationToken.None);
 
-                var pages = Pages(window);
+                var pages = Pages(shell);
                 for (var index = 0; index < pages.Count; index++)
                 {
                     pages[index].Select();
@@ -86,7 +87,7 @@ namespace PersoNet.Desktop.Snapshots
                 }
 
                 // An open employee card with contracts, on the employees page.
-                pages[0].Select();
+                shell.NavigateCommand.Execute(shell.EmployeesItem);
                 await employees.OpenAsync(api.ListItem(api.FirstEmployeeWithContracts), CancellationToken.None);
                 foreach (var size in Sizes)
                 {
@@ -98,19 +99,22 @@ namespace PersoNet.Desktop.Snapshots
                 employees.EditEmail = "zly adres";
                 await employees.SaveAsync(CancellationToken.None);
                 await RenderAsync(window, Sizes[2], Path.Combine(output, $"11-karta-bledy-laptop150-{suffix}.png"));
-                employees.NewCommand.Execute(null);
+                employees.CloseCardCommand.Execute(null);
+
+                // The contracts tab of the same card.
+                await employees.OpenAsync(api.ListItem(api.FirstEmployeeWithContracts), CancellationToken.None);
+                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 2).SelectedIndex = 1;
+                await RenderAsync(window, Sizes[1], Path.Combine(output, $"12-umowy-srodek-{suffix}.png"));
+                await RenderAsync(window, Sizes[2], Path.Combine(output, $"12-umowy-laptop150-{suffix}.png"));
+                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 2).SelectedIndex = 0;
+                employees.CloseCardCommand.Execute(null);
             }
 
             window.Close();
         }
 
-        private static List<(string Name, Action Select)> Pages(Window window)
-        {
-            var tabs = FindAll<TabControl>(window).First();
-            return tabs.Items.Cast<TabItem>()
-                .Select((tab, index) => (Slug(tab.Header?.ToString() ?? $"strona{index}"), (Action)(() => tabs.SelectedIndex = index)))
-                .ToList();
-        }
+        private static List<(string Name, Action Select)> Pages(ShellViewModel shell) =>
+            shell.Navigation.Select(item => (Slug(item.Title), (Action)(() => shell.NavigateCommand.Execute(item)))).ToList();
 
         private static async Task RenderAsync(Window window, (string Name, double Width, double Height) size, string path)
         {

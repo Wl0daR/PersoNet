@@ -1,6 +1,7 @@
 <Application x:Class="PersoNet.Desktop.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PersoNet.Desktop"
              ThemeMode="System">
     <!--
         Visual rules (from the ui-ux-pro-max review, adapted to a dense desktop admin tool):
@@ -8,15 +9,63 @@
         - every field has a visible label (Label with Target, Padding 0, Margin 0,16,0,4) with an access key, helper text where the format is not obvious,
           and its error directly under it; a form-level message only for errors not tied to a field;
         - one accent (primary) button per form; long operations show a progress bar and lock the form;
-        - spacing on a 4 px grid: 4 / 8 / 12 / 16 / 24.
+        - spacing on a 4 px grid: 4 / 8 / 12 / 16 / 24;
+        - nothing has a fixed width that the window could squeeze: columns are proportional with minimums, button rows wrap,
+          and long text trims or wraps (checked by the screenshots CI renders at 911 x 512, a 1366 x 768 laptop at 150 %);
+        - icons come from the system icon font (SymbolThemeFontFamily) and always sit next to text or carry a tooltip and an
+          automation name.
     -->
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <local:CollapsedWhenTrueConverter x:Key="CollapsedWhenTrue" />
 
         <!-- Shared text styles. -->
         <Style x:Key="PageTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontSize" Value="24" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <!-- Heading of a group of fields inside a form ("Kontakt", "Zatrudnienie"). -->
+        <Style x:Key="FormSection" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,24,0,0" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+        </Style>
+
+        <!-- Glyph from the system icon font (Segoe Fluent Icons, or Segoe MDL2 Assets on Windows 10). -->
+        <Style x:Key="Icon" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource SymbolThemeFontFamily}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Round avatar with initials; the size is set where it is used. -->
+        <Style x:Key="Avatar" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+            <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+
+        <!-- Small pill with a status in words ("Zatrudniony", "obowiązuje"); colour only reinforces the text. -->
+        <Style x:Key="Badge" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SystemFillColorNeutralBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="8,1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextElement.FontSize" Value="12" />
+        </Style>
+
+        <Style x:Key="SuccessBadge" TargetType="Border" BasedOn="{StaticResource Badge}">
+            <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
         </Style>
 
         <Style x:Key="SectionTitle" TargetType="TextBlock">
@@ -69,6 +118,21 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <!-- Bar under a form that keeps its buttons visible while the fields above scroll. -->
+        <Style x:Key="ActionBar" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource DividerStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="16,12" />
+        </Style>
+
+        <!-- Centered message where a list or a card has nothing to show: what happened and what to do next. -->
+        <Style x:Key="EmptyState" TargetType="StackPanel">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="MaxWidth" Value="320" />
+            <Setter Property="Margin" Value="16" />
         </Style>
 
         <!--

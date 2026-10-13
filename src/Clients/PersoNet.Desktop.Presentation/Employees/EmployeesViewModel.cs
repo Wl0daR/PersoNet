@@ -12,6 +12,7 @@ namespace PersoNet.Desktop.Presentation.Employees;
 
 /// <summary>
 /// "Pracownicy" screen: a searchable, paged list on the left and the selected or new employee's card on the right.
+/// The card is hidden until someone is picked or "Dodaj pracownika" is clicked.
 /// </summary>
 public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganizationApi organization, TimeProvider time) : EditorViewModel
 {
@@ -27,7 +28,11 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
 
     private static readonly CultureInfo Polish = CultureInfo.GetCultureInfo("pl-PL");
 
+    /// <summary>Pause after the last key press before the list is searched, so typing does not query on every key.</summary>
+    public static readonly TimeSpan SearchDelay = TimeSpan.FromMilliseconds(400);
+
     private List<EmployeeLookupItem> _managerCandidates = [];
+    private CancellationTokenSource? _pendingSearch;
 
     public ObservableCollection<EmployeeListItem> Items { get; } = [];
 
@@ -69,7 +74,7 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
     public partial EmployeeListItem? Selected { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNew), nameof(EditorTitle), nameof(IsTerminated), nameof(IsEmployed), nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(IsNew), nameof(EditorTitle), nameof(IsTerminated), nameof(IsEmployed), nameof(StatusText), nameof(StatusBadge), nameof(CardInitials), nameof(CardSubtitle))]
     [NotifyCanExecuteChangedFor(nameof(TerminateCommand), nameof(ReinstateCommand))]
     public partial EmployeeResponse? Current { get; set; }
 
@@ -104,6 +109,10 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
     [ObservableProperty]
     public partial DateTime? TerminationLastDay { get; set; }
 
+    /// <summary>True while a card (existing or new) is shown next to the list.</summary>
+    [ObservableProperty]
+    public partial bool IsCardOpen { get; set; }
+
     public bool IsNew => Current is null;
 
     public bool IsTerminated => Current?.TerminationDate is not null;
@@ -116,6 +125,21 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
         ? $"Zatrudnienie zakończone, ostatni dzień pracy: {lastDay.ToString("d MMMM yyyy", Polish)}."
         : Current is null ? string.Empty : "Zatrudniony.";
 
+    /// <summary>Short status for the badge in the card header.</summary>
+    public string StatusBadge => Current is null ? "Nowa kartoteka" : Current.TerminationDate is null ? "Zatrudniony" : "Były pracownik";
+
+    public string CardInitials => Current is { } employee ? Initials.Of(employee.FirstName, employee.LastName) : "+";
+
+    /// <summary>Number, position and department under the name in the card header.</summary>
+    public string CardSubtitle => Current is not { } employee
+        ? "Uzupełnij dane i kliknij Zapisz."
+        : string.Join(" · ", new[]
+        {
+            employee.Number,
+            Find(Positions, employee.PositionId)?.Name,
+            Find(Departments, employee.DepartmentId)?.Name,
+        }.Where(part => !string.IsNullOrEmpty(part)));
+
     public string PageInfo => TotalCount == 0
         ? string.Empty
         : $"Strona {Page} z {Math.Max(TotalPages, 1)} · {Pluralize(TotalCount)}";
@@ -123,8 +147,17 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
     public string EmptyTitle => string.IsNullOrWhiteSpace(Search) && !IncludeFormer ? "Nie ma jeszcze pracowników" : "Nikt nie pasuje do wyszukiwania";
 
     public string EmptyHint => string.IsNullOrWhiteSpace(Search) && !IncludeFormer
-        ? "Wypełnij kartotekę w formularzu obok i kliknij Zapisz, aby dodać pierwszą osobę."
+        ? "Kliknij „Dodaj pracownika”, aby założyć pierwszą kartotekę."
         : "Sprawdź pisownię albo zaznacz „Pokaż byłych pracowników”.";
+
+    /// <summary>Closes the card and goes back to the list alone.</summary>
+    [RelayCommand]
+    public void CloseCard()
+    {
+        Selected = null;
+        Show(null);
+        IsCardOpen = false;
+    }
 
     /// <summary>Loads the pickers (departments, positions, managers) and the first page of the list.</summary>
     [RelayCommand]
@@ -262,6 +295,29 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
 
     partial void OnIncludeFormerChanged(bool value) => _ = SearchAsync(CancellationToken.None);
 
+    // Search as you type: each key press restarts the wait, and only the last one runs the search.
+    partial void OnSearchChanged(string value)
+    {
+        _pendingSearch?.Cancel();
+        _pendingSearch?.Dispose();
+        _pendingSearch = new CancellationTokenSource();
+        _ = SearchAfterPauseAsync(_pendingSearch.Token);
+    }
+
+    private async Task SearchAfterPauseAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(SearchDelay, time, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        await SearchAsync(cancellationToken);
+    }
+
     private bool HasPreviousPage() => Page > 1;
 
     private bool HasNextPage() => Page < TotalPages;
@@ -290,6 +346,7 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
     private void Show(EmployeeResponse? employee)
     {
         Current = employee;
+        IsCardOpen = true;
         ClearAllErrors();
 
         EditNumber = employee?.Number ?? string.Empty;

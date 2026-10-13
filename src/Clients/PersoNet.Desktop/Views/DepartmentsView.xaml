@@ -11,101 +11,133 @@
         <KeyBinding Key="F5" Command="{Binding LoadCommand}" />
     </UserControl.InputBindings>
 
-    <Grid Margin="0,16,0,0">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MinWidth="320" />
-            <ColumnDefinition Width="16" />
-            <ColumnDefinition Width="400" />
-        </Grid.ColumnDefinitions>
-
-        <!-- Department tree. -->
-        <Border Grid.Column="0" Style="{StaticResource Card}">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <Button DockPanel.Dock="Right" Content="Odśwież" Command="{Binding LoadCommand}" ToolTip="Wczytaj działy ponownie (F5)" />
-                    <StackPanel>
-                        <TextBlock Text="Struktura działów" Style="{StaticResource SectionTitle}" />
-                        <CheckBox Content="Pokaż nie_aktywne" IsChecked="{Binding ShowInactive}" />
+    <DockPanel>
+        <!-- Page header: what this screen is, and its main action on the right. -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Button Command="{Binding LoadCommand}" Padding="8" Margin="0,0,8,0" ToolTip="Odśwież (F5)" AutomationProperties.Name="Odśwież">
+                    <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" />
+                </Button>
+                <Button Command="{Binding NewCommand}" Style="{DynamicResource AccentButtonStyle}" Padding="12,8" ToolTip="Nowy dział pod zaznaczonym (Ctrl+N)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8F4;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
+                        <TextBlock Text="Nowy dział" />
                     </StackPanel>
-                </DockPanel>
-
-                <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}">
-                    <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie" />
-                </Border>
-
-                <Grid>
-                    <TreeView x:Name="Tree" ItemsSource="{Binding Roots}" SelectedItemChanged="OnSelectedItemChanged"
-                              AutomationProperties.Name="Struktura działów" BorderThickness="0" Background="Transparent">
-                        <TreeView.ItemTemplate>
-                            <HierarchicalDataTemplate DataType="{x:Type org:DepartmentNode}" ItemsSource="{Binding Children}">
-                                <TextBlock Text="{Binding DisplayName}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Style.Triggers>
-                                                <!-- The "nieaktywny" suffix carries the meaning; the grey only reinforces it. -->
-                                                <DataTrigger Binding="{Binding Department.IsActive}" Value="False">
-                                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </HierarchicalDataTemplate>
-                        </TreeView.ItemTemplate>
-                        <TreeView.ItemContainerStyle>
-                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
-                                <Setter Property="IsExpanded" Value="True" />
-                            </Style>
-                        </TreeView.ItemContainerStyle>
-                    </TreeView>
-
-                    <!-- Empty state: say what to do next instead of showing a blank area. -->
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="320"
-                                Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock Text="Nie ma jeszcze działów" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" />
-                        <TextBlock Text="Wpisz nazwę i kod pierwszego działu w formularzu obok i kliknij Zapisz."
-                                   Style="{StaticResource SecondaryText}" TextAlignment="Center" />
-                    </StackPanel>
-                </Grid>
-            </DockPanel>
-        </Border>
-
-        <!-- Editor of the selected or new department. -->
-        <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
-            <StackPanel IsEnabled="{Binding IsIdle}">
-                <TextBlock Text="{Binding EditorTitle}" Style="{StaticResource SectionTitle}" />
-                <TextBlock Text="Pola oznaczone * są wymagane." Style="{StaticResource HelperText}" />
-
-                <Label Content="_Nazwa *" Target="{Binding ElementName=NameBox}" Padding="0" Margin="0,16,0,4" />
-                <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
-                         MaxLength="{x:Static org:DepartmentsViewModel.NameMaxLength}"
-                         AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NameBox}" Style="{StaticResource FieldError}" />
-
-                <Label Content="_Kod *" Target="{Binding ElementName=CodeBox}" Padding="0" Margin="0,16,0,4" />
-                <TextBox x:Name="CodeBox" Text="{Binding EditCode, UpdateSourceTrigger=PropertyChanged}"
-                         CharacterCasing="Upper" MaxLength="{x:Static org:DepartmentsViewModel.CodeMaxLength}"
-                         AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                <TextBlock Text="Krótki, unikalny skrót działu, np. IT albo KAD." Style="{StaticResource HelperText}" />
-                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=CodeBox}" Style="{StaticResource FieldError}" />
-
-                <Label Content="_Dział nadrzędny" Target="{Binding ElementName=ParentBox}" Padding="0" Margin="0,16,0,4" />
-                <ComboBox x:Name="ParentBox" ItemsSource="{Binding ParentOptions}" SelectedItem="{Binding EditParent}" DisplayMemberPath="Name"
-                          HorizontalAlignment="Stretch"
-                          AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                <TextBlock Text="Zostaw puste, jeśli to dział najwyższego poziomu." Style="{StaticResource HelperText}" />
-                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=ParentBox}" Style="{StaticResource FieldError}" />
-
-                <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
-
-                <!-- One primary action; deactivation sits apart on the right. -->
-                <DockPanel Margin="0,24,0,0" LastChildFill="False">
-                    <Button DockPanel.Dock="Left" Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True"
-                            Style="{DynamicResource AccentButtonStyle}" MinWidth="96" Margin="0,0,8,0" ToolTip="Zapisz zmiany (Enter)" />
-                    <Button DockPanel.Dock="Left" Content="Nowy dział" Command="{Binding NewCommand}" ToolTip="Nowy dział pod zaznaczonym (Ctrl+N)" />
-                    <Button DockPanel.Dock="Right" Content="{Binding ToggleActiveText}" Command="{Binding ToggleActiveCommand}" />
-                </DockPanel>
+                </Button>
             </StackPanel>
-        </Border>
-    </Grid>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Działy" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="Struktura organizacyjna firmy: działy i ich poddziały." Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+            </StackPanel>
+        </DockPanel>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" MinWidth="300" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="2*" MinWidth="320" MaxWidth="520" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Department tree. -->
+            <Border Grid.Column="0" Style="{StaticResource Card}" Padding="0">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="16,16,16,8">
+                        <CheckBox DockPanel.Dock="Right" Content="Pokaż nie_aktywne" IsChecked="{Binding ShowInactive}" Margin="12,0,0,0" />
+                        <TextBlock Text="Struktura" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" Margin="0" />
+                    </DockPanel>
+
+                    <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="16,0,16,4">
+                        <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie" />
+                    </Border>
+
+                    <Grid>
+                        <TreeView x:Name="Tree" ItemsSource="{Binding Roots}" SelectedItemChanged="OnSelectedItemChanged" Margin="8,0,8,8"
+                                  AutomationProperties.Name="Struktura działów" BorderThickness="0" Background="Transparent"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate DataType="{x:Type org:DepartmentNode}" ItemsSource="{Binding Children}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Style.Triggers>
+                                                    <!-- The "nieaktywny" suffix carries the meaning; the grey only reinforces it. -->
+                                                    <DataTrigger Binding="{Binding Department.IsActive}" Value="False">
+                                                        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0"
+                                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                    <Setter Property="IsExpanded" Value="True" />
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                        </TreeView>
+
+                        <!-- Empty state: say what to do next instead of showing a blank area. -->
+                        <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="40" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="Nie ma jeszcze działów" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" Margin="0,12,0,4" />
+                            <TextBlock Text="Wpisz nazwę i kod pierwszego działu w formularzu obok i kliknij Zapisz."
+                                       Style="{StaticResource SecondaryText}" TextAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False"
+                          ResizeBehavior="PreviousAndNext" ToolTip="Przeciągnij, aby zmienić szerokość" />
+
+            <!-- Editor of the selected or new department. -->
+            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+                <DockPanel>
+                    <!-- Save on the left, deactivation apart on the right; both stay visible while the form scrolls. -->
+                    <Border DockPanel.Dock="Bottom" Style="{StaticResource ActionBar}">
+                        <DockPanel IsEnabled="{Binding IsIdle}">
+                            <Button DockPanel.Dock="Right" Content="{Binding ToggleActiveText}" Command="{Binding ToggleActiveCommand}" Margin="8,0,0,0" />
+                            <WrapPanel>
+                                <Button Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True"
+                                        Style="{DynamicResource AccentButtonStyle}" MinWidth="96" ToolTip="Zapisz zmiany (Enter)" />
+                            </WrapPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="20,20,20,16" IsEnabled="{Binding IsIdle}">
+                            <TextBlock Text="{Binding EditorTitle}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="Pola oznaczone * są wymagane." Style="{StaticResource HelperText}" />
+
+                            <Label Content="_Nazwa *" Target="{Binding ElementName=NameBox}" Padding="0" Margin="0,16,0,4" />
+                            <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="{x:Static org:DepartmentsViewModel.NameMaxLength}"
+                                     AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NameBox}" Style="{StaticResource FieldError}" />
+
+                            <Label Content="_Kod *" Target="{Binding ElementName=CodeBox}" Padding="0" Margin="0,16,0,4" />
+                            <TextBox x:Name="CodeBox" Text="{Binding EditCode, UpdateSourceTrigger=PropertyChanged}" MinWidth="160" HorizontalAlignment="Left"
+                                     CharacterCasing="Upper" MaxLength="{x:Static org:DepartmentsViewModel.CodeMaxLength}"
+                                     AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="Krótki, unikalny skrót działu, np. IT albo KAD." Style="{StaticResource HelperText}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=CodeBox}" Style="{StaticResource FieldError}" />
+
+                            <Label Content="_Dział nadrzędny" Target="{Binding ElementName=ParentBox}" Padding="0" Margin="0,16,0,4" />
+                            <ComboBox x:Name="ParentBox" ItemsSource="{Binding ParentOptions}" SelectedItem="{Binding EditParent}" DisplayMemberPath="Name"
+                                      HorizontalAlignment="Stretch"
+                                      AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="Zostaw puste, jeśli to dział najwyższego poziomu." Style="{StaticResource HelperText}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=ParentBox}" Style="{StaticResource FieldError}" />
+
+                            <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
 </UserControl>
