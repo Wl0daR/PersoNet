@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clients\PersoNet.Desktop.Presentation\PersoNet.Desktop.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>

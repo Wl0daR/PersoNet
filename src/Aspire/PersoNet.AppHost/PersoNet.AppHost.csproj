@@ -1,0 +1,17 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>personet-apphost</UserSecretsId>
+    <!-- The AppHost is started from the IDE or dotnet run; the Aspire CLI bundle is not required. -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);ASPIRE010</MSBuildWarningsAsMessages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Hosts\PersoNet.Api\PersoNet.Api.csproj" />
+    <ProjectReference Include="..\..\Hosts\PersoNet.Identity\PersoNet.Identity.csproj" />
+    <ProjectReference Include="..\..\Hosts\PersoNet.Worker\PersoNet.Worker.csproj" />
+    <ProjectReference Include="..\..\Clients\PersoNet.Web\PersoNet.Web.csproj" />
+  </ItemGroup>
+
+</Project>

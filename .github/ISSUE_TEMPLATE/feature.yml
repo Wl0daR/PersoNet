@@ -1,0 +1,17 @@
+name: Funkcja
+description: Nowa funkcja lub zmiana zachowania
+labels: [enhancement]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: Opis
+      description: Kto, co chce zrobić i po co.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Kryteria akceptacji
+    validations:
+      required: true

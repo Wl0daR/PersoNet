@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- IIS hosting model; see docs/adr/0005. -->
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Aspire\PersoNet.ServiceDefaults\PersoNet.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Core\PersoNet.Application\PersoNet.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\PersoNet.Infrastructure\PersoNet.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

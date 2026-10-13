@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Aspire\PersoNet.ServiceDefaults\PersoNet.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Shared\PersoNet.ApiClient\PersoNet.ApiClient.csproj" />
+  </ItemGroup>
+
+</Project>

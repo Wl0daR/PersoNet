@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore PersoNet.slnx
+
+      - name: Check formatting
+        run: dotnet format PersoNet.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build PersoNet.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --solution PersoNet.slnx --configuration Release --no-build --coverage --coverage-output-format cobertura
+
+      - name: Check for vulnerable packages
+        run: |
+          dotnet list PersoNet.slnx package --vulnerable --include-transitive | tee vulnerable.txt
+          if grep -q "has the following vulnerable packages" vulnerable.txt; then
+            echo "::error::Vulnerable NuGet packages found"
+            exit 1
+          fi
+
+  desktop:
+    name: Build desktop (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Build WPF app
+        run: dotnet build src/Clients/PersoNet.Desktop/PersoNet.Desktop.csproj --configuration Release

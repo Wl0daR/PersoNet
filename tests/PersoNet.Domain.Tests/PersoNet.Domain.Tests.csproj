@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core\PersoNet.Domain\PersoNet.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

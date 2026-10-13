@@ -1,0 +1,24 @@
+name: Błąd
+description: Coś działa inaczej, niż powinno
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Co się stało
+      description: Kroki do odtworzenia i co zobaczyłeś.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Czego się spodziewałeś
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: Aplikacja
+      options: [Desktop (WPF), Web (Blazor), API, Inne]
+    validations:
+      required: true
