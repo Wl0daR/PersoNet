@@ -1,6 +1,7 @@
 using OpenIddict.Validation.AspNetCore;
 using PersoNet.Api.Account;
 using PersoNet.Api.Development;
+using PersoNet.Api.Organization;
 using PersoNet.Api.Security;
 using PersoNet.Api.Tenancy;
 using PersoNet.Application;
@@ -35,7 +36,7 @@ builder.Services
     });
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder().AddPermissionPolicies();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -65,6 +66,7 @@ app.MapDefaultEndpoints();
 // Module endpoints are mapped under this group (see "Konwencje API" in the plan). Every endpoint requires a signed-in user.
 var api = app.MapGroup("/api/v1").RequireAuthorization();
 api.MapAccountEndpoints();
+api.MapOrganizationEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);
 

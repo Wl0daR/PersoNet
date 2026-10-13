@@ -11,5 +11,7 @@ internal static class PersoNetClaims
 
     public const string Email = "email";
 
+    public const string Role = "role";
+
     public const string TenantId = PersoNetAuth.TenantIdClaim;
 }

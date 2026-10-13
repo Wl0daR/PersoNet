@@ -43,6 +43,8 @@ Na razie działa logowanie kontami lokalnymi (Entra ID dojdzie później). W Dev
 
 Otwórz aplikację webową pod adresem https://localhost:7226 (albo kliknij adres zasobu `web` w dashboardzie). Wymaga ona zalogowania i sama przekierowuje na stronę logowania serwera `PersoNet.Identity` (https://localhost:7057). API przyjmuje tylko tokeny wystawione przez ten serwer (`GET /api/v1/me` zwraca zalogowanego użytkownika). Przy pierwszym uruchomieniu zaufaj certyfikatowi deweloperskiemu HTTPS: `dotnet dev-certs https --trust`.
 
+Konto demo ma rolę kadr (`hr_admin`), więc może zmieniać strukturę firmy (działy i stanowiska, `/api/v1/organization/...`). Dokumentacja API w Development: https://localhost:7016/scalar.
+
 ## Budowanie i testy
 
 ```bash

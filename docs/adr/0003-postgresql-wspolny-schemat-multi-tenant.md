@@ -19,3 +19,10 @@ Jedna instalacja PersoNet obsługuje wiele firm (multi-tenant). Dane kadrowe jed
 
 - Każdy endpoint ma test integracyjny sprawdzający, że użytkownik firmy A nie widzi danych firmy B.
 - Duży klient może później dostać osobną bazę, bo connection string można wybierać per firma.
+
+## Realizacja
+
+- Filtr EF Core: nazwany filtr `Tenant` na wszystkich encjach `ITenantOwned`, a `SaveChanges` odrzuca zapis danych innej firmy.
+- Row-Level Security: każde otwarcie połączenia ustawia `personet.tenant_id` (`TenantSessionInterceptor`). Migracja każdej tabeli z danymi firmy wywołuje `EnableTenantIsolation`, która włącza RLS z `FORCE` i polityką `tenant_isolation` dla odczytu i zapisu. Brak firmy na połączeniu oznacza brak wierszy.
+- Superużytkownik PostgreSQL (np. `postgres`) omija RLS. Na serwerze aplikacje łączą się więc zwykłą rolą bez `BYPASSRLS`, a migracje uruchamia właściciel bazy. Lokalnie na koncie `postgres` działa tylko filtr EF Core, a RLS sprawdzają testy integracyjne na osobnej roli.
+- Zadania obejmujące wiele firm (Worker) dostaną osobny, jawny mechanizm, gdy pojawi się pierwsze takie zadanie.

@@ -1,8 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
 using PersoNet.Contracts.Account;
 
 namespace PersoNet.Api.IntegrationTests;
@@ -25,11 +22,7 @@ public sealed class CurrentUserEndpointTests(PersoNetApiFactory factory)
     [Fact]
     public async Task Me_returns_the_signed_in_user_and_company()
     {
-        using var client = factory
-            .WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services
-                .AddAuthentication(TestAuthHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { })))
-            .CreateClient();
+        using var client = factory.CreateSignedInClient();
 
         var user = await client.GetFromJsonAsync<CurrentUserResponse>(Me, TestContext.Current.CancellationToken);
 
