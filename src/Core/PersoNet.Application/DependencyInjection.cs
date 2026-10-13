@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using PersoNet.Application.Employees;
+using PersoNet.Application.Leave;
 using PersoNet.Application.Organization;
 
 namespace PersoNet.Application;
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<EmployeeQueries>();
         services.AddScoped<EmployeeCommands>();
         services.AddScoped<ContractService>();
+        services.AddScoped<LeaveService>();
 
         return services;
     }

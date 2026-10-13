@@ -2,6 +2,7 @@ using OpenIddict.Validation.AspNetCore;
 using PersoNet.Api.Account;
 using PersoNet.Api.Development;
 using PersoNet.Api.Employees;
+using PersoNet.Api.Leave;
 using PersoNet.Api.OpenApi;
 using PersoNet.Api.Organization;
 using PersoNet.Api.Security;
@@ -81,6 +82,7 @@ var api = app.MapGroup("/api/v1").RequireAuthorization();
 api.MapAccountEndpoints();
 api.MapOrganizationEndpoints();
 api.MapEmployeeEndpoints();
+api.MapLeaveEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);
 

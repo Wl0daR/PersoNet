@@ -161,6 +161,123 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                     b.ToTable("contracts", (string)null);
                 });
 
+            modelBuilder.Entity("PersoNet.Domain.Leave.LeaveEntitlement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("CarriedOverDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("carried_over_days");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("integer")
+                        .HasColumnName("days");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id")
+                        .HasName("pk_leave_entitlements");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_leave_entitlements_employee_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_leave_entitlements_tenant_id");
+
+                    b.HasIndex("TenantId", "EmployeeId", "Year")
+                        .IsUnique()
+                        .HasDatabaseName("ix_leave_entitlements_tenant_id_employee_id_year");
+
+                    b.ToTable("leave_entitlements", (string)null);
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Leave.LeaveRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("integer")
+                        .HasColumnName("days");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("decision_note");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date")
+                        .HasColumnName("end_date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("start_date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_leave_requests");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_leave_requests_tenant_id");
+
+                    b.HasIndex("EmployeeId", "StartDate")
+                        .HasDatabaseName("ix_leave_requests_employee_id_start_date");
+
+                    b.HasIndex("Status", "StartDate")
+                        .HasDatabaseName("ix_leave_requests_status_start_date");
+
+                    b.ToTable("leave_requests", (string)null);
+                });
+
             modelBuilder.Entity("PersoNet.Domain.Organization.Department", b =>
                 {
                     b.Property<Guid>("Id")
@@ -321,6 +438,40 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_contracts_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Leave.LeaveEntitlement", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_entitlements_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_entitlements_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Leave.LeaveRequest", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_requests_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_requests_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("PersoNet.Domain.Organization.Department", b =>

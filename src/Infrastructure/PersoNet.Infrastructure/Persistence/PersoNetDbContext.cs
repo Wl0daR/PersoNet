@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
 using PersoNet.Domain.Abstractions;
 using PersoNet.Domain.Employees;
+using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
 
@@ -45,6 +46,10 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<EmploymentContract> Contracts => Set<EmploymentContract>();
+
+    public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
+
+    public DbSet<LeaveEntitlement> LeaveEntitlements => Set<LeaveEntitlement>();
 
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;
