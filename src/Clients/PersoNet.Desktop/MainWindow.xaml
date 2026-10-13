@@ -4,12 +4,68 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:shell="clr-namespace:PersoNet.Desktop.Presentation.Shell;assembly=PersoNet.Desktop.Presentation"
+        xmlns:views="clr-namespace:PersoNet.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=shell:ShellViewModel}"
         Title="{Binding Title}"
-        Height="720" Width="1280"
+        Height="760" Width="1280" MinHeight="560" MinWidth="900"
         WindowStartupLocation="CenterScreen">
-    <Grid Margin="24">
-        <TextBlock Text="{Binding Title}" FontSize="24" />
-    </Grid>
+    <DockPanel>
+        <!-- Top bar: app name, signed-in user, sign in / out. -->
+        <Border DockPanel.Dock="Top" Padding="24,12" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+            <DockPanel>
+                <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" FontSize="18" VerticalAlignment="Center" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right"
+                            Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding User.Name}" VerticalAlignment="Center" Margin="0,0,12,0"
+                               ToolTip="{Binding User.Email}" Style="{StaticResource SecondaryText}" />
+                    <Button Content="Wyloguj" Command="{Binding SignOutCommand}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid>
+            <!-- Signed out: one clear action, with feedback while the browser sign-in is in progress. -->
+            <Border Padding="32" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSignedIn}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="Zaloguj się" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Logowanie otworzy się w przeglądarce. Po zalogowaniu wróć do tego okna."
+                               Style="{StaticResource SecondaryText}" Margin="0,8,0,24" />
+
+                    <Button Content="Zaloguj przez przeglądarkę" Command="{Binding SignInCommand}" IsDefault="True"
+                            Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Stretch" Padding="12,8" />
+
+                    <!-- While waiting for the browser. -->
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding SignInCommand.IsRunning, Converter={StaticResource BoolToVisibility}}">
+                        <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa logowanie" />
+                        <DockPanel Margin="0,8,0,0">
+                            <Button DockPanel.Dock="Right" Content="Anuluj" Command="{Binding SignInCancelCommand}" />
+                            <TextBlock Text="Czekam na zalogowanie w przeglądarce…" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Signed in: module screens. -->
+            <TabControl Margin="24,16,24,24" Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVisibility}}">
+                <TabItem Header="Działy">
+                    <views:DepartmentsView DataContext="{Binding Departments}" />
+                </TabItem>
+                <TabItem Header="Stanowiska">
+                    <views:PositionsView DataContext="{Binding Positions}" />
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </DockPanel>
 </Window>

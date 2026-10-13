@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="OpenIddict.Client.SystemIntegration" />
+    <PackageReference Include="OpenIddict.Client.SystemNetHttp" />
   </ItemGroup>
 
   <ItemGroup>

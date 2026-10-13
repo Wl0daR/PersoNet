@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using PersoNet.Contracts;
 using PersoNet.Identity.Data;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 

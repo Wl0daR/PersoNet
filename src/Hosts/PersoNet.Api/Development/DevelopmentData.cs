@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
+using PersoNet.Contracts;
 using PersoNet.Domain.Tenants;
 
 namespace PersoNet.Api.Development;

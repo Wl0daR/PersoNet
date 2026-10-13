@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
+using PersoNet.Contracts;
 
 namespace PersoNet.Api.OpenApi;
 

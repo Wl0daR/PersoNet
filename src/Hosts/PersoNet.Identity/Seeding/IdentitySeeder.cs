@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
+using PersoNet.Contracts;
 using PersoNet.Identity.Data;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -53,6 +54,34 @@ internal static class IdentitySeeder
         }
 
         await UpsertAsync(manager, descriptor, cancellationToken);
+
+        // The desktop app is a public client: it cannot keep a secret, so PKCE protects the code instead.
+        var desktop = new OpenIddictApplicationDescriptor
+        {
+            ClientId = PersoNetAuth.DesktopClientId,
+            ClientType = ClientTypes.Public,
+            ConsentType = ConsentTypes.Implicit,
+            DisplayName = "PersoNet Kadry (desktop)",
+            Permissions =
+            {
+                Permissions.Endpoints.Authorization,
+                Permissions.Endpoints.Token,
+                Permissions.GrantTypes.AuthorizationCode,
+                Permissions.GrantTypes.RefreshToken,
+                Permissions.ResponseTypes.Code,
+                Permissions.Scopes.Email,
+                Permissions.Scopes.Profile,
+                Permissions.Prefixes.Scope + PersoNetAuth.ApiScope,
+            },
+            Requirements = { Requirements.Features.ProofKeyForCodeExchange },
+        };
+
+        foreach (var port in PersoNetAuth.DesktopCallbackPorts)
+        {
+            desktop.RedirectUris.Add(new Uri($"http://localhost:{port}/{PersoNetAuth.DesktopCallbackPath}"));
+        }
+
+        await UpsertAsync(manager, desktop, cancellationToken);
 
         // The interactive API documentation (Scalar) signs in from the browser, so it is a public client without a secret.
         // Registered only where configured (Development).

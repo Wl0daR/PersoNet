@@ -1,5 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Identity;
+using PersoNet.Contracts;
 using PersoNet.Identity.Data;
 using PersoNet.Identity.Endpoints;
 using PersoNet.Identity.Seeding;

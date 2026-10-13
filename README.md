@@ -26,11 +26,13 @@ dotnet run --project src/Aspire/PersoNet.AppHost
 
 AppHost uruchamia API, serwer logowania, aplikację webową i Worker jako zwykłe procesy (bez kontenerów) i otwiera dashboard z adresami, logami i trace'ami.
 
-Aplikacja desktopowa (Windows):
+Aplikacja desktopowa dla kadr (Windows), przy działającym AppHost:
 
 ```bash
 dotnet run --project src/Clients/PersoNet.Desktop
 ```
+
+Przycisk **Zaloguj przez przeglądarkę** otwiera stronę serwera logowania w domyślnej przeglądarce (np. konto demo poniżej), a po zalogowaniu aplikacja ma zakładki **Działy** i **Stanowiska**. Adresy domyślnie wskazują lokalne środowisko (serwer logowania https://localhost:7057, API https://localhost:7016); dla innego serwera ustawia się je w `appsettings.json` obok programu (`Identity:Authority`, `PersoNetApi:BaseAddress`).
 
 W środowisku Development API i serwer logowania przy starcie same stosują brakujące migracje bazy.
 

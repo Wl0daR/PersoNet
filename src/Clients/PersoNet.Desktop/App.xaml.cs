@@ -2,6 +2,8 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PersoNet.ApiClient;
+using PersoNet.Desktop.Authentication;
+using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
 
 namespace PersoNet.Desktop;
@@ -17,9 +19,14 @@ public partial class App : Application
     {
         var builder = Host.CreateApplicationBuilder();
 
+        // Sign-in also provides the access token for API calls, so it is registered before the API client.
+        builder.Services.AddDesktopAuthentication(builder.Configuration);
+
         var apiBaseAddress = builder.Configuration["PersoNetApi:BaseAddress"] ?? "https://localhost:7016";
         builder.Services.AddPersoNetApiClient(new Uri(apiBaseAddress));
 
+        builder.Services.AddSingleton<DepartmentsViewModel>();
+        builder.Services.AddSingleton<PositionsViewModel>();
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 

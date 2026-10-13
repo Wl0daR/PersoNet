@@ -7,6 +7,7 @@ using PersoNet.Api.Security;
 using PersoNet.Api.Tenancy;
 using PersoNet.Application;
 using PersoNet.Application.Abstractions;
+using PersoNet.Contracts;
 using PersoNet.Infrastructure;
 using Scalar.AspNetCore;
 
