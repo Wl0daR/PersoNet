@@ -66,3 +66,6 @@ dotnet_diagnostic.IDE0005.severity = warning # Remove unnecessary usings
 
 [tests/**.cs]
 dotnet_diagnostic.CA1515.severity = none   # Test classes must be public
+
+[**/Migrations/*.cs]
+generated_code = true

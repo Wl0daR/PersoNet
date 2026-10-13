@@ -1,4 +1,6 @@
+using PersoNet.Api.Tenancy;
 using PersoNet.Application;
+using PersoNet.Application.Abstractions;
 using PersoNet.Infrastructure;
 using Scalar.AspNetCore;
 
@@ -8,6 +10,9 @@ builder.AddServiceDefaults();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi("v1");
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -18,6 +23,9 @@ app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
+    // Deployments run migrations as a separate step (see docs/adr/0005).
+    await app.Services.MigrateDatabaseAsync().ConfigureAwait(false);
+
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
