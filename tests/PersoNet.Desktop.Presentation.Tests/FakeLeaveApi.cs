@@ -53,6 +53,14 @@ internal sealed class FakeLeaveApi : ILeaveApi
 
     public Task<LeaveRequestResponse> CancelAsync(Guid id, string? note, CancellationToken cancellationToken) => Decide(id, LeaveState.Cancelled, note);
 
+    public Task<IReadOnlyList<HolidayResponse>> GetHolidaysAsync(int year, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<HolidayResponse>>(
+        [
+            new(new DateOnly(year, 5, 1), "Święto Pracy"),
+            new(new DateOnly(year, 5, 3), "Święto Konstytucji 3 Maja"),
+            new(new DateOnly(year, 11, 11), "Narodowe Święto Niepodległości"),
+        ]);
+
     public Task<LeaveBalanceResponse> GetBalanceAsync(Guid employeeId, int year, CancellationToken cancellationToken)
     {
         var has = Entitlements.TryGetValue((employeeId, year), out var entitlement);

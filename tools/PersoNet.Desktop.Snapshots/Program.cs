@@ -131,6 +131,16 @@ namespace PersoNet.Desktop.Snapshots
                 FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 2;
                 await RenderAsync(window, Sizes[1], Path.Combine(output, $"13-karta-urlop-srodek-{suffix}.png"));
                 await RenderAsync(window, Sizes[2], Path.Combine(output, $"13-karta-urlop-laptop150-{suffix}.png"));
+
+                // A new request started from the calendar, three days picked.
+                var calendar = employees.Leave;
+                var firstFree = calendar.Days.First(day => day.IsInMonth && !day.IsDayOff && !day.HasLeave && day.Date.DayOfWeek == DayOfWeek.Monday && day.Date.Day > 14);
+                calendar.SelectedDay = firstFree;
+                calendar.AddLeaveCommand.Execute(null);
+                calendar.SelectedDay = calendar.Days.First(day => day.Date == firstFree.Date.AddDays(2));
+                await RenderAsync(window, Sizes[1], Path.Combine(output, $"18-kalendarz-nowy-wniosek-srodek-{suffix}.png"));
+                await RenderAsync(window, Sizes[2], Path.Combine(output, $"18-kalendarz-nowy-wniosek-laptop150-{suffix}.png"));
+                calendar.CancelAddingCommand.Execute(null);
                 FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 0;
                 employees.CloseCardCommand.Execute(null);
 
@@ -153,9 +163,9 @@ namespace PersoNet.Desktop.Snapshots
                 }
 
                 // The same form for leave in hours.
-                leave.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == PersoNet.Contracts.Leave.LeaveKind.ChildCare);
-                leave.IsHourly = true;
-                leave.EditHours = "3";
+                leave.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == PersoNet.Contracts.Leave.LeaveKind.ChildCare);
+                leave.Form.IsHourly = true;
+                leave.Form.EditHours = "3";
                 await RenderAsync(window, Sizes[1], Path.Combine(output, $"17-wniosek-na-godziny-srodek-{suffix}.png"));
                 await RenderAsync(window, Sizes[2], Path.Combine(output, $"17-wniosek-na-godziny-laptop150-{suffix}.png"));
 

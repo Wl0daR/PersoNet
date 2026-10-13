@@ -201,6 +201,19 @@ public sealed class LeaveEndpointTests(PersoNetApiFactory factory)
         foreignApprove.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task Holidays_of_a_year_are_listed_with_names()
+    {
+        using var hr = factory.CreateSignedInClient();
+
+        var holidays = (await hr.GetFromJsonAsync<List<HolidayResponse>>(new Uri("/api/v1/holidays/2025", UriKind.Relative), Cancellation))!;
+        using var outOfRange = await hr.GetAsync(new Uri("/api/v1/holidays/1999", UriKind.Relative), Cancellation);
+
+        holidays.ShouldContain(new HolidayResponse(new DateOnly(2025, 4, 21), "Poniedziałek Wielkanocny"));
+        holidays.Count.ShouldBe(14);
+        await ShouldFailAsync(outOfRange, HttpStatusCode.BadRequest, "leave.year_out_of_range");
+    }
+
     private static Task<HttpResponseMessage> PostAsync(HttpClient client, CreateLeaveRequest request) =>
         client.PostAsJsonAsync(new Uri(Requests, UriKind.Relative), request, Cancellation);
 

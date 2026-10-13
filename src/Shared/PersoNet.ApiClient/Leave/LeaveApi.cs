@@ -44,6 +44,12 @@ internal sealed class LeaveApi(HttpClient http) : ILeaveApi
 
     public Task<LeaveRequestResponse> CancelAsync(Guid id, string? note, CancellationToken cancellationToken) => DecideAsync(id, "cancel", note, cancellationToken);
 
+    public async Task<IReadOnlyList<HolidayResponse>> GetHolidaysAsync(int year, CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(new Uri("api/v1/holidays/" + year.ToString(CultureInfo.InvariantCulture), UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<List<HolidayResponse>>(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<LeaveBalanceResponse> GetBalanceAsync(Guid employeeId, int year, CancellationToken cancellationToken)
     {
         using var response = await http.GetAsync(new Uri(Balance(employeeId, year), UriKind.Relative), cancellationToken).ConfigureAwait(false);

@@ -29,6 +29,18 @@ public sealed class LeaveTests
         PolishCalendar.IsPublicHoliday(DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture)).ShouldBe(holiday);
 
     [Fact]
+    public void Holidays_of_a_year_have_names_and_include_moving_ones()
+    {
+        var holidays = PolishCalendar.Holidays(2026);
+
+        holidays.Count.ShouldBe(14);
+        holidays.ShouldContain((new DateOnly(2026, 4, 6), "Poniedziałek Wielkanocny"));
+        holidays.ShouldContain((new DateOnly(2026, 6, 4), "Boże Ciało"));
+        holidays.ShouldContain((new DateOnly(2026, 12, 24), "Wigilia Bożego Narodzenia"));
+        PolishCalendar.HolidayName(new DateOnly(2026, 10, 13)).ShouldBeNull();
+    }
+
+    [Fact]
     public void Working_days_skip_weekends_and_holidays()
     {
         // Mon 28 April – Tue 6 May 2025: 1 May is a holiday, 3–4 May a weekend.
