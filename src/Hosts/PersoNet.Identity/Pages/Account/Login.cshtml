@@ -2,30 +2,59 @@
 @model PersoNet.Identity.Pages.Account.LoginModel
 @{
     ViewData["Title"] = "Logowanie";
+
+    string? FieldError(string key) => ModelState[key]?.Errors.FirstOrDefault()?.ErrorMessage;
+
+    var emailError = FieldError("Input.Email");
+    var passwordError = FieldError("Input.Password");
+
+    // Focus where the user has to act: the first invalid field, or the password after a failed sign-in.
+    var focusPassword = emailError is null && (passwordError is not null || Model.ErrorMessage is not null);
 }
 
-<h2>Zaloguj się</h2>
+<h1>Zaloguj się</h1>
+<p class="lead">Użyj służbowego adresu e-mail i hasła.</p>
 
-<form method="post">
+<form method="post" novalidate data-login-form>
     @if (Model.ErrorMessage is not null)
     {
-        <p class="error" role="alert">@Model.ErrorMessage</p>
+        <p class="alert" role="alert">@Model.ErrorMessage</p>
     }
 
     <input type="hidden" asp-for="ReturnUrl" />
 
-    <label asp-for="Input.Email">E-mail</label>
-    <input asp-for="Input.Email" type="email" autocomplete="username" autofocus />
-    <span asp-validation-for="Input.Email" class="field-error"></span>
+    <div class="field">
+        <label asp-for="Input.Email">E-mail</label>
+        <input asp-for="Input.Email" type="email" autocomplete="username" inputmode="email" spellcheck="false"
+               autofocus="@(!focusPassword ? "autofocus" : null)"
+               aria-invalid="@(emailError is not null ? "true" : null)"
+               aria-describedby="@(emailError is not null ? "email-error" : null)" />
+        <span id="email-error" class="field-error">@emailError</span>
+    </div>
 
-    <label asp-for="Input.Password">Hasło</label>
-    <input asp-for="Input.Password" type="password" autocomplete="current-password" />
-    <span asp-validation-for="Input.Password" class="field-error"></span>
+    <div class="field">
+        <label asp-for="Input.Password">Hasło</label>
+        <div class="password">
+            <input asp-for="Input.Password" type="password" autocomplete="current-password"
+                   autofocus="@(focusPassword ? "autofocus" : null)"
+                   aria-invalid="@(passwordError is not null ? "true" : null)"
+                   aria-describedby="@(passwordError is not null ? "password-error" : null)" />
+            @* Shown only when JavaScript runs; the field works without it. *@
+            <button type="button" class="toggle" hidden data-password-toggle aria-controls="Input_Password" aria-pressed="false">Pokaż</button>
+        </div>
+        <span id="password-error" class="field-error">@passwordError</span>
+    </div>
 
     <label class="check">
         <input asp-for="Input.RememberMe" type="checkbox" />
-        Zapamiętaj mnie
+        Nie wylogowuj mnie na tym komputerze
     </label>
 
-    <button type="submit">Zaloguj</button>
+    <button type="submit" data-busy-text="Logowanie…">Zaloguj</button>
 </form>
+
+<p class="hint">Nie pamiętasz hasła? Skontaktuj się z działem kadr lub administratorem.</p>
+
+@section Scripts {
+    <script src="~/js/login.js" asp-append-version="true"></script>
+}

@@ -2,49 +2,48 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 
 main {
     flex: 1;
+    min-width: 0;
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background: var(--color-sidebar);
+    color: var(--color-sidebar-foreground);
 }
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    min-height: 3.5rem;
+    padding: 0 16px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row ::deep a:first-child {
+    .top-row .user {
+        color: var(--color-muted-foreground);
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
+    .top-row ::deep .btn {
+        min-height: 36px;
+        min-width: 44px;
     }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+.content {
+    max-width: 1200px;
+    padding: 24px 16px 48px;
 }
+
+    .content:focus { outline: none; }
 
 @media (min-width: 641px) {
     .page {
@@ -52,7 +51,7 @@ main {
     }
 
     .sidebar {
-        width: 250px;
+        width: 248px;
         height: 100vh;
         position: sticky;
         top: 0;
@@ -62,37 +61,43 @@ main {
         position: sticky;
         top: 0;
         z-index: 1;
+        padding: 0 32px;
     }
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+    .content {
+        padding: 32px 32px 48px;
     }
 }
 
 #blazor-error-ui {
-    color-scheme: light only;
-    background: lightyellow;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    box-sizing: border-box;
     display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
     position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
     z-index: 1000;
+    box-sizing: border-box;
+    padding: 12px 56px 12px 20px;
+    background: var(--color-danger-surface);
+    color: var(--color-foreground);
+    border-top: 3px solid var(--color-danger);
 }
 
+    #blazor-error-ui .reload {
+        margin-left: 8px;
+        font-weight: 600;
+    }
+
     #blazor-error-ui .dismiss {
-        cursor: pointer;
         position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-size: 1.5rem;
+        cursor: pointer;
     }

@@ -1,34 +1,36 @@
 @inherits LayoutComponentBase
 
+<a class="skip-link" href="#content">Przejdź do treści</a>
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
-        <div class="top-row px-4">
+        <header class="top-row">
             <AuthorizeView>
                 <Authorized>
-                    <span class="me-3">@context.User.FindFirst("name")?.Value</span>
+                    <span class="user" title="@context.User.FindFirst("email")?.Value">@context.User.FindFirst("name")?.Value</span>
                     <form action="account/logout" method="post">
                         <AntiforgeryToken />
-                        <button type="submit" class="btn btn-link p-0">Wyloguj</button>
+                        <button type="submit" class="btn btn-quiet">Wyloguj</button>
                     </form>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="account/login">Zaloguj</a>
+                    <a class="btn btn-primary" href="account/login">Zaloguj</a>
                 </NotAuthorized>
             </AuthorizeView>
-        </div>
+        </header>
 
-        <article class="content px-4">
+        <article id="content" class="content" tabindex="-1">
             @Body
         </article>
     </main>
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+<div id="blazor-error-ui" role="alert" data-nosnippet>
+    Wystąpił nieoczekiwany błąd.
+    <a href="." class="reload">Odśwież stronę</a>
+    <button type="button" class="dismiss" aria-label="Zamknij komunikat">×</button>
 </div>
