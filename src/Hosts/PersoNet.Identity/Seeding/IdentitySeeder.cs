@@ -17,6 +17,7 @@ internal static class IdentitySeeder
         await using var scope = services.CreateAsyncScope();
         var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
         var web = scope.ServiceProvider.GetRequiredService<IOptions<WebClientOptions>>().Value;
+        var apiDocs = scope.ServiceProvider.GetRequiredService<IOptions<ApiDocsClientOptions>>().Value;
 
         if (web.RedirectUri is null || string.IsNullOrEmpty(web.ClientSecret))
         {
@@ -51,7 +52,41 @@ internal static class IdentitySeeder
             descriptor.PostLogoutRedirectUris.Add(web.PostLogoutRedirectUri);
         }
 
-        var existing = await manager.FindByClientIdAsync(PersoNetAuth.WebClientId, cancellationToken);
+        await UpsertAsync(manager, descriptor, cancellationToken);
+
+        // The interactive API documentation (Scalar) signs in from the browser, so it is a public client without a secret.
+        // Registered only where configured (Development).
+        if (apiDocs.RedirectUri is not null)
+        {
+            await UpsertAsync(manager, new OpenIddictApplicationDescriptor
+            {
+                ClientId = PersoNetAuth.ApiDocsClientId,
+                ClientType = ClientTypes.Public,
+                ConsentType = ConsentTypes.Implicit,
+                DisplayName = "PersoNet API docs",
+                RedirectUris = { apiDocs.RedirectUri },
+                Permissions =
+                {
+                    Permissions.Endpoints.Authorization,
+                    Permissions.Endpoints.Token,
+                    Permissions.GrantTypes.AuthorizationCode,
+                    Permissions.ResponseTypes.Code,
+                    Permissions.Scopes.Email,
+                    Permissions.Scopes.Profile,
+                    Permissions.Prefixes.Scope + PersoNetAuth.ApiScope,
+                },
+                Requirements = { Requirements.Features.ProofKeyForCodeExchange },
+            }, cancellationToken);
+        }
+        else if (await manager.FindByClientIdAsync(PersoNetAuth.ApiDocsClientId, cancellationToken) is { } stale)
+        {
+            await manager.DeleteAsync(stale, cancellationToken);
+        }
+    }
+
+    private static async Task UpsertAsync(IOpenIddictApplicationManager manager, OpenIddictApplicationDescriptor descriptor, CancellationToken cancellationToken)
+    {
+        var existing = await manager.FindByClientIdAsync(descriptor.ClientId!, cancellationToken);
         if (existing is null)
         {
             await manager.CreateAsync(descriptor, cancellationToken);

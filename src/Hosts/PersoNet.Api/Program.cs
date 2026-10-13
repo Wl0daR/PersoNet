@@ -1,6 +1,7 @@
 using OpenIddict.Validation.AspNetCore;
 using PersoNet.Api.Account;
 using PersoNet.Api.Development;
+using PersoNet.Api.OpenApi;
 using PersoNet.Api.Organization;
 using PersoNet.Api.Security;
 using PersoNet.Api.Tenancy;
@@ -14,7 +15,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi("v1");
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
@@ -36,6 +36,9 @@ builder.Services
     });
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+
+var authorityUri = new Uri(authority.EndsWith('/') ? authority : authority + "/");
+builder.Services.AddOpenApi("v1", options => options.AddDocumentTransformer(new OAuthSecuritySchemeTransformer(authorityUri)));
 builder.Services.AddAuthorizationBuilder().AddPermissionPolicies();
 
 builder.Services.AddApplication();
@@ -53,7 +56,15 @@ if (app.Environment.IsDevelopment())
     await app.Services.SeedDevelopmentDataAsync().ConfigureAwait(false);
 
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    // "Authorize" in the documentation signs in through PersoNet.Identity, like the apps do.
+    app.MapScalarApiReference(options => options
+        .AddPreferredSecuritySchemes(OAuthSecuritySchemeTransformer.SchemeName)
+        .AddAuthorizationCodeFlow(OAuthSecuritySchemeTransformer.SchemeName, flow => flow
+            .WithClientId(PersoNetAuth.ApiDocsClientId)
+            .WithPkce(Pkce.Sha256)
+            .WithRedirectUri(app.Configuration["ApiDocs:RedirectUri"] ?? "https://localhost:7016/scalar/")
+            .WithSelectedScopes(["openid", "profile", "email", PersoNetAuth.ApiScope]))
+        .EnablePersistentAuthentication());
 }
 
 app.UseHttpsRedirection();
