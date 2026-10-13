@@ -44,6 +44,8 @@ public class PersoNetDbContext : DbContext, IAppDbContext
 
     public DbSet<Employee> Employees => Set<Employee>();
 
+    public DbSet<EmploymentContract> Contracts => Set<EmploymentContract>();
+
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;
 

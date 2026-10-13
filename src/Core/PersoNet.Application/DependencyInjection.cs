@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<PositionCommands>();
         services.AddScoped<EmployeeQueries>();
         services.AddScoped<EmployeeCommands>();
+        services.AddScoped<ContractService>();
 
         return services;
     }

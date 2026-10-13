@@ -62,6 +62,33 @@ internal static class EmployeeEndpoints
             .RequireAuthorization(Permissions.EmployeesManage)
             .WithName("ReinstateEmployee").WithSummary("Cofnij zakończenie zatrudnienia");
 
+        var contracts = employees.MapGroup("/{employeeId:guid}/contracts").WithTags("Pracownicy");
+
+        contracts.MapGet("/", async (Guid employeeId, ContractService service, CancellationToken cancellationToken) =>
+                (await service.ListAsync(employeeId, cancellationToken)).ToOk())
+            .RequireAuthorization(Permissions.EmployeesRead)
+            .WithName("ListContracts").WithSummary("Umowy pracownika, od najnowszej");
+
+        contracts.MapPost("/", async (Guid employeeId, SaveContractRequest request, ContractService service, CancellationToken cancellationToken) =>
+            {
+                var result = await service.CreateAsync(employeeId, request, cancellationToken);
+                return result.IsSuccess
+                    ? TypedResults.Created($"/api/v1/employees/{employeeId}/contracts/{result.Value.Id}", result.Value)
+                    : result.Error!.ToProblem();
+            })
+            .RequireAuthorization(Permissions.EmployeesManage)
+            .WithName("CreateContract").WithSummary("Dodaj umowę");
+
+        contracts.MapPut("/{contractId:guid}", async (Guid employeeId, Guid contractId, SaveContractRequest request, ContractService service, CancellationToken cancellationToken) =>
+                (await service.UpdateAsync(employeeId, contractId, request, cancellationToken)).ToOk())
+            .RequireAuthorization(Permissions.EmployeesManage)
+            .WithName("UpdateContract").WithSummary("Zmień umowę");
+
+        contracts.MapDelete("/{contractId:guid}", async (Guid employeeId, Guid contractId, ContractService service, CancellationToken cancellationToken) =>
+                (await service.DeleteAsync(employeeId, contractId, cancellationToken)).ToNoContent())
+            .RequireAuthorization(Permissions.EmployeesManage)
+            .WithName("DeleteContract").WithSummary("Usuń umowę wprowadzoną omyłkowo");
+
         return api;
     }
 }

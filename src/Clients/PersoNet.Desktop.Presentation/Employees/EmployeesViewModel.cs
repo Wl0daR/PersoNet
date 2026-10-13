@@ -31,6 +31,9 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
 
     public ObservableCollection<EmployeeListItem> Items { get; } = [];
 
+    /// <summary>"Umowy" tab of the open card.</summary>
+    public ContractsViewModel Contracts { get; } = new(employees, time);
+
     public ObservableCollection<Choice> Departments { get; } = [NoDepartment];
 
     public ObservableCollection<Choice> Positions { get; } = [NoPosition];
@@ -246,6 +249,15 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
         }
 
         return field is not null;
+    }
+
+    // The contracts tab follows the open card; a new, unsaved card has no contracts yet.
+    partial void OnCurrentChanged(EmployeeResponse? oldValue, EmployeeResponse? newValue)
+    {
+        if (oldValue?.Id != newValue?.Id)
+        {
+            _ = Contracts.ShowAsync(newValue, CancellationToken.None);
+        }
     }
 
     partial void OnIncludeFormerChanged(bool value) => _ = SearchAsync(CancellationToken.None);

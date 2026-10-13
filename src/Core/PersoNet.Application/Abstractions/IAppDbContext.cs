@@ -18,5 +18,7 @@ public interface IAppDbContext
 
     DbSet<Employee> Employees { get; }
 
+    DbSet<EmploymentContract> Contracts { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

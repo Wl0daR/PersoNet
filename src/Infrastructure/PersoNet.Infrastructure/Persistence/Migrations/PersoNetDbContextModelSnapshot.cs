@@ -116,6 +116,51 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                     b.ToTable("employees", (string)null);
                 });
 
+            modelBuilder.Entity("PersoNet.Domain.Employees.EmploymentContract", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date")
+                        .HasColumnName("end_date");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("start_date");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<decimal?>("WorkingTime")
+                        .HasPrecision(4, 3)
+                        .HasColumnType("numeric(4,3)")
+                        .HasColumnName("working_time");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contracts");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_contracts_tenant_id");
+
+                    b.HasIndex("EmployeeId", "StartDate")
+                        .HasDatabaseName("ix_contracts_employee_id_start_date");
+
+                    b.ToTable("contracts", (string)null);
+                });
+
             modelBuilder.Entity("PersoNet.Domain.Organization.Department", b =>
                 {
                     b.Property<Guid>("Id")
@@ -259,6 +304,23 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_employees_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Employees.EmploymentContract", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_contracts_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_contracts_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("PersoNet.Domain.Organization.Department", b =>
