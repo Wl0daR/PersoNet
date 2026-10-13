@@ -11,6 +11,8 @@ namespace PersoNet.Desktop.Dialogs;
 /// </summary>
 public sealed class DialogWindow : Window
 {
+    private static readonly Uri ListSelection = new("pack://application:,,,/PersoNet.Desktop;component/Themes/ListSelection.xaml");
+
     private readonly DialogViewModel _viewModel;
     private bool _isModal;
 
@@ -44,6 +46,7 @@ public sealed class DialogWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ShowInTaskbar = false;
         SetResourceReference(BackgroundProperty, "SolidBackgroundFillColorBaseBrush");
+        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = ListSelection });
 
         // Once open, the window keeps its size and the view follows when the user resizes it.
         ContentRendered += (_, _) =>

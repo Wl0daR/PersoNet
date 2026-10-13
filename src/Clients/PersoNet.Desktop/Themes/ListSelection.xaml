@@ -1,0 +1,10 @@
+<!--
+    Selected row of a list (DataGrid): a light tint of the accent colour with normal text, instead of the solid accent fill,
+    so the number, e-mail and status badge in the row stay readable in light and dark theme. Merged into each window's
+    resources rather than the application's: a brush whose colour follows the theme (DynamicResource) needs an element as owner.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="DataGridRowSelectedBackgroundThemeBrush" Color="{DynamicResource SystemAccentColor}" Opacity="0.22" />
+    <SolidColorBrush x:Key="DataGridRowSelectedForegroundThemeBrush" Color="{DynamicResource TextFillColorPrimary}" />
+</ResourceDictionary>

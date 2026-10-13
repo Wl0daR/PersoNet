@@ -15,22 +15,28 @@
         Title="{Binding Title}"
         Height="800" Width="1280" MinHeight="480" MinWidth="860">
     <Window.Resources>
-        <!-- Each screen's view model is shown by its view. -->
-        <DataTemplate DataType="{x:Type home:HomeViewModel}">
-            <views:HomeView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type emp:EmployeesViewModel}">
-            <views:EmployeesView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type leave:LeaveViewModel}">
-            <views:LeaveView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type org:DepartmentsViewModel}">
-            <views:DepartmentsView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type org:PositionsViewModel}">
-            <views:PositionsView />
-        </DataTemplate>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/ListSelection.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Each screen's view model is shown by its view. -->
+            <DataTemplate DataType="{x:Type home:HomeViewModel}">
+                <views:HomeView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type emp:EmployeesViewModel}">
+                <views:EmployeesView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type leave:LeaveViewModel}">
+                <views:LeaveView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type org:DepartmentsViewModel}">
+                <views:DepartmentsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type org:PositionsViewModel}">
+                <views:PositionsView />
+            </DataTemplate>
+        </ResourceDictionary>
     </Window.Resources>
 
     <!-- Ctrl+1…5 switch screens, in the order of the side menu. -->
