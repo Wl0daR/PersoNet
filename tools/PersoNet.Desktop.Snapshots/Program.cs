@@ -1,6 +1,8 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -68,6 +70,10 @@ namespace PersoNet.Desktop.Snapshots
                 ShowActivated = false,
                 ShowInTaskbar = false,
             };
+
+            // CI machines have a small screen (1024 x 768): open normal, not maximized, and let the window grow past the screen.
+            window.WindowState = WindowState.Normal;
+            window.SourceInitialized += (_, _) => HwndSource.FromHwnd(new WindowInteropHelper(window).Handle).AddHook(AllowLargerThanScreen);
             window.Show();
 
             foreach (var theme in new[] { ThemeMode.Light, ThemeMode.Dark })
@@ -120,6 +126,20 @@ namespace PersoNet.Desktop.Snapshots
             }
 
             window.Close();
+        }
+
+        private static IntPtr AllowLargerThanScreen(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WmGetMinMaxInfo = 0x0024;
+            if (message == WmGetMinMaxInfo)
+            {
+                // MINMAXINFO is five POINTs; the last one is ptMaxTrackSize.
+                Marshal.WriteInt32(lParam, 8 * 4, 4000);
+                Marshal.WriteInt32(lParam, (8 * 4) + 4, 4000);
+                handled = true;
+            }
+
+            return IntPtr.Zero;
         }
 
         private static List<(string Name, Action Select)> Pages(ShellViewModel shell) =>
