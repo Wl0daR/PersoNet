@@ -1,5 +1,6 @@
 using PersoNet.Desktop.Presentation.Authentication;
 using PersoNet.Desktop.Presentation.Employees;
+using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
 
@@ -10,6 +11,9 @@ public sealed class ShellViewModelTests
     private static EmployeesViewModel Employees(FakeOrganizationApi organization) =>
         new(new FakeEmployeesApi(), organization, TimeProvider.System);
 
+    private static HomeViewModel Home(FakeOrganizationApi organization) =>
+        new(new FakeEmployeesApi(), organization, TimeProvider.System);
+
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -17,7 +21,7 @@ public sealed class ShellViewModelTests
     {
         var api = new FakeOrganizationApi();
         api.Add("Dział IT", "IT");
-        var shell = new ShellViewModel(new FakeSignIn(), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
 
         await shell.SignInAsync(Cancellation);
 
@@ -30,7 +34,7 @@ public sealed class ShellViewModelTests
     public async Task Cancelled_sign_in_shows_a_message_and_stays_signed_out()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, Home(api), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
 
         await shell.SignInAsync(Cancellation);
 
@@ -42,13 +46,34 @@ public sealed class ShellViewModelTests
     public async Task Sign_out_forgets_the_user()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn(), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
         await shell.SignInAsync(Cancellation);
 
         await shell.SignOutAsync(Cancellation);
 
         shell.IsSignedIn.ShouldBeFalse();
         shell.SignInCommand.CanExecute(null).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Sign_in_opens_the_start_screen_and_shortcuts_open_the_right_form()
+    {
+        var api = new FakeOrganizationApi();
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
+
+        await shell.SignInAsync(Cancellation);
+
+        shell.CurrentItem.ShouldBe(shell.HomeItem);
+        shell.UserInitials.ShouldBe("AK");
+        shell.Home.Greeting.ShouldEndWith("Anna");
+
+        shell.AddEmployee();
+        shell.CurrentItem.ShouldBe(shell.EmployeesItem);
+        shell.Employees.IsCardOpen.ShouldBeTrue();
+        shell.Employees.IsNew.ShouldBeTrue();
+
+        shell.Navigate(shell.PositionsItem);
+        shell.CurrentItem.Page.ShouldBe(shell.Positions);
     }
 
     private sealed class FakeSignIn : ISignInService

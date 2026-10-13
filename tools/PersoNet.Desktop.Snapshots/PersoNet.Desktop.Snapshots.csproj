@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Renders the HR desktop screens with demo data to PNG files at several window sizes, so layout problems
+    (overlapping text, clipped controls) can be reviewed without signing in. CI runs it on Windows and keeps the
+    images as a build artifact.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clients\PersoNet.Desktop\PersoNet.Desktop.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -140,4 +140,51 @@ public sealed class EmployeesViewModelTests
         viewModel.Items.Count.ShouldBe(2);
         viewModel.NextPageCommand.CanExecute(null).ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task Card_stays_closed_until_someone_is_picked_or_added_and_can_be_closed_again()
+    {
+        _employees.Add("P001", "Anna", "Zielińska");
+        var viewModel = CreateViewModel();
+        await viewModel.LoadAsync(Cancellation);
+
+        viewModel.IsCardOpen.ShouldBeFalse();
+
+        await viewModel.OpenAsync(viewModel.Items.Single(), Cancellation);
+        viewModel.IsCardOpen.ShouldBeTrue();
+        viewModel.CardInitials.ShouldBe("AZ");
+        viewModel.CardSubtitle.ShouldBe("P001");
+        viewModel.StatusBadge.ShouldBe("Zatrudniony");
+
+        viewModel.CloseCard();
+        viewModel.IsCardOpen.ShouldBeFalse();
+        viewModel.Current.ShouldBeNull();
+        viewModel.Selected.ShouldBeNull();
+
+        viewModel.New();
+        viewModel.IsCardOpen.ShouldBeTrue();
+        viewModel.StatusBadge.ShouldBe("Nowa kartoteka");
+    }
+
+    [Fact]
+    public async Task Typing_in_the_search_box_searches_once_after_a_short_pause()
+    {
+        _employees.Add("P001", "Anna", "Zielińska");
+        _employees.Add("P002", "Jan", "Nowak");
+        var viewModel = CreateViewModel();
+        await viewModel.LoadAsync(Cancellation);
+        var queriesBefore = _employees.Queries.Count;
+
+        viewModel.Search = "n";
+        viewModel.Search = "no";
+        viewModel.Search = "now";
+        _employees.Queries.Count.ShouldBe(queriesBefore);
+
+        _time.Advance(EmployeesViewModel.SearchDelay);
+        await Task.Yield();
+
+        _employees.Queries.Count.ShouldBe(queriesBefore + 1);
+        _employees.Queries[^1].Search.ShouldBe("now");
+        viewModel.Items.ShouldHaveSingleItem().LastName.ShouldBe("Nowak");
+    }
 }

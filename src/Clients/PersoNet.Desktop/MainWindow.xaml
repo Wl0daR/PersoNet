@@ -4,51 +4,67 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:shell="clr-namespace:PersoNet.Desktop.Presentation.Shell;assembly=PersoNet.Desktop.Presentation"
+        xmlns:home="clr-namespace:PersoNet.Desktop.Presentation.Home;assembly=PersoNet.Desktop.Presentation"
+        xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
+        xmlns:org="clr-namespace:PersoNet.Desktop.Presentation.Organization;assembly=PersoNet.Desktop.Presentation"
         xmlns:views="clr-namespace:PersoNet.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=shell:ShellViewModel}"
+        x:Name="Root"
         Title="{Binding Title}"
-        Height="760" Width="1280" MinHeight="560" MinWidth="900"
-        WindowStartupLocation="CenterScreen">
-    <DockPanel>
-        <!-- Top bar: app name, signed-in user, sign in / out. -->
-        <Border DockPanel.Dock="Top" Padding="24,12" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-            <DockPanel>
-                <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" FontSize="18" VerticalAlignment="Center" />
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right"
-                            Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="{Binding User.Name}" VerticalAlignment="Center" Margin="0,0,12,0"
-                               ToolTip="{Binding User.Email}" Style="{StaticResource SecondaryText}" />
-                    <Button Content="Wyloguj" Command="{Binding SignOutCommand}" />
-                </StackPanel>
-            </DockPanel>
-        </Border>
+        Height="800" Width="1280" MinHeight="480" MinWidth="860">
+    <Window.Resources>
+        <!-- Each screen's view model is shown by its view. -->
+        <DataTemplate DataType="{x:Type home:HomeViewModel}">
+            <views:HomeView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type emp:EmployeesViewModel}">
+            <views:EmployeesView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type org:DepartmentsViewModel}">
+            <views:DepartmentsView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type org:PositionsViewModel}">
+            <views:PositionsView />
+        </DataTemplate>
+    </Window.Resources>
 
-        <Grid>
-            <!-- Signed out: one clear action, with feedback while the browser sign-in is in progress. -->
-            <Border Padding="32" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Border.Style>
-                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsSignedIn}" Value="True">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
+    <!-- Ctrl+1…4 switch screens, in the order of the side menu. -->
+    <Window.InputBindings>
+        <KeyBinding Key="D1" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding HomeItem}" />
+        <KeyBinding Key="D2" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding EmployeesItem}" />
+        <KeyBinding Key="D3" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding DepartmentsItem}" />
+        <KeyBinding Key="D4" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding PositionsItem}" />
+    </Window.InputBindings>
+
+    <Grid>
+        <!-- Signed out: who we are and one clear action, with feedback while the browser sign-in is in progress. -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding IsSignedIn, Converter={StaticResource CollapsedWhenTrue}}">
+            <Border Style="{StaticResource Card}" Padding="32" Margin="16" MaxWidth="440" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
-                    <TextBlock Text="Zaloguj się" Style="{StaticResource PageTitle}" />
-                    <TextBlock Text="Logowanie otworzy się w przeglądarce. Po zalogowaniu wróć do tego okna."
-                               Style="{StaticResource SecondaryText}" Margin="0,8,0,24" />
+                    <Border Width="56" Height="56" CornerRadius="12" HorizontalAlignment="Left" Background="{DynamicResource AccentFillColorDefaultBrush}">
+                        <TextBlock Text="&#xE716;" Style="{StaticResource Icon}" FontSize="28" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                    </Border>
+                    <TextBlock Text="PersoNet Kadry" Style="{StaticResource PageTitle}" FontSize="28" Margin="0,20,0,0" />
+                    <TextBlock Text="Kartoteki pracowników, umowy i struktura firmy w jednym miejscu."
+                               Style="{StaticResource SecondaryText}" Margin="0,4,0,24" />
 
-                    <Button Content="Zaloguj przez przeglądarkę" Command="{Binding SignInCommand}" IsDefault="True"
-                            Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Stretch" Padding="12,8" />
+                    <Button Command="{Binding SignInCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}"
+                            HorizontalAlignment="Stretch" Padding="12,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8D7;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
+                            <TextBlock Text="Zaloguj przez przeglądarkę" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="Strona logowania otworzy się w przeglądarce. Po zalogowaniu wróć do tego okna."
+                               Style="{StaticResource HelperText}" Margin="0,8,0,0" />
 
                     <!-- While waiting for the browser. -->
                     <StackPanel Margin="0,16,0,0" Visibility="{Binding SignInCommand.IsRunning, Converter={StaticResource BoolToVisibility}}">
                         <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa logowanie" />
                         <DockPanel Margin="0,8,0,0">
-                            <Button DockPanel.Dock="Right" Content="Anuluj" Command="{Binding SignInCancelCommand}" />
+                            <Button DockPanel.Dock="Right" Content="Anuluj" Command="{Binding SignInCancelCommand}" Margin="8,0,0,0" />
                             <TextBlock Text="Czekam na zalogowanie w przeglądarce…" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
                         </DockPanel>
                     </StackPanel>
@@ -56,19 +72,86 @@
                     <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
                 </StackPanel>
             </Border>
+        </ScrollViewer>
 
-            <!-- Signed in: module screens. -->
-            <TabControl Margin="24,16,24,24" Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVisibility}}">
-                <TabItem Header="Pracownicy">
-                    <views:EmployeesView DataContext="{Binding Employees}" />
-                </TabItem>
-                <TabItem Header="Działy">
-                    <views:DepartmentsView DataContext="{Binding Departments}" />
-                </TabItem>
-                <TabItem Header="Stanowiska">
-                    <views:PositionsView DataContext="{Binding Positions}" />
-                </TabItem>
-            </TabControl>
+        <!-- Signed in: side menu and the picked screen. -->
+        <Grid Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVisibility}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Side menu: wide with labels, or icons only when the window is narrow (or the user collapses it). -->
+            <DockPanel x:Name="Navigation" Grid.Column="0">
+                <DockPanel.Style>
+                    <!-- Width only in the style: a local value would win over the trigger. -->
+                    <Style TargetType="DockPanel">
+                        <Setter Property="Width" Value="240" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsNavigationCompact, ElementName=Root}" Value="True">
+                                <Setter Property="Width" Value="64" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DockPanel.Style>
+
+                <DockPanel DockPanel.Dock="Top" Margin="12,12,12,8">
+                    <Button DockPanel.Dock="Left" Click="OnToggleNavigation" Padding="8" Background="Transparent" BorderThickness="0"
+                            ToolTip="Zwiń lub rozwiń menu" AutomationProperties.Name="Zwiń lub rozwiń menu">
+                        <TextBlock Text="&#xE700;" Style="{StaticResource Icon}" />
+                    </Button>
+                    <TextBlock Text="PersoNet Kadry" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" Margin="12,0,0,0"
+                               TextTrimming="CharacterEllipsis" Visibility="{Binding IsNavigationExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
+                </DockPanel>
+
+                <!-- Signed-in user and sign-out at the bottom, as in most Windows apps. -->
+                <Border DockPanel.Dock="Bottom" Margin="12" Padding="0,12,0,0" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Avatar}" Margin="4,0,0,0" ToolTip="{Binding User.Name}">
+                            <TextBlock Text="{Binding UserInitials}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Button DockPanel.Dock="Right" Command="{Binding SignOutCommand}" Padding="8" Background="Transparent" BorderThickness="0"
+                                ToolTip="Wyloguj" AutomationProperties.Name="Wyloguj"
+                                Visibility="{Binding IsNavigationExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="&#xE7E8;" Style="{StaticResource Icon}" />
+                        </Button>
+                        <StackPanel Margin="10,0,4,0" VerticalAlignment="Center"
+                                    Visibility="{Binding IsNavigationExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{Binding User.Name}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding User.Email}" Style="{StaticResource HelperText}" Margin="0" TextWrapping="NoWrap"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding User.Email}" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <ListBox ItemsSource="{Binding Navigation}" SelectedItem="{Binding CurrentItem}" Margin="8,0"
+                         Background="Transparent" BorderThickness="0" AutomationProperties.Name="Menu główne"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <Setter Property="Padding" Value="12,10" />
+                            <Setter Property="Margin" Value="0,2" />
+                            <Setter Property="ToolTip" Value="{Binding Title}" />
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type shell:NavigationItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" Width="16" />
+                                <TextBlock Text="{Binding Title}" Margin="14,0,0,0" VerticalAlignment="Center"
+                                           Visibility="{Binding IsNavigationExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <!-- Content area: a raised layer next to the menu, as in Windows 11 apps. -->
+            <Border Grid.Column="1" Background="{DynamicResource LayerFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1,1,0,0" CornerRadius="8,0,0,0" Margin="0,8,0,0">
+                <ContentControl Content="{Binding CurrentItem.Page}" Focusable="False" Margin="24,20,24,16" />
+            </Border>
         </Grid>
-    </DockPanel>
+    </Grid>
 </Window>
