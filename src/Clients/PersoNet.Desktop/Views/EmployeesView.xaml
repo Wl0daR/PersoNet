@@ -353,6 +353,22 @@
                                 </TabItem.Style>
                                 <local:ContractsView DataContext="{Binding Contracts}" />
                             </TabItem>
+                            <!-- Nor leave. -->
+                            <TabItem Header="Ur_lop" ToolTip="Najpierw zapisz kartotekę pracownika.">
+                                <TabItem.Style>
+                                    <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsNew}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsNew}" Value="False">
+                                                <Setter Property="ToolTip" Value="{x:Null}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TabItem.Style>
+                                <local:EmployeeLeaveView DataContext="{Binding Leave}" />
+                            </TabItem>
                         </TabControl>
                     </DockPanel>
                 </Grid>

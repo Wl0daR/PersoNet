@@ -3,7 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
 using PersoNet.ApiClient.Employees;
+using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
+using PersoNet.Contracts.Leave;
 using PersoNet.Desktop.Presentation.Common;
 
 namespace PersoNet.Desktop.Presentation.Home;
@@ -11,7 +13,7 @@ namespace PersoNet.Desktop.Presentation.Home;
 /// <summary>
 /// "Start" screen: a greeting, the size of the company at a glance and shortcuts to the most common tasks.
 /// </summary>
-public sealed partial class HomeViewModel(IEmployeesApi employees, IOrganizationApi organization, TimeProvider time) : EditorViewModel
+public sealed partial class HomeViewModel(IEmployeesApi employees, IOrganizationApi organization, ILeaveApi leave, TimeProvider time) : EditorViewModel
 {
     private static readonly CultureInfo Polish = CultureInfo.GetCultureInfo("pl-PL");
 
@@ -30,6 +32,10 @@ public sealed partial class HomeViewModel(IEmployeesApi employees, IOrganization
 
     [ObservableProperty]
     public partial int PositionCount { get; set; }
+
+    /// <summary>Leave requests of any year still waiting for a decision.</summary>
+    [ObservableProperty]
+    public partial int PendingLeaveCount { get; set; }
 
     /// <summary>True once the numbers are loaded, so the view does not show zeros while waiting.</summary>
     [ObservableProperty]
@@ -58,11 +64,13 @@ public sealed partial class HomeViewModel(IEmployeesApi employees, IOrganization
         var everyone = await employees.ListAsync(new EmployeeListQuery(null, null, IncludeFormer: true, Page: 1, PageSize: 1), cancellationToken);
         var departments = await organization.GetDepartmentsAsync(includeInactive: false, cancellationToken);
         var positions = await organization.GetPositionsAsync(includeInactive: false, cancellationToken);
+        var pendingLeave = await leave.ListAsync(LeaveState.Pending, year: null, employeeId: null, cancellationToken);
 
         EmployedCount = employed.TotalCount;
         FormerCount = everyone.TotalCount - employed.TotalCount;
         DepartmentCount = departments.Count;
         PositionCount = positions.Count;
+        PendingLeaveCount = pendingLeave.Count;
         IsLoaded = true;
         OnPropertyChanged(nameof(Today));
     });

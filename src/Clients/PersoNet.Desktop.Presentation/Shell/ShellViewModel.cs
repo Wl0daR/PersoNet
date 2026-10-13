@@ -4,6 +4,7 @@ using PersoNet.Desktop.Presentation.Authentication;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
+using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 
 namespace PersoNet.Desktop.Presentation.Shell;
@@ -19,20 +20,23 @@ public sealed partial class ShellViewModel : ObservableObject
         ISignInService signIn,
         HomeViewModel home,
         EmployeesViewModel employees,
+        LeaveViewModel leave,
         DepartmentsViewModel departments,
         PositionsViewModel positions)
     {
         _signIn = signIn;
         Home = home;
         Employees = employees;
+        Leave = leave;
         Departments = departments;
         Positions = positions;
 
         HomeItem = new NavigationItem("Start", "\uE80F", home);
         EmployeesItem = new NavigationItem("Pracownicy", "\uE716", employees);
+        LeaveItem = new NavigationItem("Urlopy", "\uE787", leave);
         DepartmentsItem = new NavigationItem("Działy", "\uE8B7", departments);
         PositionsItem = new NavigationItem("Stanowiska", "\uE821", positions);
-        Navigation = [HomeItem, EmployeesItem, DepartmentsItem, PositionsItem];
+        Navigation = [HomeItem, EmployeesItem, LeaveItem, DepartmentsItem, PositionsItem];
         CurrentItem = HomeItem;
     }
 
@@ -56,6 +60,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public EmployeesViewModel Employees { get; }
 
+    public LeaveViewModel Leave { get; }
+
     public DepartmentsViewModel Departments { get; }
 
     public PositionsViewModel Positions { get; }
@@ -63,6 +69,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public NavigationItem HomeItem { get; }
 
     public NavigationItem EmployeesItem { get; }
+
+    public NavigationItem LeaveItem { get; }
 
     public NavigationItem DepartmentsItem { get; }
 
@@ -89,6 +97,14 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         CurrentItem = EmployeesItem;
         Employees.NewCommand.Execute(null);
+    }
+
+    /// <summary>Shortcut from the start screen: the form of a new leave request.</summary>
+    [RelayCommand]
+    public void AddLeave()
+    {
+        CurrentItem = LeaveItem;
+        Leave.NewCommand.Execute(null);
     }
 
     /// <summary>Shortcut from the start screen: an empty department form.</summary>
@@ -135,6 +151,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Home.UserName = User.Name;
         await Home.LoadAsync(cancellationToken);
         await Employees.LoadAsync(cancellationToken);
+        await Leave.LoadAsync(cancellationToken);
         await Departments.LoadAsync(cancellationToken);
         await Positions.LoadAsync(cancellationToken);
     }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Markup;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +7,7 @@ using PersoNet.ApiClient;
 using PersoNet.Desktop.Authentication;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
+using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
 
@@ -20,6 +22,11 @@ public partial class App : Application
 
     public App()
     {
+        // The app is Polish only: date pickers and formatting follow pl-PL even on an English Windows.
+        var polish = CultureInfo.GetCultureInfo("pl-PL");
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture = polish;
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = polish;
+
         // Dates and numbers in bindings use Polish formats (WPF defaults to en-US regardless of Windows settings).
         FrameworkElement.LanguageProperty.OverrideMetadata(
             typeof(FrameworkElement), new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("pl-PL")));
@@ -34,6 +41,7 @@ public partial class App : Application
 
         builder.Services.AddSingleton<HomeViewModel>();
         builder.Services.AddSingleton<EmployeesViewModel>();
+        builder.Services.AddSingleton<LeaveViewModel>();
         builder.Services.AddSingleton<DepartmentsViewModel>();
         builder.Services.AddSingleton<PositionsViewModel>();
         builder.Services.AddSingleton<ShellViewModel>();

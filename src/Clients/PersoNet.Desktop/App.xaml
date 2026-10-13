@@ -18,6 +18,7 @@
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <local:CollapsedWhenTrueConverter x:Key="CollapsedWhenTrue" />
+        <local:CollapsedWhenEmptyConverter x:Key="CollapsedWhenEmpty" />
 
         <!-- Shared text styles. -->
         <Style x:Key="PageTitle" TargetType="TextBlock">
@@ -61,11 +62,30 @@
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextElement.FontSize" Value="12" />
+            <!-- Own text colour, so the badge stays readable on a selected (accent) row. -->
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         </Style>
 
         <Style x:Key="SuccessBadge" TargetType="Border" BasedOn="{StaticResource Badge}">
             <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
             <Setter Property="TextElement.Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+        </Style>
+
+        <!-- Leave request state in words; the colour only reinforces it. -->
+        <Style x:Key="StateBadge" TargetType="Border" BasedOn="{StaticResource Badge}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Request.State}" Value="Pending">
+                    <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Request.State}" Value="Approved">
+                    <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Request.State}" Value="Rejected">
+                    <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="SectionTitle" TargetType="TextBlock">

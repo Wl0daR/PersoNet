@@ -1,19 +1,23 @@
 using PersoNet.ApiClient.Employees;
+using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
+using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.Organization;
 using PersoNet.Desktop.Presentation.Authentication;
 
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ISignInService
+internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISignInService
 {
     private readonly List<DepartmentResponse> _departments = [];
     private readonly List<PositionResponse> _positions = [];
     private readonly List<EmployeeResponse> _employees = [];
     private readonly List<ContractResponse> _contracts = [];
+    private readonly List<LeaveRequestResponse> _leave = [];
+    private readonly Dictionary<(Guid EmployeeId, int Year), (int Days, int CarriedOver)> _entitlements = [];
 
     public DemoApi()
     {
@@ -36,13 +40,13 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ISignInService
         var prezes = AddEmployee("P0001", "Jan", "Nowak", board, ceo, null, new DateOnly(2015, 3, 1));
         var kadry = AddEmployee("P0002", "Anna", "Kowalska", hr, hrSpec, prezes, new DateOnly(2018, 6, 1));
         var kier = AddEmployee("P0003", "Krzysztof", "Wiśniewski-Grabowski", dev, lead, prezes, new DateOnly(2019, 1, 15));
-        AddEmployee("P0004", "Małgorzata", "Wójcik", dev, dev1, kier, new DateOnly(2021, 9, 1));
+        var wojcik = AddEmployee("P0004", "Małgorzata", "Wójcik", dev, dev1, kier, new DateOnly(2021, 9, 1));
         AddEmployee("P0005", "Piotr", "Kamiński", dev, dev1, kier, new DateOnly(2022, 2, 1), new DateOnly(2025, 8, 31));
-        AddEmployee("P0006", "Katarzyna", "Lewandowska", sales, seller, prezes, new DateOnly(2023, 4, 3));
+        var lewandowska = AddEmployee("P0006", "Katarzyna", "Lewandowska", sales, seller, prezes, new DateOnly(2023, 4, 3));
         AddEmployee("P0007", "Tomasz", "Zieliński", null, null, null, new DateOnly(2026, 10, 1));
         AddEmployee("P0008", "Aleksandra", "Szymańska", hr, hrSpec, kadry, new DateOnly(2024, 11, 4));
-        AddEmployee("P0009", "Michał", "Woźniak", it, lead, prezes, new DateOnly(2017, 5, 8));
-        AddEmployee("P0010", "Magdalena", "Dąbrowska", sales, seller, prezes, new DateOnly(2020, 7, 1));
+        var wozniak = AddEmployee("P0009", "Michał", "Woźniak", it, lead, prezes, new DateOnly(2017, 5, 8));
+        var dabrowska = AddEmployee("P0010", "Magdalena", "Dąbrowska", sales, seller, prezes, new DateOnly(2020, 7, 1));
         for (var i = 11; i <= 64; i++)
         {
             AddEmployee($"P{i:0000}", $"Imię{i}", $"Nazwisko{i}", sales, seller, prezes, new DateOnly(2025, 1, 1));
@@ -52,7 +56,27 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ISignInService
         _contracts.Add(new(Guid.CreateVersion7(), kadry, ContractKind.FixedTerm, new DateOnly(2018, 9, 1), new DateOnly(2020, 8, 31), 1m));
         _contracts.Add(new(Guid.CreateVersion7(), kadry, ContractKind.Indefinite, new DateOnly(2020, 9, 1), null, 0.75m));
         _contracts.Add(new(Guid.CreateVersion7(), kadry, ContractKind.Mandate, new DateOnly(2024, 1, 1), new DateOnly(2024, 6, 30), null));
+
+        // Leave in the current year, so the screenshots look the same whenever they are taken. Days are working days.
+        var year = DateTime.Today.Year;
+        foreach (var employee in _employees.Where(employee => employee.TerminationDate is null))
+        {
+            _entitlements[(employee.Id, year)] = (employee.HireDate.Year < 2017 ? 26 : 20, 0);
+        }
+
+        _entitlements[(kadry, year)] = (26, 4);
+        AddLeave(wojcik, LeaveKind.Annual, new DateOnly(year, 11, 2), new DateOnly(year, 11, 6), 5, LeaveState.Pending, "Wyjazd rodzinny, zastępstwo uzgodnione z zespołem.");
+        AddLeave(lewandowska, LeaveKind.OnDemand, new DateOnly(year, 10, 16), new DateOnly(year, 10, 16), 1, LeaveState.Pending, null);
+        AddLeave(kier, LeaveKind.Annual, new DateOnly(year, 12, 21), new DateOnly(year, 12, 31), 7, LeaveState.Pending, null);
+        AddLeave(kadry, LeaveKind.Annual, new DateOnly(year, 7, 6), new DateOnly(year, 7, 17), 10, LeaveState.Approved, null);
+        AddLeave(kadry, LeaveKind.ChildCare, new DateOnly(year, 3, 12), new DateOnly(year, 3, 12), 1, LeaveState.Approved, null);
+        AddLeave(kadry, LeaveKind.Annual, new DateOnly(year, 8, 24), new DateOnly(year, 8, 28), 5, LeaveState.Rejected, null,
+            "W tym tygodniu zamykamy listy płac za sierpień. Proszę o inny termin.");
+        AddLeave(wozniak, LeaveKind.Occasional, new DateOnly(year, 9, 18), new DateOnly(year, 9, 18), 1, LeaveState.Approved, "Ślub brata.");
+        AddLeave(dabrowska, LeaveKind.Unpaid, new DateOnly(year, 10, 26), new DateOnly(year, 10, 30), 5, LeaveState.Cancelled, null);
     }
+
+    public Guid FirstEmployeeWithLeave => _leave.First(request => request.State == LeaveState.Rejected).EmployeeId;
 
     public Guid FirstEmployeeWithContracts => _contracts[0].EmployeeId;
 
@@ -123,6 +147,49 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ISignInService
     public Task<PositionResponse> UpdatePositionAsync(Guid id, UpdatePositionRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task SetPositionActiveAsync(Guid id, bool active, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    // ILeaveApi
+
+    public Task<IReadOnlyList<LeaveRequestResponse>> ListAsync(LeaveState? state, int? year, Guid? employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<LeaveRequestResponse>>(_leave
+            .Where(request => state is null || request.State == state)
+            .Where(request => year is null || request.StartDate.Year == year)
+            .Where(request => employeeId is null || request.EmployeeId == employeeId)
+            .OrderBy(request => request.State == LeaveState.Pending ? 0 : 1)
+            .ThenByDescending(request => request.StartDate)
+            .ToList());
+
+    public Task<LeaveRequestResponse> CreateAsync(CreateLeaveRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<LeaveRequestResponse> ApproveAsync(Guid id, string? note, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<LeaveRequestResponse> RejectAsync(Guid id, string reason, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<LeaveRequestResponse> CancelAsync(Guid id, string? note, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<LeaveBalanceResponse> GetBalanceAsync(Guid employeeId, int year, CancellationToken cancellationToken)
+    {
+        var annual = _leave.Where(request => request.EmployeeId == employeeId && request.StartDate.Year == year
+            && request.Kind is LeaveKind.Annual or LeaveKind.OnDemand).ToList();
+        var used = annual.Where(request => request.State == LeaveState.Approved).Sum(request => request.Days);
+        var pending = annual.Where(request => request.State == LeaveState.Pending).Sum(request => request.Days);
+        var onDemand = annual.Where(request => request.Kind == LeaveKind.OnDemand && request.State is LeaveState.Approved or LeaveState.Pending).Sum(request => request.Days);
+
+        return Task.FromResult(_entitlements.TryGetValue((employeeId, year), out var entitlement)
+            ? new LeaveBalanceResponse(employeeId, year, true, entitlement.Days, entitlement.CarriedOver, used, pending, entitlement.Days + entitlement.CarriedOver - used - pending, onDemand)
+            : new LeaveBalanceResponse(employeeId, year, false, 0, 0, used, pending, 0, onDemand));
+    }
+
+    public Task<LeaveBalanceResponse> SetEntitlementAsync(Guid employeeId, int year, SaveLeaveEntitlementRequest request, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
+    private void AddLeave(Guid employeeId, LeaveKind kind, DateOnly start, DateOnly end, int days, LeaveState state, string? note, string? decisionNote = null)
+    {
+        var employee = _employees.Single(employee => employee.Id == employeeId);
+        var created = new DateTimeOffset(start.AddDays(-14).ToDateTime(new TimeOnly(9, 30)));
+        _leave.Add(new LeaveRequestResponse(Guid.CreateVersion7(), employeeId, employee.Number, $"{employee.LastName} {employee.FirstName}", kind, start, end, days, note,
+            state, created, state == LeaveState.Pending ? null : created.AddDays(1), decisionNote));
+    }
 
     private Guid AddDepartment(string name, string code, Guid? parentId, bool active = true)
     {

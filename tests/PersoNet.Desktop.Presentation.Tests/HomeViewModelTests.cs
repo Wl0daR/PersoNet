@@ -17,7 +17,7 @@ public sealed class HomeViewModelTests
         var organization = new FakeOrganizationApi();
         organization.Add("Dział IT", "IT");
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 10, 13, 9, 0, 0, TimeSpan.Zero));
-        var viewModel = new HomeViewModel(employees, organization, time) { UserName = "Anna Kowalska" };
+        var viewModel = new HomeViewModel(employees, organization, new FakeLeaveApi(), time) { UserName = "Anna Kowalska" };
 
         await viewModel.LoadAsync(Cancellation);
 
@@ -36,6 +36,6 @@ public sealed class HomeViewModelTests
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 10, 13, 19, 0, 0, TimeSpan.Zero));
         time.SetLocalTimeZone(TimeZoneInfo.Utc);
 
-        new HomeViewModel(new FakeEmployeesApi(), new FakeOrganizationApi(), time).Greeting.ShouldBe("Dobry wieczór");
+        new HomeViewModel(new FakeEmployeesApi(), new FakeOrganizationApi(), new FakeLeaveApi(), time).Greeting.ShouldBe("Dobry wieczór");
     }
 }

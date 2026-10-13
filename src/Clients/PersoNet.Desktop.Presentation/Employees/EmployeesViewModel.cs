@@ -4,9 +4,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
 using PersoNet.ApiClient.Employees;
+using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.Contracts.Employees;
 using PersoNet.Desktop.Presentation.Common;
+using PersoNet.Desktop.Presentation.Leave;
 
 namespace PersoNet.Desktop.Presentation.Employees;
 
@@ -14,7 +16,7 @@ namespace PersoNet.Desktop.Presentation.Employees;
 /// "Pracownicy" screen: a searchable, paged list on the left and the selected or new employee's card on the right.
 /// The card is hidden until someone is picked or "Dodaj pracownika" is clicked.
 /// </summary>
-public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganizationApi organization, TimeProvider time) : EditorViewModel
+public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganizationApi organization, ILeaveApi leave, TimeProvider time) : EditorViewModel
 {
     public const int PageSize = 50;
     public const int NumberMaxLength = 20;
@@ -38,6 +40,9 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
 
     /// <summary>"Umowy" tab of the open card.</summary>
     public ContractsViewModel Contracts { get; } = new(employees, time);
+
+    /// <summary>"Urlop" tab of the open card.</summary>
+    public EmployeeLeaveViewModel Leave { get; } = new(leave, time);
 
     public ObservableCollection<Choice> Departments { get; } = [NoDepartment];
 
@@ -290,6 +295,7 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
         if (oldValue?.Id != newValue?.Id)
         {
             _ = Contracts.ShowAsync(newValue, CancellationToken.None);
+            _ = Leave.ShowAsync(newValue, CancellationToken.None);
         }
     }
 

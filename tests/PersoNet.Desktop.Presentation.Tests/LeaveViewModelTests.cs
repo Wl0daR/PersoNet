@@ -1,0 +1,107 @@
+using Microsoft.Extensions.Time.Testing;
+using PersoNet.Contracts.Leave;
+using PersoNet.Desktop.Presentation.Leave;
+
+namespace PersoNet.Desktop.Presentation.Tests;
+
+public sealed class LeaveViewModelTests
+{
+    private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
+
+    private readonly FakeLeaveApi _leave = new();
+    private readonly FakeEmployeesApi _employees = new();
+    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2025, 5, 20, 9, 0, 0, TimeSpan.Zero));
+
+    private LeaveViewModel CreateViewModel() => new(_leave, _employees, _time);
+
+    [Fact]
+    public async Task Opens_on_requests_waiting_for_a_decision_and_counts_them()
+    {
+        var employee = _employees.Add("P001", "Jan", "Nowak");
+        _leave.Add(employee.Id, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 6));
+        _leave.Add(employee.Id, new DateOnly(2025, 3, 3), new DateOnly(2025, 3, 3), LeaveState.Approved);
+        var viewModel = CreateViewModel();
+
+        await viewModel.LoadAsync(Cancellation);
+
+        viewModel.Year.ShouldBe(2025);
+        viewModel.Items.ShouldHaveSingleItem().IsPending.ShouldBeTrue();
+        viewModel.PendingCount.ShouldBe(1);
+        viewModel.Employees.Count.ShouldBe(2);
+
+        viewModel.StateFilter = LeaveViewModel.States.Single(choice => choice.State is null);
+        await Task.Yield();
+        viewModel.Items.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Rejecting_needs_a_reason_and_approving_moves_the_request_out_of_the_waiting_list()
+    {
+        var employee = _employees.Add("P001", "Jan", "Nowak");
+        var first = _leave.Add(employee.Id, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 6));
+        var second = _leave.Add(employee.Id, new DateOnly(2025, 7, 7), new DateOnly(2025, 7, 8));
+        var viewModel = CreateViewModel();
+        await viewModel.LoadAsync(Cancellation);
+
+        viewModel.Selected = viewModel.Items.Single(row => row.Request.Id == first.Id);
+        await viewModel.RejectAsync(Cancellation);
+        viewModel.GetError(nameof(viewModel.DecisionNote)).ShouldNotBeNull();
+
+        await viewModel.ApproveAsync(Cancellation);
+
+        viewModel.Items.ShouldHaveSingleItem().Request.Id.ShouldBe(second.Id);
+        viewModel.Selected!.Request.State.ShouldBe(LeaveState.Approved);
+        viewModel.PendingCount.ShouldBe(1);
+        viewModel.ApproveCommand.CanExecute(null).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task New_request_is_saved_and_shown_and_server_errors_land_on_the_right_field()
+    {
+        var employee = _employees.Add("P001", "Jan", "Nowak");
+        var viewModel = CreateViewModel();
+        await viewModel.LoadAsync(Cancellation);
+
+        viewModel.New();
+        await viewModel.SaveAsync(Cancellation);
+        viewModel.GetError(nameof(viewModel.EditEmployee)).ShouldBe("Wybierz pracownika.");
+
+        viewModel.EditEmployee = viewModel.Employees.Single(choice => choice.Id == employee.Id);
+        viewModel.EditStartDate = new DateTime(2025, 6, 2);
+        viewModel.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
+        viewModel.EditEndDate = new DateTime(2025, 6, 6);
+        await viewModel.SaveAsync(Cancellation);
+
+        viewModel.GetError(nameof(viewModel.EditKind)).ShouldBe("Najpierw ustaw wymiar urlopu pracownika na ten rok.");
+        viewModel.IsCreating.ShouldBeTrue();
+
+        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
+        await viewModel.SaveAsync(Cancellation);
+
+        viewModel.IsCreating.ShouldBeFalse();
+        viewModel.Selected!.KindName.ShouldBe("Urlop bezpłatny");
+        viewModel.Selected.DaysText.ShouldBe("5 dni");
+        viewModel.Selected.Period.ShouldBe("2 cze – 6 cze 2025");
+    }
+
+    [Fact]
+    public async Task Employee_card_sets_the_entitlement_and_shows_the_balance()
+    {
+        var employee = _employees.Add("P001", "Jan", "Nowak");
+        var viewModel = new EmployeeLeaveViewModel(_leave, _time);
+        await viewModel.ShowAsync(employee, Cancellation);
+
+        viewModel.HasEntitlement.ShouldBeFalse();
+        viewModel.EditDays = "dużo";
+        await viewModel.SaveEntitlementAsync(Cancellation);
+        viewModel.GetError(nameof(viewModel.EditDays)).ShouldNotBeNull();
+
+        viewModel.EditDays = "26";
+        viewModel.EditCarriedOver = "3";
+        await viewModel.SaveEntitlementAsync(Cancellation);
+
+        viewModel.HasEntitlement.ShouldBeTrue();
+        viewModel.Balance!.RemainingDays.ShouldBe(29);
+        _leave.Entitlements[(employee.Id, 2025)].Days.ShouldBe(26);
+    }
+}
