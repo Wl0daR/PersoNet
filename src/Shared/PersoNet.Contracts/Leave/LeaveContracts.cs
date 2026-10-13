@@ -18,8 +18,11 @@ public enum LeaveKind
     /// <summary>Urlop bezpłatny.</summary>
     Unpaid = 4,
 
-    /// <summary>Opieka nad dzieckiem (art. 188 KP, at most 2 days a year).</summary>
+    /// <summary>Opieka nad dzieckiem (art. 188 KP): 2 days or 16 hours a year.</summary>
     ChildCare = 5,
+
+    /// <summary>Zwolnienie z powodu siły wyższej (art. 148¹ KP): 2 days or 16 hours a year.</summary>
+    ForceMajeure = 6,
 }
 
 /// <summary>Where a request stands; sent as text, e.g. "Pending".</summary>
@@ -32,7 +35,10 @@ public enum LeaveState
     Cancelled = 4,
 }
 
-/// <summary>A leave request with the employee's name resolved. <see cref="Days"/> are working days.</summary>
+/// <summary>
+/// A leave request with the employee's name resolved. <see cref="Days"/> are working days; <see cref="Hours"/> are the
+/// working hours it takes; <see cref="IsHourly"/> marks leave taken in hours on one day.
+/// </summary>
 public sealed record LeaveRequestResponse(
     Guid Id,
     Guid EmployeeId,
@@ -42,20 +48,24 @@ public sealed record LeaveRequestResponse(
     DateOnly StartDate,
     DateOnly EndDate,
     int Days,
+    decimal Hours,
+    bool IsHourly,
     string? Note,
     LeaveState State,
     DateTimeOffset CreatedAt,
     DateTimeOffset? DecidedAt,
     string? DecisionNote);
 
-public sealed record CreateLeaveRequest(Guid EmployeeId, LeaveKind Kind, DateOnly StartDate, DateOnly EndDate, string? Note);
+/// <summary>A new request. <see cref="Hours"/> is set only for leave taken in hours, on one day (start equal to end).</summary>
+public sealed record CreateLeaveRequest(Guid EmployeeId, LeaveKind Kind, DateOnly StartDate, DateOnly EndDate, string? Note, decimal? Hours = null);
 
 /// <summary>Approve, reject or cancel. The note is required when rejecting.</summary>
 public sealed record LeaveDecisionRequest(string? Note);
 
 /// <summary>
-/// Annual leave of one employee in one year. Used and pending count annual and on-demand leave; remaining is what can
-/// still be requested.
+/// Annual leave of one employee in one year, kept in hours as the Labour Code counts it (one day of entitlement is 8 hours).
+/// Used and pending count annual and on-demand leave; remaining is what can still be requested. <see cref="DailyHours"/>
+/// is the employee's working day (less than 8 for part-time work), which one day of leave takes.
 /// </summary>
 public sealed record LeaveBalanceResponse(
     Guid EmployeeId,
@@ -63,9 +73,11 @@ public sealed record LeaveBalanceResponse(
     bool HasEntitlement,
     int EntitlementDays,
     int CarriedOverDays,
-    int UsedDays,
-    int PendingDays,
-    int RemainingDays,
-    int OnDemandDays);
+    decimal TotalHours,
+    decimal UsedHours,
+    decimal PendingHours,
+    decimal RemainingHours,
+    int OnDemandDays,
+    decimal DailyHours);
 
 public sealed record SaveLeaveEntitlementRequest(int Days, int CarriedOverDays);

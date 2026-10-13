@@ -17,8 +17,11 @@ public enum LeaveType
     /// <summary>Urlop bezpłatny.</summary>
     Unpaid = 4,
 
-    /// <summary>Zwolnienie na opiekę nad dzieckiem (art. 188 KP), at most 2 days a year.</summary>
+    /// <summary>Zwolnienie na opiekę nad dzieckiem (art. 188 KP): 2 days or 16 hours a year.</summary>
     ChildCare = 5,
+
+    /// <summary>Zwolnienie z powodu siły wyższej (art. 148¹ KP): 2 days or 16 hours a year, paid at half rate.</summary>
+    ForceMajeure = 6,
 }
 
 public enum LeaveStatus
@@ -30,9 +33,10 @@ public enum LeaveStatus
 }
 
 /// <summary>
-/// A request for days off: who, what kind, which days, and the decision on it. Days are counted as working days
-/// (<see cref="PolishCalendar"/>) when the request is made. Limits that need the employee's other requests (balance, overlaps)
-/// are checked by the caller.
+/// A request for time off: who, what kind, which days, and the decision on it. Days are counted as working days
+/// (<see cref="PolishCalendar"/>) when the request is made, and <see cref="Hours"/> is what the request takes from the
+/// employee's time: the employee's daily working hours for each day, or the hours of a single day when taken in hours.
+/// Limits that need the employee's other requests (balance, overlaps, the hourly-leave rules) are checked by the caller.
 /// </summary>
 public sealed class LeaveRequest : Entity, ITenantOwned
 {
@@ -43,8 +47,10 @@ public sealed class LeaveRequest : Entity, ITenantOwned
     {
     }
 
-    private LeaveRequest(Guid tenantId, Guid employeeId, LeaveType type, DateOnly startDate, DateOnly endDate, int days, string? note, DateTimeOffset createdAt)
+    private LeaveRequest(Guid tenantId, Guid employeeId, LeaveType type, DateOnly startDate, DateOnly endDate, int days, decimal hours, bool isHourly, string? note, DateTimeOffset createdAt)
     {
+        Hours = hours;
+        IsHourly = isHourly;
         TenantId = tenantId;
         EmployeeId = employeeId;
         Type = type;
@@ -67,8 +73,14 @@ public sealed class LeaveRequest : Entity, ITenantOwned
     /// <summary>Last day of leave (inclusive).</summary>
     public DateOnly EndDate { get; private set; }
 
-    /// <summary>Working days the leave takes.</summary>
+    /// <summary>Working days the leave takes (1 for leave taken in hours).</summary>
     public int Days { get; private set; }
+
+    /// <summary>Working hours the leave takes.</summary>
+    public decimal Hours { get; private set; }
+
+    /// <summary>True when taken in hours on a single day rather than in whole days.</summary>
+    public bool IsHourly { get; private set; }
 
     public string? Note { get; private set; }
 
@@ -92,7 +104,26 @@ public sealed class LeaveRequest : Entity, ITenantOwned
 
     public static bool UsesAnnualLeaveType(LeaveType type) => type is LeaveType.Annual or LeaveType.OnDemand;
 
-    public static LeaveRequest Create(Guid tenantId, Guid employeeId, LeaveType type, DateOnly startDate, DateOnly endDate, string? note, DateTimeOffset createdAt)
+    /// <summary>
+    /// Kinds the Labour Code lets take in hours: child care and force majeure (art. 188, 148¹), and annual leave when what is
+    /// left of it is less than a full day (art. 154² § 2; checked by the caller).
+    /// </summary>
+    public static bool AllowsHoursType(LeaveType type) => type is LeaveType.Annual or LeaveType.ChildCare or LeaveType.ForceMajeure;
+
+    /// <summary>
+    /// Creates a request. <paramref name="dailyHours"/> is the employee's working time on a day (8 for full time);
+    /// <paramref name="hours"/> is set only for leave taken in hours, which is one working day and at most a full day.
+    /// </summary>
+    public static LeaveRequest Create(
+        Guid tenantId,
+        Guid employeeId,
+        LeaveType type,
+        DateOnly startDate,
+        DateOnly endDate,
+        decimal dailyHours,
+        decimal? hours,
+        string? note,
+        DateTimeOffset createdAt)
     {
         if (tenantId == Guid.Empty || employeeId == Guid.Empty)
         {
@@ -120,8 +151,36 @@ public sealed class LeaveRequest : Entity, ITenantOwned
             throw new DomainException("Leave must include at least one working day.");
         }
 
-        return new LeaveRequest(tenantId, employeeId, type, startDate, endDate, days, Clean(note), createdAt);
+        if (dailyHours is <= 0 or > 24)
+        {
+            throw new DomainException("Daily working hours must be between 0 and 24.");
+        }
+
+        if (hours is not { } partOfDay)
+        {
+            return new LeaveRequest(tenantId, employeeId, type, startDate, endDate, days, days * dailyHours, isHourly: false, Clean(note), createdAt);
+        }
+
+        if (!AllowsHoursType(type))
+        {
+            throw new DomainException("This kind of leave cannot be taken in hours.");
+        }
+
+        if (startDate != endDate)
+        {
+            throw new DomainException("Leave in hours is taken on one day.");
+        }
+
+        if (!IsValidHours(partOfDay, dailyHours))
+        {
+            throw new DomainException("Hours must be more than 0, at most the working day, in quarters of an hour.");
+        }
+
+        return new LeaveRequest(tenantId, employeeId, type, startDate, endDate, days, partOfDay, isHourly: true, Clean(note), createdAt);
     }
+
+    /// <summary>More than zero, at most a working day, and in whole quarters of an hour (15 minutes).</summary>
+    public static bool IsValidHours(decimal hours, decimal dailyHours) => hours > 0 && hours <= dailyHours && hours * 4 == decimal.Truncate(hours * 4);
 
     public void Approve(Guid decidedBy, DateTimeOffset at, string? note)
     {

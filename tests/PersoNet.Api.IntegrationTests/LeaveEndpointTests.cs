@@ -29,16 +29,19 @@ public sealed class LeaveEndpointTests(PersoNetApiFactory factory)
         var after = await BalanceAsync(hr, employee.Id);
 
         request.Days.ShouldBe(6);
+        request.Hours.ShouldBe(48m);
         request.State.ShouldBe(LeaveState.Pending);
         request.EmployeeName.ShouldBe("Urlopowy Jan");
-        pending.PendingDays.ShouldBe(6);
-        pending.RemainingDays.ShouldBe(22);
+        pending.TotalHours.ShouldBe(224m);
+        pending.PendingHours.ShouldBe(48m);
+        pending.RemainingHours.ShouldBe(176m);
+        pending.DailyHours.ShouldBe(8m);
         approve.StatusCode.ShouldBe(HttpStatusCode.OK);
         approved!.State.ShouldBe(LeaveState.Approved);
         approved.DecidedAt.ShouldNotBeNull();
-        after.UsedDays.ShouldBe(6);
-        after.PendingDays.ShouldBe(0);
-        after.RemainingDays.ShouldBe(22);
+        after.UsedHours.ShouldBe(48m);
+        after.PendingHours.ShouldBe(0m);
+        after.RemainingHours.ShouldBe(176m);
     }
 
     [Fact]
@@ -72,6 +75,64 @@ public sealed class LeaveEndpointTests(PersoNetApiFactory factory)
         await ShouldFailAsync(overlap, HttpStatusCode.Conflict, "leave.overlap");
         await ShouldFailAsync(onDemand, HttpStatusCode.BadRequest, "leave.on_demand_limit");
         await ShouldFailAsync(childCare, HttpStatusCode.BadRequest, "leave.child_care_limit");
+    }
+
+    [Fact]
+    public async Task Part_time_day_takes_its_hours_and_annual_leave_in_hours_is_only_for_what_is_left_of_a_day()
+    {
+        using var hr = factory.CreateSignedInClient();
+        var employee = await HireAsync(hr);
+        await AddContractAsync(hr, employee.Id, 0.75m);
+        await SetEntitlementAsync(hr, employee.Id, 1, 0);
+
+        using var hoursTooEarly = await PostAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.Annual, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 2), null, 2m));
+        var day = await CreateAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.Annual, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 2), null));
+        using var tooManyHours = await PostAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.Annual, new DateOnly(2025, 6, 3), new DateOnly(2025, 6, 3), null, 3m));
+        var rest = await CreateAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.Annual, new DateOnly(2025, 6, 3), new DateOnly(2025, 6, 3), null, 2m));
+        var balance = await BalanceAsync(hr, employee.Id);
+
+        await ShouldFailAsync(hoursTooEarly, HttpStatusCode.BadRequest, "leave.hours_only_for_remainder");
+        day.Hours.ShouldBe(6m);
+        await ShouldFailAsync(tooManyHours, HttpStatusCode.BadRequest, "leave.not_enough_days");
+        rest.IsHourly.ShouldBeTrue();
+        rest.Hours.ShouldBe(2m);
+        balance.DailyHours.ShouldBe(6m);
+        balance.RemainingHours.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task Child_care_in_hours_counts_16_hours_and_keeps_the_form_chosen_first()
+    {
+        using var hr = factory.CreateSignedInClient();
+        var employee = await HireAsync(hr);
+
+        await CreateAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.ChildCare, new DateOnly(2025, 3, 3), new DateOnly(2025, 3, 3), null, 8m));
+        await CreateAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.ChildCare, new DateOnly(2025, 3, 4), new DateOnly(2025, 3, 4), null, 7.75m));
+        using var overLimit = await PostAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.ChildCare, new DateOnly(2025, 3, 5), new DateOnly(2025, 3, 5), null, 0.5m));
+        using var wholeDay = await PostAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.ChildCare, new DateOnly(2025, 3, 6), new DateOnly(2025, 3, 6), null));
+        var lastQuarter = await CreateAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.ChildCare, new DateOnly(2025, 3, 7), new DateOnly(2025, 3, 7), null, 0.25m));
+        var forceMajeure = await CreateAsync(hr, new CreateLeaveRequest(employee.Id, LeaveKind.ForceMajeure, new DateOnly(2025, 3, 10), new DateOnly(2025, 3, 10), null, 4m));
+
+        await ShouldFailAsync(overLimit, HttpStatusCode.BadRequest, "leave.child_care_limit");
+        await ShouldFailAsync(wholeDay, HttpStatusCode.BadRequest, "leave.days_or_hours");
+        lastQuarter.Hours.ShouldBe(0.25m);
+        forceMajeure.Kind.ShouldBe(LeaveKind.ForceMajeure);
+    }
+
+    [Theory]
+    [InlineData(LeaveKind.Unpaid, "2025-06-02", 2, "leave.hours_not_allowed")]
+    [InlineData(LeaveKind.ChildCare, "2025-06-03", 2, "leave.hours_one_day")]
+    [InlineData(LeaveKind.ChildCare, "2025-06-02", 9, "leave.hours_invalid")]
+    [InlineData(LeaveKind.ChildCare, "2025-06-02", 1.1, "leave.hours_invalid")]
+    public async Task Hours_that_the_labour_code_does_not_allow_are_refused(LeaveKind kind, string end, double hours, string code)
+    {
+        using var hr = factory.CreateSignedInClient();
+        var employee = await HireAsync(hr);
+
+        using var response = await PostAsync(hr, new CreateLeaveRequest(
+            employee.Id, kind, new DateOnly(2025, 6, 2), DateOnly.Parse(end, System.Globalization.CultureInfo.InvariantCulture), null, (decimal)hours));
+
+        await ShouldFailAsync(response, HttpStatusCode.BadRequest, code);
     }
 
     [Theory]
@@ -111,8 +172,8 @@ public sealed class LeaveEndpointTests(PersoNetApiFactory factory)
         await ShouldFailAsync(approveRejected, HttpStatusCode.Conflict, "leave.already_decided");
         approved.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await cancelled.Content.ReadFromJsonAsync<LeaveRequestResponse>(Cancellation))!.State.ShouldBe(LeaveState.Cancelled);
-        balance.UsedDays.ShouldBe(0);
-        balance.RemainingDays.ShouldBe(20);
+        balance.UsedHours.ShouldBe(0m);
+        balance.RemainingHours.ShouldBe(160m);
     }
 
     [Fact]
@@ -166,6 +227,15 @@ public sealed class LeaveEndpointTests(PersoNetApiFactory factory)
         using var response = await client.PutAsJsonAsync(
             new Uri($"/api/v1/employees/{employeeId}/leave/2025", UriKind.Relative), new SaveLeaveEntitlementRequest(days, carriedOver), Cancellation);
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Cancellation));
+    }
+
+    private static async Task AddContractAsync(HttpClient client, Guid employeeId, decimal workingTime)
+    {
+        using var response = await client.PostAsJsonAsync(
+            new Uri($"/api/v1/employees/{employeeId}/contracts", UriKind.Relative),
+            new SaveContractRequest(ContractKind.Indefinite, HireDate, null, workingTime),
+            Cancellation);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Cancellation));
     }
 
     private static async Task<LeaveBalanceResponse> BalanceAsync(HttpClient client, Guid employeeId) =>

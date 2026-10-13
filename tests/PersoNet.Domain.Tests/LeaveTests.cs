@@ -38,9 +38,11 @@ public sealed class LeaveTests
     [Fact]
     public void Request_counts_working_days_and_starts_pending()
     {
-        var request = LeaveRequest.Create(Tenant, Employee, LeaveType.Annual, new DateOnly(2025, 4, 28), new DateOnly(2025, 5, 6), "  Majówka ", Now);
+        var request = LeaveRequest.Create(Tenant, Employee, LeaveType.Annual, new DateOnly(2025, 4, 28), new DateOnly(2025, 5, 6), 8m, null, "  Majówka ", Now);
 
         request.Days.ShouldBe(6);
+        request.Hours.ShouldBe(48m);
+        request.IsHourly.ShouldBeFalse();
         request.Status.ShouldBe(LeaveStatus.Pending);
         request.Note.ShouldBe("Majówka");
         request.IsActive.ShouldBeTrue();
@@ -52,12 +54,35 @@ public sealed class LeaveTests
     [InlineData("2025-12-29", "2026-01-02")] // crosses the year
     public void Invalid_periods_are_refused(string start, string end) =>
         Should.Throw<DomainException>(() => LeaveRequest.Create(
-            Tenant, Employee, LeaveType.Annual, DateOnly.Parse(start, System.Globalization.CultureInfo.InvariantCulture), DateOnly.Parse(end, System.Globalization.CultureInfo.InvariantCulture), null, Now));
+            Tenant, Employee, LeaveType.Annual, DateOnly.Parse(start, System.Globalization.CultureInfo.InvariantCulture), DateOnly.Parse(end, System.Globalization.CultureInfo.InvariantCulture), 8m, null, null, Now));
+
+    [Fact]
+    public void Part_time_day_takes_fewer_hours_and_hours_are_taken_on_one_day()
+    {
+        var halfTime = LeaveRequest.Create(Tenant, Employee, LeaveType.Annual, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 6), 4m, null, null, Now);
+        halfTime.Hours.ShouldBe(20m);
+
+        var hourly = LeaveRequest.Create(Tenant, Employee, LeaveType.ChildCare, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 2), 8m, 2.5m, null, Now);
+        hourly.IsHourly.ShouldBeTrue();
+        hourly.Days.ShouldBe(1);
+        hourly.Hours.ShouldBe(2.5m);
+    }
+
+    [Theory]
+    [InlineData(LeaveType.OnDemand, "2025-06-02", 2)] // on-demand leave is whole days only
+    [InlineData(LeaveType.Unpaid, "2025-06-02", 2)]
+    [InlineData(LeaveType.ChildCare, "2025-06-03", 2)] // more than one day
+    [InlineData(LeaveType.ChildCare, "2025-06-02", 9)] // more than the working day
+    [InlineData(LeaveType.ChildCare, "2025-06-02", 0)]
+    [InlineData(LeaveType.ChildCare, "2025-06-02", 1.1)] // not a quarter of an hour
+    public void Hours_follow_the_labour_code(LeaveType type, string end, double hours) =>
+        Should.Throw<DomainException>(() => LeaveRequest.Create(
+            Tenant, Employee, type, new DateOnly(2025, 6, 2), DateOnly.Parse(end, System.Globalization.CultureInfo.InvariantCulture), 8m, (decimal)hours, null, Now));
 
     [Fact]
     public void Decision_is_made_once_and_rejection_needs_a_reason()
     {
-        var request = LeaveRequest.Create(Tenant, Employee, LeaveType.Annual, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 6), null, Now);
+        var request = LeaveRequest.Create(Tenant, Employee, LeaveType.Annual, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 6), 8m, null, null, Now);
         var hr = Guid.CreateVersion7();
 
         Should.Throw<DomainException>(() => request.Reject(hr, Now, " "));

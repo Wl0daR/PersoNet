@@ -73,6 +73,8 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
         AddLeave(kadry, LeaveKind.Annual, new DateOnly(year, 8, 24), new DateOnly(year, 8, 28), 5, LeaveState.Rejected, null,
             "W tym tygodniu zamykamy listy płac za sierpień. Proszę o inny termin.");
         AddLeave(wozniak, LeaveKind.Occasional, new DateOnly(year, 9, 18), new DateOnly(year, 9, 18), 1, LeaveState.Approved, "Ślub brata.");
+        AddLeave(wojcik, LeaveKind.ChildCare, new DateOnly(year, 10, 22), new DateOnly(year, 10, 22), 1, LeaveState.Pending, "Wizyta u lekarza z synem.", hours: 3m);
+        AddLeave(wozniak, LeaveKind.ForceMajeure, new DateOnly(year, 9, 3), new DateOnly(year, 9, 3), 1, LeaveState.Approved, "Awaria ogrzewania w domu.", hours: 2.5m);
         AddLeave(dabrowska, LeaveKind.Unpaid, new DateOnly(year, 10, 26), new DateOnly(year, 10, 30), 5, LeaveState.Cancelled, null);
     }
 
@@ -171,23 +173,28 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
     {
         var annual = _leave.Where(request => request.EmployeeId == employeeId && request.StartDate.Year == year
             && request.Kind is LeaveKind.Annual or LeaveKind.OnDemand).ToList();
-        var used = annual.Where(request => request.State == LeaveState.Approved).Sum(request => request.Days);
-        var pending = annual.Where(request => request.State == LeaveState.Pending).Sum(request => request.Days);
+        var used = annual.Where(request => request.State == LeaveState.Approved).Sum(request => request.Hours);
+        var pending = annual.Where(request => request.State == LeaveState.Pending).Sum(request => request.Hours);
         var onDemand = annual.Where(request => request.Kind == LeaveKind.OnDemand && request.State is LeaveState.Approved or LeaveState.Pending).Sum(request => request.Days);
 
-        return Task.FromResult(_entitlements.TryGetValue((employeeId, year), out var entitlement)
-            ? new LeaveBalanceResponse(employeeId, year, true, entitlement.Days, entitlement.CarriedOver, used, pending, entitlement.Days + entitlement.CarriedOver - used - pending, onDemand)
-            : new LeaveBalanceResponse(employeeId, year, false, 0, 0, used, pending, 0, onDemand));
+        if (!_entitlements.TryGetValue((employeeId, year), out var entitlement))
+        {
+            return Task.FromResult(new LeaveBalanceResponse(employeeId, year, false, 0, 0, 0, used, pending, 0, onDemand, 8m));
+        }
+
+        var total = (entitlement.Days + entitlement.CarriedOver) * 8m;
+        return Task.FromResult(new LeaveBalanceResponse(employeeId, year, true, entitlement.Days, entitlement.CarriedOver, total, used, pending, total - used - pending, onDemand, 8m));
     }
 
     public Task<LeaveBalanceResponse> SetEntitlementAsync(Guid employeeId, int year, SaveLeaveEntitlementRequest request, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
-    private void AddLeave(Guid employeeId, LeaveKind kind, DateOnly start, DateOnly end, int days, LeaveState state, string? note, string? decisionNote = null)
+    private void AddLeave(Guid employeeId, LeaveKind kind, DateOnly start, DateOnly end, int days, LeaveState state, string? note, string? decisionNote = null, decimal? hours = null)
     {
         var employee = _employees.Single(employee => employee.Id == employeeId);
         var created = new DateTimeOffset(start.AddDays(-14).ToDateTime(new TimeOnly(9, 30)));
-        _leave.Add(new LeaveRequestResponse(Guid.CreateVersion7(), employeeId, employee.Number, $"{employee.LastName} {employee.FirstName}", kind, start, end, days, note,
+        _leave.Add(new LeaveRequestResponse(Guid.CreateVersion7(), employeeId, employee.Number, $"{employee.LastName} {employee.FirstName}", kind, start, end, days,
+            hours ?? days * 8m, hours is not null, note,
             state, created, state == LeaveState.Pending ? null : created.AddDays(1), decisionNote));
     }
 

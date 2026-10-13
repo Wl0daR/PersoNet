@@ -1,3 +1,4 @@
+using System.Globalization;
 using PersoNet.Application.Common;
 using PersoNet.Domain.Abstractions;
 
@@ -30,13 +31,25 @@ internal static class LeaveErrors
         AppError.Validation("leave.no_entitlement", "Najpierw ustaw wymiar urlopu pracownika na ten rok.");
 
     public static readonly AppError NotEnoughDays =
-        AppError.Validation("leave.not_enough_days", "Pracownikowi nie zostało tyle dni urlopu wypoczynkowego w tym roku.");
+        AppError.Validation("leave.not_enough_days", "Pracownikowi nie zostało tyle urlopu wypoczynkowego w tym roku.");
 
     public static readonly AppError OnDemandLimit =
         AppError.Validation("leave.on_demand_limit", "Urlop na żądanie to najwyżej 4 dni w roku.");
 
     public static readonly AppError ChildCareLimit =
-        AppError.Validation("leave.child_care_limit", "Zwolnienie na opiekę nad dzieckiem to najwyżej 2 dni w roku.");
+        AppError.Validation("leave.child_care_limit", "Zwolnienie na opiekę nad dzieckiem to najwyżej 2 dni albo 16 godzin w roku (przy niepełnym etacie proporcjonalnie mniej).");
+
+    public static readonly AppError ForceMajeureLimit =
+        AppError.Validation("leave.force_majeure_limit", "Zwolnienie z powodu siły wyższej to najwyżej 2 dni albo 16 godzin w roku (przy niepełnym etacie proporcjonalnie mniej).");
+
+    public static readonly AppError HoursNotAllowed =
+        AppError.Validation("leave.hours_not_allowed", "Na godziny można wziąć tylko urlop wypoczynkowy, opiekę nad dzieckiem i zwolnienie z powodu siły wyższej.");
+
+    public static readonly AppError HoursOneDay =
+        AppError.Validation("leave.hours_one_day", "Urlop na godziny dotyczy jednego dnia.");
+
+    public static readonly AppError HoursOnlyForRemainder =
+        AppError.Validation("leave.hours_only_for_remainder", "Urlop wypoczynkowy na godziny można dać tylko wtedy, gdy zostało mniej niż jeden dzień urlopu (art. 154² Kodeksu pracy).");
 
     public static readonly AppError AlreadyDecided =
         AppError.Conflict("leave.already_decided", "Ten wniosek został już rozpatrzony.");
@@ -55,6 +68,14 @@ internal static class LeaveErrors
 
     public static readonly AppError NoTenant =
         AppError.Forbidden("tenant.missing", "Użytkownik nie jest przypisany do firmy.");
+
+    public static AppError HoursInvalid(decimal dailyHours) =>
+        AppError.Validation("leave.hours_invalid", string.Create(CultureInfo.GetCultureInfo("pl-PL"), $"Podaj liczbę godzin większą od 0 i nie większą niż dzień pracy pracownika ({dailyHours:0.##} godz.), w pełnych kwadransach."));
+
+    public static AppError DaysOrHours(bool hourlyChosen) =>
+        AppError.Validation("leave.days_or_hours", hourlyChosen
+            ? "W tym roku pracownik korzysta z tego zwolnienia w godzinach, więc kolejny wniosek też musi być w godzinach."
+            : "W tym roku pracownik korzysta z tego zwolnienia w dniach, więc kolejny wniosek też musi być w dniach.");
 
     public static AppError Invalid(DomainException exception) =>
         AppError.Validation("leave.invalid", exception.Message);

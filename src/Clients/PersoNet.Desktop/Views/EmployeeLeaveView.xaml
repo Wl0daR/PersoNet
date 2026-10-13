@@ -32,9 +32,10 @@
                         Visibility="{Binding HasEntitlement, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" Text="Zostało do wykorzystania" />
-                        <TextBlock FontSize="28" FontWeight="SemiBold">
-                            <Run Text="{Binding Balance.RemainingDays, Mode=OneWay}" /><Run Text=" z " FontSize="16" FontWeight="Normal" /><Run Text="{Binding Balance.EntitlementDays, Mode=OneWay}" FontSize="16" FontWeight="Normal" /><Run Text=" dni" FontSize="16" FontWeight="Normal" />
-                        </TextBlock>
+                        <WrapPanel>
+                            <TextBlock Text="{Binding RemainingText}" FontSize="28" FontWeight="SemiBold" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding TotalText}" FontSize="16" VerticalAlignment="Bottom" Margin="0,0,0,5" />
+                        </WrapPanel>
                         <TextBlock Text="{Binding Summary}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>

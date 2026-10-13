@@ -75,7 +75,17 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     public partial Choice EditEmployee { get; set; } = NoEmployee;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUseHours), nameof(PeriodHint))]
     public partial LeaveKindChoice EditKind { get; set; } = LeaveTexts.Kinds[0];
+
+    /// <summary>Leave taken in hours on one day instead of whole days.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StartLabel), nameof(PeriodHint))]
+    public partial bool IsHourly { get; set; }
+
+    /// <summary>Hours as typed: "2", "2,5" or "2:30".</summary>
+    [ObservableProperty]
+    public partial string EditHours { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial DateTime? EditStartDate { get; set; }
@@ -85,6 +95,17 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
 
     [ObservableProperty]
     public partial string EditNote { get; set; } = string.Empty;
+
+    /// <summary>Child care, force majeure and the rest of annual leave can be taken in hours (Labour Code).</summary>
+    public bool CanUseHours => LeaveTexts.AllowsHours(EditKind.Kind);
+
+    public string StartLabel => IsHourly ? "_Dzień *" : "_Od *";
+
+    public string PeriodHint => !IsHourly
+        ? "Liczą się dni robocze: bez weekendów i świąt."
+        : EditKind.Kind == LeaveKind.Annual
+            ? "Np. 2, 2,5 albo 2:30. Urlop wypoczynkowy na godziny tylko na resztę urlopu mniejszą niż dzień pracy."
+            : "Np. 2, 2,5 albo 2:30. W roku 16 godzin (przy niepełnym etacie proporcjonalnie mniej).";
 
     public bool IsShowingRequest => Selected is not null && !IsCreating;
 
@@ -104,8 +125,9 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     {
         null => null,
         { HasEntitlement: false } => $"Wymiar urlopu na {Balance.Year} nie jest ustawiony (karta pracownika, zakładka Urlop).",
-        _ => $"Urlop wypoczynkowy {Balance.Year}: zostało {LeaveTexts.Days(Balance.RemainingDays)} z {Balance.EntitlementDays + Balance.CarriedOverDays}"
-            + (Balance.PendingDays > 0 ? $" ({LeaveTexts.Days(Balance.PendingDays)} czeka na decyzję)" : string.Empty) + ".",
+        _ => $"Urlop wypoczynkowy {Balance.Year}: zostało {LeaveTexts.Amount(Balance.RemainingHours)} z {LeaveTexts.Amount(Balance.TotalHours)}"
+            + (Balance.PendingHours > 0 ? $" ({LeaveTexts.Amount(Balance.PendingHours)} czeka na decyzję)" : string.Empty) + "."
+            + (Balance.DailyHours != LeaveTexts.HoursPerDay ? $" Dzień urlopu tego pracownika to {LeaveTexts.Hours(Balance.DailyHours)}" : string.Empty),
     };
 
     [RelayCommand]
@@ -133,6 +155,8 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
         Balance = null;
         EditEmployee = NoEmployee;
         EditKind = LeaveTexts.Kinds[0];
+        IsHourly = false;
+        EditHours = string.Empty;
         var today = time.GetLocalNow().Date;
         EditStartDate = today;
         EditEndDate = today;
@@ -160,8 +184,9 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
             EditEmployee.Id!.Value,
             EditKind.Kind,
             DateOnly.FromDateTime(EditStartDate!.Value),
-            DateOnly.FromDateTime(EditEndDate!.Value),
-            string.IsNullOrWhiteSpace(EditNote) ? null : EditNote.Trim());
+            DateOnly.FromDateTime(IsHourly ? EditStartDate!.Value : EditEndDate!.Value),
+            string.IsNullOrWhiteSpace(EditNote) ? null : EditNote.Trim(),
+            IsHourly ? LeaveTexts.ParseHours(EditHours) : null);
 
         return RunAsync(async () =>
         {
@@ -225,7 +250,10 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
         var field = exception.Code switch
         {
             "leave.employee_not_found" => nameof(EditEmployee),
-            "leave.no_entitlement" or "leave.not_enough_days" or "leave.on_demand_limit" or "leave.child_care_limit" => nameof(EditKind),
+            "leave.no_entitlement" or "leave.on_demand_limit" or "leave.child_care_limit" or "leave.force_majeure_limit" => nameof(EditKind),
+            "leave.not_enough_days" => IsHourly ? nameof(EditHours) : nameof(EditKind),
+            "leave.hours_invalid" or "leave.hours_only_for_remainder" or "leave.hours_not_allowed" or "leave.hours_one_day" => nameof(EditHours),
+            "leave.days_or_hours" => IsHourly ? nameof(EditHours) : nameof(EditKind),
             "leave.outside_employment" or "leave.overlap" => nameof(EditStartDate),
             "leave.end_before_start" or "leave.crosses_year" or "leave.no_working_days" => nameof(EditEndDate),
             "leave.note_too_long" => IsCreating ? nameof(EditNote) : nameof(DecisionNote),
@@ -267,11 +295,29 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     }
 
     // A one-day leave is the most common case, so the end follows the start until it is set later than it.
+    // Leave in hours is always one day.
     partial void OnEditStartDateChanged(DateTime? value)
     {
-        if (value is { } start && (EditEndDate is null || EditEndDate < start))
+        if (value is { } start && (IsHourly || EditEndDate is null || EditEndDate < start))
         {
             EditEndDate = start;
+        }
+    }
+
+    partial void OnEditKindChanged(LeaveKindChoice value)
+    {
+        if (!LeaveTexts.AllowsHours(value.Kind))
+        {
+            IsHourly = false;
+        }
+    }
+
+    partial void OnIsHourlyChanged(bool value)
+    {
+        SetError(nameof(EditHours), null);
+        if (value)
+        {
+            EditEndDate = EditStartDate;
         }
     }
 
@@ -352,8 +398,9 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     {
         SetError(nameof(EditEmployee), EditEmployee.Id is null ? "Wybierz pracownika." : null);
         SetError(nameof(EditStartDate), EditStartDate is null ? "Podaj pierwszy dzień urlopu." : null);
-        SetError(nameof(EditEndDate), EditEndDate is null ? "Podaj ostatni dzień urlopu."
+        SetError(nameof(EditEndDate), IsHourly ? null : EditEndDate is null ? "Podaj ostatni dzień urlopu."
             : EditStartDate is { } start && EditEndDate < start ? "Ostatni dzień nie może być przed pierwszym." : null);
+        SetError(nameof(EditHours), IsHourly && LeaveTexts.ParseHours(EditHours) is not > 0 ? "Podaj liczbę godzin, np. 2, 2,5 albo 2:30." : null);
         SetError(nameof(EditNote), EditNote.Trim().Length > NoteMaxLength ? $"Uwagi mogą mieć najwyżej {NoteMaxLength} znaków." : null);
 
         return !HasErrors;
