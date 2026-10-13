@@ -20,6 +20,13 @@
         <local:CollapsedWhenTrueConverter x:Key="CollapsedWhenTrue" />
         <local:CollapsedWhenEmptyConverter x:Key="CollapsedWhenEmpty" />
 
+        <!--
+            Selected row of a list (DataGrid): a light tint of the accent colour with normal text, instead of the solid accent
+            fill, so the number, e-mail and status badge in the row stay readable in light and dark theme.
+        -->
+        <SolidColorBrush x:Key="DataGridRowSelectedBackgroundThemeBrush" Color="{DynamicResource SystemAccentColor}" Opacity="0.22" />
+        <SolidColorBrush x:Key="DataGridRowSelectedForegroundThemeBrush" Color="{DynamicResource TextFillColorPrimary}" />
+
         <!-- Shared text styles. -->
         <Style x:Key="PageTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="24" />

@@ -331,9 +331,17 @@ namespace PersoNet.Desktop.Snapshots
                 new Typeface("Segoe Fluent Icons"), 10, text, 1.0);
             context.DrawText(close, new Point(frame.Right - 30, frame.Y + ((TitleBarHeight - close.Height) / 2)));
 
-            var image = new RenderTargetBitmap((int)Math.Ceiling(view.ActualWidth), (int)Math.Ceiling(view.ActualHeight), 96, 96, PixelFormats.Pbgra32);
-            image.Render(view);
-            context.DrawImage(image, new Rect(frame.X, frame.Y + TitleBarHeight, view.ActualWidth, view.ActualHeight));
+            // A brush draws the view from its own top-left corner; rendering it directly would also apply its offset inside
+            // the off-screen window, which is larger than the view on small screens.
+            var image = new VisualBrush(view)
+            {
+                Stretch = Stretch.None,
+                AlignmentX = AlignmentX.Left,
+                AlignmentY = AlignmentY.Top,
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = new Rect(0, 0, view.ActualWidth, view.ActualHeight),
+            };
+            context.DrawRectangle(image, null, new Rect(frame.X, frame.Y + TitleBarHeight, view.ActualWidth, view.ActualHeight));
         }
 
         // The Fluent window background is Mica (drawn by Windows, not WPF), so paint the theme's solid base colour under the content.
