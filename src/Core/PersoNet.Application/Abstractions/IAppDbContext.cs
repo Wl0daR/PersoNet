@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Domain.Employees;
+using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
 
@@ -19,6 +20,10 @@ public interface IAppDbContext
     DbSet<Employee> Employees { get; }
 
     DbSet<EmploymentContract> Contracts { get; }
+
+    DbSet<LeaveRequest> LeaveRequests { get; }
+
+    DbSet<LeaveEntitlement> LeaveEntitlements { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

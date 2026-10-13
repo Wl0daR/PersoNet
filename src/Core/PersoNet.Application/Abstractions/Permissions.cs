@@ -14,5 +14,11 @@ public static class Permissions
     /// <summary>Hire, edit and terminate employees.</summary>
     public const string EmployeesManage = "employees.manage";
 
-    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage];
+    /// <summary>See leave requests, balances and entitlements of all employees.</summary>
+    public const string LeaveRead = "leave.read";
+
+    /// <summary>Register leave requests, approve, reject or cancel them, and set annual leave entitlements.</summary>
+    public const string LeaveManage = "leave.manage";
+
+    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage];
 }
