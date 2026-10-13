@@ -1,0 +1,48 @@
+<UserControl x:Class="PersoNet.Desktop.Views.EntitlementDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:leave="clr-namespace:PersoNet.Desktop.Presentation.Leave;assembly=PersoNet.Desktop.Presentation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=leave:EntitlementDialogViewModel}"
+             Width="440">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsEnabled="{Binding IsIdle}">
+                <Button Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}" MinWidth="110" Margin="0,0,8,0" />
+                <Button Content="Anuluj" IsCancel="True" MinWidth="110" ToolTip="Zamknij bez zapisywania (Esc)" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource DialogBody}">
+            <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
+                <TextBlock Text="Zwykle 20 dni, a po 10 latach pracy (z nauką) 26 dni; przy niepełnym etacie proporcjonalnie mniej."
+                           Style="{StaticResource SecondaryText}" />
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <Label Content="_Wymiar (dni) *" Target="{Binding ElementName=DaysBox}" Padding="0" Margin="0,16,0,4" />
+                        <TextBox x:Name="DaysBox" Text="{Binding EditDays, UpdateSourceTrigger=PropertyChanged}" MaxLength="2"
+                                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=DaysBox}" Style="{StaticResource FieldError}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <Label Content="_Zaległy (dni)" Target="{Binding ElementName=CarriedOverBox}" Padding="0" Margin="0,16,0,4" />
+                        <TextBox x:Name="CarriedOverBox" Text="{Binding EditCarriedOver, UpdateSourceTrigger=PropertyChanged}" MaxLength="2"
+                                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                        <TextBlock Text="Niewykorzystany z poprzedniego roku." Style="{StaticResource HelperText}" />
+                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=CarriedOverBox}" Style="{StaticResource FieldError}" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

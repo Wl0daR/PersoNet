@@ -20,6 +20,7 @@
         <local:CollapsedWhenTrueConverter x:Key="CollapsedWhenTrue" />
         <local:CollapsedWhenEmptyConverter x:Key="CollapsedWhenEmpty" />
 
+
         <!-- Shared text styles. -->
         <Style x:Key="PageTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="24" />
@@ -145,6 +146,23 @@
             <Setter Property="BorderBrush" Value="{DynamicResource DividerStrokeColorDefaultBrush}" />
             <Setter Property="BorderThickness" Value="0,1,0,0" />
             <Setter Property="Padding" Value="16,12" />
+        </Style>
+
+        <!-- Fields of a dialog window: a raised layer above the buttons, as in Windows 11 dialogs. -->
+        <Style x:Key="DialogBody" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource LayerFillColorAltBrush}" />
+        </Style>
+
+        <!-- Buttons at the bottom of a dialog window: the main action and "Anuluj" on the right, anything else on the left. -->
+        <Style x:Key="DialogFooter" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource DividerStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="24,16" />
+        </Style>
+
+        <!-- Row of commands above a list ("Dodaj", "Otwórz", filters); wraps when the window is narrow. -->
+        <Style x:Key="Toolbar" TargetType="WrapPanel">
+            <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
 
         <!-- Centered message where a list or a card has nothing to show: what happened and what to do next. -->

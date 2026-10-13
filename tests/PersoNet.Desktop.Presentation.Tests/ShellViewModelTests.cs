@@ -9,14 +9,16 @@ namespace PersoNet.Desktop.Presentation.Tests;
 
 public sealed class ShellViewModelTests
 {
-    private static EmployeesViewModel Employees(FakeOrganizationApi organization) =>
-        new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), TimeProvider.System);
+    private readonly FakeDialogService _dialogs = new();
+
+    private EmployeesViewModel Employees(FakeOrganizationApi organization) =>
+        new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), TimeProvider.System, _dialogs);
 
     private static HomeViewModel Home(FakeOrganizationApi organization) =>
         new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), TimeProvider.System);
 
-    private static LeaveViewModel LeaveScreen() =>
-        new(new FakeLeaveApi(), new FakeEmployeesApi(), TimeProvider.System);
+    private LeaveViewModel LeaveScreen() =>
+        new(new FakeLeaveApi(), new FakeEmployeesApi(), TimeProvider.System, _dialogs);
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -25,7 +27,7 @@ public sealed class ShellViewModelTests
     {
         var api = new FakeOrganizationApi();
         api.Add("Dział IT", "IT");
-        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
 
         await shell.SignInAsync(Cancellation);
 
@@ -38,7 +40,7 @@ public sealed class ShellViewModelTests
     public async Task Cancelled_sign_in_shows_a_message_and_stays_signed_out()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
 
         await shell.SignInAsync(Cancellation);
 
@@ -50,7 +52,7 @@ public sealed class ShellViewModelTests
     public async Task Sign_out_forgets_the_user()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
         await shell.SignInAsync(Cancellation);
 
         await shell.SignOutAsync(Cancellation);
@@ -63,7 +65,7 @@ public sealed class ShellViewModelTests
     public async Task Sign_in_opens_the_start_screen_and_shortcuts_open_the_right_form()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs));
 
         await shell.SignInAsync(Cancellation);
 
@@ -73,8 +75,7 @@ public sealed class ShellViewModelTests
 
         shell.AddEmployee();
         shell.CurrentItem.ShouldBe(shell.EmployeesItem);
-        shell.Employees.IsCardOpen.ShouldBeTrue();
-        shell.Employees.IsNew.ShouldBeTrue();
+        _dialogs.Shown.OfType<EmployeeCardViewModel>().ShouldHaveSingleItem().IsNew.ShouldBeTrue();
 
         shell.Navigate(shell.PositionsItem);
         shell.CurrentItem.Page.ShouldBe(shell.Positions);

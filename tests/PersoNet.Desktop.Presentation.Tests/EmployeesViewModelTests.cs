@@ -9,9 +9,17 @@ public sealed class EmployeesViewModelTests
 
     private readonly FakeEmployeesApi _employees = new();
     private readonly FakeOrganizationApi _organization = new();
+    private readonly FakeDialogService _dialogs = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2025, 5, 20, 9, 0, 0, TimeSpan.Zero));
 
-    private EmployeesViewModel CreateViewModel() => new(_employees, _organization, new FakeLeaveApi(), _time);
+    private EmployeesViewModel CreateViewModel() => new(_employees, _organization, new FakeLeaveApi(), _time, _dialogs);
+
+    private async Task<EmployeeCardViewModel> OpenCardAsync(Guid? employeeId)
+    {
+        var card = CreateViewModel().CreateCard();
+        await card.LoadAsync(employeeId, Cancellation);
+        return card;
+    }
 
     [Fact]
     public async Task New_card_saves_an_employee_who_then_appears_selected_in_the_list()
@@ -20,17 +28,24 @@ public sealed class EmployeesViewModelTests
         var viewModel = CreateViewModel();
         await viewModel.LoadAsync(Cancellation);
 
-        viewModel.New();
-        viewModel.EditNumber = "p001";
-        viewModel.EditFirstName = "Jan";
-        viewModel.EditLastName = "Nowak";
-        viewModel.EditDepartment = viewModel.Departments.Single(choice => choice.Id == it.Id);
-        await viewModel.SaveAsync(Cancellation);
+        EmployeeCardViewModel? card = null;
+        _dialogs.When<EmployeeCardViewModel>(async opened =>
+        {
+            card = opened;
+            opened.EditNumber = "p001";
+            opened.EditFirstName = "Jan";
+            opened.EditLastName = "Nowak";
+            opened.EditDepartment = opened.Departments.Single(choice => choice.Id == it.Id);
+            await opened.SaveAsync(Cancellation);
+        });
+        await viewModel.NewAsync(Cancellation);
 
-        viewModel.ErrorMessage.ShouldBeNull();
-        viewModel.IsNew.ShouldBeFalse();
+        card!.ErrorMessage.ShouldBeNull();
+        card.IsNew.ShouldBeFalse();
+        card.Title.ShouldBe("Kartoteka pracownika – Jan Nowak");
+        card.SavedMessage.ShouldBe("Kartoteka założona. Możesz teraz dodać umowy i urlop.");
         viewModel.Items.ShouldHaveSingleItem().Number.ShouldBe("P001");
-        viewModel.Selected!.Id.ShouldBe(viewModel.Current!.Id);
+        viewModel.Selected!.Id.ShouldBe(card.Current!.Id);
         _employees.Employees.Single().DepartmentId.ShouldBe(it.Id);
         _employees.Employees.Single().HireDate.ShouldBe(new DateOnly(2025, 5, 20));
     }
@@ -38,33 +53,31 @@ public sealed class EmployeesViewModelTests
     [Fact]
     public async Task Missing_required_fields_and_bad_email_are_flagged_without_calling_the_api()
     {
-        var viewModel = CreateViewModel();
-        await viewModel.LoadAsync(Cancellation);
+        var card = await OpenCardAsync(employeeId: null);
 
-        viewModel.EditEmail = "jan.nowak";
-        await viewModel.SaveAsync(Cancellation);
+        card.EditEmail = "jan.nowak";
+        await card.SaveAsync(Cancellation);
 
         _employees.Employees.ShouldBeEmpty();
-        viewModel.GetError(nameof(viewModel.EditNumber)).ShouldBe("Podaj numer ewidencyjny.");
-        viewModel.GetError(nameof(viewModel.EditFirstName)).ShouldNotBeNull();
-        viewModel.GetError(nameof(viewModel.EditLastName)).ShouldNotBeNull();
-        viewModel.GetError(nameof(viewModel.EditEmail)).ShouldNotBeNull();
+        card.GetError(nameof(card.EditNumber)).ShouldBe("Podaj numer ewidencyjny.");
+        card.GetError(nameof(card.EditFirstName)).ShouldNotBeNull();
+        card.GetError(nameof(card.EditLastName)).ShouldNotBeNull();
+        card.GetError(nameof(card.EditEmail)).ShouldNotBeNull();
+        card.SavedMessage.ShouldBeNull();
     }
 
     [Fact]
     public async Task Taken_number_is_shown_under_the_number_field()
     {
         _employees.Add("P001", "Anna", "Zielińska");
-        var viewModel = CreateViewModel();
-        await viewModel.LoadAsync(Cancellation);
+        var card = await OpenCardAsync(employeeId: null);
 
-        viewModel.New();
-        viewModel.EditNumber = "P001";
-        viewModel.EditFirstName = "Jan";
-        viewModel.EditLastName = "Nowak";
-        await viewModel.SaveAsync(Cancellation);
+        card.EditNumber = "P001";
+        card.EditFirstName = "Jan";
+        card.EditLastName = "Nowak";
+        await card.SaveAsync(Cancellation);
 
-        viewModel.GetError(nameof(viewModel.EditNumber)).ShouldBe("Pracownik o tym numerze ewidencyjnym już istnieje.");
+        card.GetError(nameof(card.EditNumber)).ShouldBe("Pracownik o tym numerze ewidencyjnym już istnieje.");
     }
 
     [Fact]
@@ -72,28 +85,32 @@ public sealed class EmployeesViewModelTests
     {
         var anna = _employees.Add("P001", "Anna", "Zielińska");
         var jan = _employees.Add("P002", "Jan", "Nowak");
-        var viewModel = CreateViewModel();
-        await viewModel.LoadAsync(Cancellation);
 
-        await viewModel.OpenAsync(viewModel.Items.Single(item => item.Id == jan.Id), Cancellation);
+        var card = await OpenCardAsync(jan.Id);
 
-        viewModel.EditFirstName.ShouldBe("Jan");
-        viewModel.Managers.Select(choice => choice.Id).ShouldBe([null, anna.Id]);
+        card.EditFirstName.ShouldBe("Jan");
+        card.Managers.Select(choice => choice.Id).ShouldBe([null, anna.Id]);
     }
 
     [Fact]
-    public async Task Terminate_hides_the_employee_unless_former_employees_are_shown_and_reinstate_undoes_it()
+    public async Task Ending_employment_in_the_card_hides_the_employee_from_the_list_and_reinstating_brings_them_back()
     {
         var jan = _employees.Add("P002", "Jan", "Nowak");
         var viewModel = CreateViewModel();
         await viewModel.LoadAsync(Cancellation);
-        await viewModel.OpenAsync(viewModel.Items.Single(), Cancellation);
+        viewModel.Selected = viewModel.Items.Single();
 
-        viewModel.TerminationLastDay = new DateTime(2025, 5, 31);
-        await viewModel.TerminateAsync(Cancellation);
+        EmployeeCardViewModel? card = null;
+        _dialogs.When<EmployeeCardViewModel>(async opened =>
+        {
+            card = opened;
+            opened.TerminationLastDay = new DateTime(2025, 5, 31);
+            await opened.TerminateAsync(Cancellation);
+        });
+        await viewModel.OpenAsync(null, Cancellation);
 
-        viewModel.IsTerminated.ShouldBeTrue();
-        viewModel.StatusText.ShouldContain("31 maja 2025");
+        card!.IsTerminated.ShouldBeTrue();
+        card.StatusText.ShouldContain("31 maja 2025");
         viewModel.Items.ShouldBeEmpty();
         viewModel.EmptyTitle.ShouldBe("Nie ma jeszcze pracowników");
 
@@ -101,23 +118,22 @@ public sealed class EmployeesViewModelTests
         await viewModel.SearchAsync(Cancellation);
         viewModel.Items.ShouldHaveSingleItem().Id.ShouldBe(jan.Id);
 
-        await viewModel.ReinstateAsync(Cancellation);
-        viewModel.IsEmployed.ShouldBeTrue();
+        _dialogs.When<EmployeeCardViewModel>(opened => opened.ReinstateAsync(Cancellation));
+        await viewModel.OpenAsync(viewModel.Items.Single(), Cancellation);
+        _employees.Employees.Single().TerminationDate.ShouldBeNull();
     }
 
     [Fact]
     public async Task Termination_before_hire_is_shown_under_the_date()
     {
-        _employees.Add("P002", "Jan", "Nowak", new DateOnly(2025, 1, 1));
-        var viewModel = CreateViewModel();
-        await viewModel.LoadAsync(Cancellation);
-        await viewModel.OpenAsync(viewModel.Items.Single(), Cancellation);
+        var jan = _employees.Add("P002", "Jan", "Nowak", new DateOnly(2025, 1, 1));
+        var card = await OpenCardAsync(jan.Id);
 
-        viewModel.TerminationLastDay = new DateTime(2024, 12, 31);
-        await viewModel.TerminateAsync(Cancellation);
+        card.TerminationLastDay = new DateTime(2024, 12, 31);
+        await card.TerminateAsync(Cancellation);
 
-        viewModel.GetError(nameof(viewModel.TerminationLastDay)).ShouldNotBeNull();
-        viewModel.IsEmployed.ShouldBeTrue();
+        card.GetError(nameof(card.TerminationLastDay)).ShouldNotBeNull();
+        card.IsEmployed.ShouldBeTrue();
     }
 
     [Fact]
@@ -142,28 +158,30 @@ public sealed class EmployeesViewModelTests
     }
 
     [Fact]
-    public async Task Card_stays_closed_until_someone_is_picked_or_added_and_can_be_closed_again()
+    public async Task Picked_person_opens_in_a_card_window_and_closing_it_without_changes_keeps_the_list()
     {
         _employees.Add("P001", "Anna", "Zielińska");
         var viewModel = CreateViewModel();
         await viewModel.LoadAsync(Cancellation);
+        var queries = _employees.Queries.Count;
 
-        viewModel.IsCardOpen.ShouldBeFalse();
+        viewModel.OpenCommand.CanExecute(null).ShouldBeFalse();
+        viewModel.Selected = viewModel.Items.Single();
+        viewModel.OpenCommand.CanExecute(null).ShouldBeTrue();
 
-        await viewModel.OpenAsync(viewModel.Items.Single(), Cancellation);
-        viewModel.IsCardOpen.ShouldBeTrue();
-        viewModel.CardInitials.ShouldBe("AZ");
-        viewModel.CardSubtitle.ShouldBe("P001");
-        viewModel.StatusBadge.ShouldBe("Zatrudniony");
+        await viewModel.OpenAsync(null, Cancellation);
 
-        viewModel.CloseCard();
-        viewModel.IsCardOpen.ShouldBeFalse();
-        viewModel.Current.ShouldBeNull();
-        viewModel.Selected.ShouldBeNull();
+        var card = _dialogs.Shown.OfType<EmployeeCardViewModel>().ShouldHaveSingleItem();
+        card.Title.ShouldBe("Kartoteka pracownika – Anna Zielińska");
+        card.CardInitials.ShouldBe("AZ");
+        card.CardSubtitle.ShouldBe("P001");
+        card.StatusBadge.ShouldBe("Zatrudniony");
+        _employees.Queries.Count.ShouldBe(queries);
 
-        viewModel.New();
-        viewModel.IsCardOpen.ShouldBeTrue();
-        viewModel.StatusBadge.ShouldBe("Nowa kartoteka");
+        await viewModel.NewAsync(Cancellation);
+        var empty = _dialogs.Shown.OfType<EmployeeCardViewModel>().Last();
+        empty.Title.ShouldBe("Nowy pracownik");
+        empty.StatusBadge.ShouldBe("Nowa kartoteka");
     }
 
     [Fact]

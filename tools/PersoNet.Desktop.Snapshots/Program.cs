@@ -60,9 +60,12 @@ namespace PersoNet.Desktop.Snapshots
         {
             var api = new DemoApi();
             var time = TimeProvider.System;
-            var employees = new EmployeesViewModel(api, api, api, time);
-            var leave = new LeaveViewModel(api, api, time);
-            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, time), employees, leave, new DepartmentsViewModel(api), new PositionsViewModel(api));
+            var dialogs = new SnapshotDialogs();
+            var employees = new EmployeesViewModel(api, api, api, time, dialogs);
+            var leave = new LeaveViewModel(api, api, time, dialogs);
+            var departments = new DepartmentsViewModel(api, dialogs);
+            var positions = new PositionsViewModel(api, dialogs);
+            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, time), employees, leave, departments, positions);
 
             var window = new MainWindow(shell)
             {
@@ -77,6 +80,7 @@ namespace PersoNet.Desktop.Snapshots
             window.WindowState = WindowState.Normal;
             window.SourceInitialized += (_, _) => HwndSource.FromHwnd(new WindowInteropHelper(window).Handle).AddHook(AllowLargerThanScreen);
             window.Show();
+            dialogs.Owner = window;
 
             foreach (var theme in new[] { ThemeMode.Light, ThemeMode.Dark })
             {
@@ -103,80 +107,114 @@ namespace PersoNet.Desktop.Snapshots
                     }
                 }
 
-                // An open employee card with contracts, on the employees page.
+                // The card of an employee with contracts, in its own window over the list.
                 shell.NavigateCommand.Execute(shell.EmployeesItem);
-                await employees.OpenAsync(api.ListItem(api.FirstEmployeeWithContracts), CancellationToken.None);
-                foreach (var size in Sizes)
+                employees.Selected = employees.Items.First(item => item.Id == api.FirstEmployeeWithContracts);
+                dialogs.Script = async (dialog, dialogWindow) =>
                 {
-                    await RenderAsync(window, size, Path.Combine(output, $"10-karta-pracownika-{size.Name}-{suffix}.png"));
-                }
+                    var card = (EmployeeCardViewModel)dialog;
+                    foreach (var size in Sizes)
+                    {
+                        await RenderDialogAsync(window, dialogWindow, size, Path.Combine(output, $"10-karta-pracownika-{size.Name}-{suffix}.png"));
+                    }
 
-                // The same card with validation errors.
-                employees.EditFirstName = string.Empty;
-                employees.EditEmail = "zly adres";
-                await employees.SaveAsync(CancellationToken.None);
-                await RenderAsync(window, Sizes[2], Path.Combine(output, $"11-karta-bledy-laptop150-{suffix}.png"));
-                employees.CloseCardCommand.Execute(null);
+                    // The contracts tab, and a new contract in a window over the card.
+                    Tabs(dialogWindow).SelectedIndex = 1;
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"12-umowy-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"12-umowy-laptop150-{suffix}.png"));
+                    dialogs.Script = async (_, contractWindow) =>
+                    {
+                        await RenderDialogAsync(window, contractWindow, Sizes[1], Path.Combine(output, $"19-nowa-umowa-srodek-{suffix}.png"), dialogWindow);
+                        await RenderDialogAsync(window, contractWindow, Sizes[2], Path.Combine(output, $"19-nowa-umowa-laptop150-{suffix}.png"), dialogWindow);
+                    };
+                    await card.Contracts.NewAsync(CancellationToken.None);
+                    Tabs(dialogWindow).SelectedIndex = 0;
 
-                // The contracts tab of the same card.
-                await employees.OpenAsync(api.ListItem(api.FirstEmployeeWithContracts), CancellationToken.None);
-                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 1;
-                await RenderAsync(window, Sizes[1], Path.Combine(output, $"12-umowy-srodek-{suffix}.png"));
-                await RenderAsync(window, Sizes[2], Path.Combine(output, $"12-umowy-laptop150-{suffix}.png"));
-                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 0;
-                employees.CloseCardCommand.Execute(null);
+                    // The same card with validation errors.
+                    card.EditFirstName = string.Empty;
+                    card.EditEmail = "zly adres";
+                    await card.SaveAsync(CancellationToken.None);
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"11-karta-bledy-laptop150-{suffix}.png"));
+                };
+                await employees.OpenAsync(null, CancellationToken.None);
 
-                // The leave tab of an employee with requests of every state.
-                await employees.OpenAsync(api.ListItem(api.FirstEmployeeWithLeave), CancellationToken.None);
-                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 2;
-                await RenderAsync(window, Sizes[1], Path.Combine(output, $"13-karta-urlop-srodek-{suffix}.png"));
-                await RenderAsync(window, Sizes[2], Path.Combine(output, $"13-karta-urlop-laptop150-{suffix}.png"));
+                // The leave tab of an employee with requests of every state, a new request from the calendar and the entitlement.
+                employees.Selected = employees.Items.First(item => item.Id == api.FirstEmployeeWithLeave);
+                dialogs.Script = async (dialog, dialogWindow) =>
+                {
+                    var calendar = ((EmployeeCardViewModel)dialog).Leave;
+                    Tabs(dialogWindow).SelectedIndex = 2;
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"13-karta-urlop-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"13-karta-urlop-laptop150-{suffix}.png"));
 
-                // A new request started from the calendar, three days picked.
-                var calendar = employees.Leave;
-                var firstFree = calendar.Days.First(day => day.IsInMonth && !day.IsDayOff && !day.HasLeave && day.Date.DayOfWeek == DayOfWeek.Monday && day.Date.Day > 14);
-                calendar.SelectedDay = firstFree;
-                calendar.AddLeaveCommand.Execute(null);
-                calendar.SelectedDay = calendar.Days.First(day => day.Date == firstFree.Date.AddDays(2));
-                await RenderAsync(window, Sizes[1], Path.Combine(output, $"18-kalendarz-nowy-wniosek-srodek-{suffix}.png"));
-                await RenderAsync(window, Sizes[2], Path.Combine(output, $"18-kalendarz-nowy-wniosek-laptop150-{suffix}.png"));
-                calendar.CancelAddingCommand.Execute(null);
-                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 0;
-                employees.CloseCardCommand.Execute(null);
+                    calendar.SelectedDay = calendar.Days.First(day => day.IsInMonth && !day.IsDayOff && !day.HasLeave && day.Date.DayOfWeek == DayOfWeek.Monday && day.Date.Day > 14);
+                    dialogs.Script = async (_, formWindow) =>
+                    {
+                        await RenderDialogAsync(window, formWindow, Sizes[1], Path.Combine(output, $"18-kalendarz-nowy-wniosek-srodek-{suffix}.png"), dialogWindow);
+                        await RenderDialogAsync(window, formWindow, Sizes[2], Path.Combine(output, $"18-kalendarz-nowy-wniosek-laptop150-{suffix}.png"), dialogWindow);
+                    };
+                    await calendar.AddLeaveAsync(CancellationToken.None);
 
-                // A pending request waiting for a decision, all requests of the year, and the form of a new one.
+                    dialogs.Script = async (_, entitlementWindow) =>
+                        await RenderDialogAsync(window, entitlementWindow, Sizes[1], Path.Combine(output, $"20-wymiar-urlopu-srodek-{suffix}.png"), dialogWindow);
+                    await calendar.EditEntitlementAsync(CancellationToken.None);
+                };
+                await employees.OpenAsync(null, CancellationToken.None);
+                employees.Selected = null;
+
+                // A pending request waiting for a decision, in its window over the list.
                 shell.NavigateCommand.Execute(shell.LeaveItem);
                 leave.Selected = leave.Items.First(row => row.IsPending);
-                foreach (var size in Sizes)
+                dialogs.Script = async (_, dialogWindow) =>
                 {
-                    await RenderAsync(window, size, Path.Combine(output, $"14-wniosek-{size.Name}-{suffix}.png"));
-                }
+                    foreach (var size in Sizes)
+                    {
+                        await RenderDialogAsync(window, dialogWindow, size, Path.Combine(output, $"14-wniosek-{size.Name}-{suffix}.png"));
+                    }
+                };
+                await leave.OpenAsync(null, CancellationToken.None);
 
+                // All requests of the year.
                 leave.StateFilter = LeaveViewModel.States[1];
-                leave.Selected = leave.Items.First(row => row.Request.State == PersoNet.Contracts.Leave.LeaveState.Rejected);
                 await RenderAsync(window, Sizes[1], Path.Combine(output, $"15-wnioski-wszystkie-srodek-{suffix}.png"));
 
-                leave.NewCommand.Execute(null);
-                foreach (var size in Sizes)
+                // The form of a new request, then the same form for leave in hours.
+                dialogs.Script = async (dialog, dialogWindow) =>
                 {
-                    await RenderAsync(window, size, Path.Combine(output, $"16-nowy-wniosek-{size.Name}-{suffix}.png"));
-                }
+                    foreach (var size in Sizes)
+                    {
+                        await RenderDialogAsync(window, dialogWindow, size, Path.Combine(output, $"16-nowy-wniosek-{size.Name}-{suffix}.png"));
+                    }
 
-                // The same form for leave in hours.
-                leave.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == PersoNet.Contracts.Leave.LeaveKind.ChildCare);
-                leave.Form.IsHourly = true;
-                leave.Form.EditHours = "3";
-                await RenderAsync(window, Sizes[1], Path.Combine(output, $"17-wniosek-na-godziny-srodek-{suffix}.png"));
-                await RenderAsync(window, Sizes[2], Path.Combine(output, $"17-wniosek-na-godziny-laptop150-{suffix}.png"));
-
-                leave.ClosePaneCommand.Execute(null);
+                    var form = (LeaveFormViewModel)dialog;
+                    form.EditEmployee = form.Employees[1];
+                    form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == PersoNet.Contracts.Leave.LeaveKind.ChildCare);
+                    form.IsHourly = true;
+                    form.EditHours = "3";
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"17-wniosek-na-godziny-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"17-wniosek-na-godziny-laptop150-{suffix}.png"));
+                };
+                await leave.NewAsync(CancellationToken.None);
                 leave.StateFilter = LeaveViewModel.States[0];
+
+                // A new department and a position, each in its window.
+                shell.NavigateCommand.Execute(shell.DepartmentsItem);
+                dialogs.Script = async (_, dialogWindow) =>
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"21-nowy-dzial-laptop150-{suffix}.png"));
+                await departments.NewAsync(CancellationToken.None);
+
+                shell.NavigateCommand.Execute(shell.PositionsItem);
+                dialogs.Script = async (_, dialogWindow) =>
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"22-nowe-stanowisko-srodek-{suffix}.png"));
+                await positions.NewAsync(CancellationToken.None);
             }
 
             window.Close();
         }
 
-        private static IntPtr AllowLargerThanScreen(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 3);
+
+        internal static IntPtr AllowLargerThanScreen(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             const int WmGetMinMaxInfo = 0x0024;
             if (message == WmGetMinMaxInfo)
@@ -197,33 +235,143 @@ namespace PersoNet.Desktop.Snapshots
         {
             window.Width = size.Width;
             window.Height = size.Height;
-
-            for (var i = 0; i < 5; i++)
-            {
-                await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-                await Task.Delay(50);
-            }
+            await SettleAsync();
 
             var content = (FrameworkElement)window.Content;
             content.UpdateLayout();
 
             var bitmap = new RenderTargetBitmap((int)Math.Ceiling(content.ActualWidth), (int)Math.Ceiling(content.ActualHeight), 96, 96, PixelFormats.Pbgra32);
-            var background = new DrawingVisual();
-            using (var context = background.RenderOpen())
+            bitmap.Render(Background(window, content.ActualWidth, content.ActualHeight));
+            bitmap.Render(content);
+            Save(bitmap, path);
+        }
+
+        /// <summary>
+        /// Renders a dialog window centered over the main window (and over <paramref name="parent"/>, a dialog it was opened
+        /// from), as the user sees it: the window frame and title bar are drawn here, since Windows draws them, not WPF.
+        /// </summary>
+        private static async Task RenderDialogAsync(
+            Window window, Window dialog, (string Name, double Width, double Height) size, string path, Window? parent = null)
+        {
+            window.Width = size.Width;
+            window.Height = size.Height;
+
+            var layers = new List<Window>();
+            if (parent is not null)
             {
-                // The Fluent window background is Mica (drawn by Windows, not WPF), so paint the theme's solid base colour under the content.
-                var themeBackground = window.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
-                context.DrawRectangle(themeBackground, null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                layers.Add(parent);
             }
 
-            bitmap.Render(background);
-            bitmap.Render(content);
+            layers.Add(dialog);
 
+            // Each window opens at its view's size, at most 95 % of the screen (as DialogService does), here the window size.
+            foreach (var layer in layers)
+            {
+                var view = (FrameworkElement)layer.Content;
+                var natural = SnapshotDialogs.NaturalSize(layer);
+                view.Width = Math.Min(natural.Width, (size.Width * 0.95) - 16);
+                view.Height = Math.Min(natural.Height, (size.Height * 0.95) - TitleBarHeight - 8);
+
+                // The window shrinks with the view; a larger window would centre the view and push its footer out.
+                layer.SizeToContent = SizeToContent.WidthAndHeight;
+            }
+
+            await SettleAsync();
+
+            var content = (FrameworkElement)window.Content;
+            content.UpdateLayout();
+            var width = content.ActualWidth;
+            var height = content.ActualHeight;
+
+            var scene = new DrawingVisual();
+            using (var context = scene.RenderOpen())
+            {
+                var main = new RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(height), 96, 96, PixelFormats.Pbgra32);
+                main.Render(Background(window, width, height));
+                main.Render(content);
+                context.DrawImage(main, new Rect(0, 0, width, height));
+
+                foreach (var layer in layers)
+                {
+                    DrawWindow(context, layer, width, height);
+                }
+            }
+
+            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(height), 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(scene);
+            Save(bitmap, path);
+        }
+
+        private const double TitleBarHeight = 32;
+
+        private static void DrawWindow(DrawingContext context, Window layer, double screenWidth, double screenHeight)
+        {
+            var view = (FrameworkElement)layer.Content;
+            view.UpdateLayout();
+            var frame = new Rect(
+                Math.Round((screenWidth - view.ActualWidth) / 2),
+                Math.Round((screenHeight - view.ActualHeight - TitleBarHeight) / 2),
+                view.ActualWidth,
+                view.ActualHeight + TitleBarHeight);
+
+            var background = layer.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
+            var stroke = layer.TryFindResource("CardStrokeColorDefaultBrush") as Brush ?? Brushes.Gray;
+            var text = layer.TryFindResource("TextFillColorPrimaryBrush") as Brush ?? Brushes.Black;
+
+            // Shadow, frame and title bar.
+            for (var i = 1; i <= 6; i++)
+            {
+                var shadow = new SolidColorBrush(Color.FromArgb((byte)(28 - (i * 4)), 0, 0, 0));
+                context.DrawRoundedRectangle(shadow, null, new Rect(frame.X - i, frame.Y - i + 4, frame.Width + (2 * i), frame.Height + (2 * i)), 8 + i, 8 + i);
+            }
+
+            context.DrawRoundedRectangle(background, new Pen(stroke, 1), frame, 8, 8);
+            var title = new FormattedText(layer.Title, System.Globalization.CultureInfo.GetCultureInfo("pl-PL"), FlowDirection.LeftToRight,
+                new Typeface("Segoe UI"), 12, text, 1.0);
+            context.DrawText(title, new Point(frame.X + 16, frame.Y + ((TitleBarHeight - title.Height) / 2)));
+            var close = new FormattedText("\uE8BB", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                new Typeface("Segoe Fluent Icons"), 10, text, 1.0);
+            context.DrawText(close, new Point(frame.Right - 30, frame.Y + ((TitleBarHeight - close.Height) / 2)));
+
+            // A brush draws the view from its own top-left corner; rendering it directly would also apply its offset inside
+            // the off-screen window, which is larger than the view on small screens.
+            var image = new VisualBrush(view)
+            {
+                Stretch = Stretch.None,
+                AlignmentX = AlignmentX.Left,
+                AlignmentY = AlignmentY.Top,
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = new Rect(0, 0, view.ActualWidth, view.ActualHeight),
+            };
+            context.DrawRectangle(image, null, new Rect(frame.X, frame.Y + TitleBarHeight, view.ActualWidth, view.ActualHeight));
+        }
+
+        // The Fluent window background is Mica (drawn by Windows, not WPF), so paint the theme's solid base colour under the content.
+        private static DrawingVisual Background(Window window, double width, double height)
+        {
+            var background = new DrawingVisual();
+            using var context = background.RenderOpen();
+            var themeBackground = window.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
+            context.DrawRectangle(themeBackground, null, new Rect(0, 0, width, height));
+            return background;
+        }
+
+        internal static async Task SettleAsync()
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                await Task.Delay(50);
+            }
+        }
+
+        private static void Save(BitmapSource bitmap, string path)
+        {
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using var file = File.Create(path);
             encoder.Save(file);
-            Console.WriteLine($"{path} ({content.ActualWidth:0}x{content.ActualHeight:0})");
+            Console.WriteLine($"{path} ({bitmap.PixelWidth}x{bitmap.PixelHeight})");
         }
 
         private static IEnumerable<T> FindAll<T>(DependencyObject root)

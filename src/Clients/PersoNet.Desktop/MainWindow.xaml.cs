@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     public MainWindow(ShellViewModel viewModel)
     {
         InitializeComponent();
+        Views.ListSelection.Attach(this);
         DataContext = viewModel;
         FitToScreen();
         SizeChanged += (_, _) => UpdateNavigationMode();

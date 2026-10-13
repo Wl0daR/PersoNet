@@ -7,7 +7,7 @@ namespace PersoNet.Desktop.Presentation.Leave;
 /// One day in the month calendar of an employee: the date, whether it is a day off (weekend or public holiday) and the
 /// leave on it, if any. Cancelled and rejected requests are not shown.
 /// </summary>
-public sealed record CalendarDay(DateOnly Date, bool IsInMonth, bool IsToday, string? HolidayName, LeaveRow? Leave, bool IsInDraft)
+public sealed record CalendarDay(DateOnly Date, bool IsInMonth, bool IsToday, string? HolidayName, LeaveRow? Leave)
 {
     private static readonly CultureInfo Polish = CultureInfo.GetCultureInfo("pl-PL");
 
@@ -57,16 +57,12 @@ public static class LeaveCalendar
         return char.ToUpper(text[0], CultureInfo.GetCultureInfo("pl-PL")) + text[1..];
     }
 
-    /// <summary>
-    /// Days from the Monday on or before the 1st of <paramref name="month"/>, six weeks long. <paramref name="draft"/> is
-    /// the period of a request being filled in, highlighted in the grid.
-    /// </summary>
+    /// <summary>Days from the Monday on or before the 1st of <paramref name="month"/>, six weeks long.</summary>
     public static IReadOnlyList<CalendarDay> Build(
         DateOnly month,
         DateOnly today,
         IReadOnlyDictionary<DateOnly, string> holidays,
-        IEnumerable<LeaveRow> requests,
-        (DateOnly Start, DateOnly End)? draft)
+        IEnumerable<LeaveRow> requests)
     {
         ArgumentNullException.ThrowIfNull(holidays);
         ArgumentNullException.ThrowIfNull(requests);
@@ -82,8 +78,7 @@ public static class LeaveCalendar
                 date.Month == month.Month,
                 date == today,
                 holidays.GetValueOrDefault(date),
-                active.FirstOrDefault(row => row.Request.StartDate <= date && date <= row.Request.EndDate),
-                draft is { } period && period.Start <= date && date <= period.End))
+                active.FirstOrDefault(row => row.Request.StartDate <= date && date <= row.Request.EndDate)))
             .ToList();
     }
 }

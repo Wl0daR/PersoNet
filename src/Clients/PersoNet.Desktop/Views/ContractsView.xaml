@@ -4,109 +4,83 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
+             xmlns:local="clr-namespace:PersoNet.Desktop.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=emp:ContractsViewModel}">
-    <DockPanel>
-        <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="0,8,0,0">
+    <DockPanel Margin="8,12,8,8">
+        <!-- Commands for the contracts: add, change and remove the picked one (removal needs a second click). -->
+        <WrapPanel DockPanel.Dock="Top" Style="{StaticResource Toolbar}" IsEnabled="{Binding IsIdle}">
+            <Button Command="{Binding NewCommand}" Style="{DynamicResource AccentButtonStyle}" Padding="12,6" Margin="0,0,8,8">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                    <TextBlock Text="Dodaj umowę" />
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding EditCommand}" Padding="12,6" Margin="0,0,8,8" ToolTip="Zmień zaznaczoną umowę (Enter)">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE70F;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                    <TextBlock Text="Zmień" />
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding DeleteCommand}" Padding="12,6" Margin="0,0,8,8">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding DeleteText}" />
+                </StackPanel>
+            </Button>
+        </WrapPanel>
+
+        <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}">
             <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie umów" />
         </Border>
 
-        <DockPanel DockPanel.Dock="Top" Margin="8,0,8,8">
-            <Button DockPanel.Dock="Right" Command="{Binding NewCommand}" Padding="10,6" ToolTip="Pusty formularz nowej umowy">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" />
-                    <TextBlock Text="Nowa umowa" />
-                </StackPanel>
-            </Button>
-            <TextBlock Text="Historia umów" Style="{StaticResource FormSection}" Margin="0" VerticalAlignment="Center" />
-        </DockPanel>
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
 
-        <!-- Contracts, newest first; the current one is marked in words. A short list of its own, so the form below keeps its room. -->
-        <ListBox DockPanel.Dock="Top" x:Name="List" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" MaxHeight="190" Margin="4,0"
-                 AutomationProperties.Name="Umowy pracownika" BorderThickness="0" Background="Transparent"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="{x:Type emp:ContractRow}">
-                    <DockPanel Margin="0,2">
-                        <Border DockPanel.Dock="Right" Style="{StaticResource SuccessBadge}" Margin="8,0,0,0" VerticalAlignment="Top"
-                                Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="obowiązuje" />
-                        </Border>
-                        <StackPanel>
-                            <TextBlock Text="{Binding TypeName}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                            <TextBlock Style="{StaticResource SecondaryText}" FontSize="12">
-                                <Run Text="{Binding Period, Mode=OneWay}" /><Run Text="{Binding WorkingTimeText, Mode=OneWay, StringFormat=' · {0}', TargetNullValue=''}" />
-                            </TextBlock>
-                        </StackPanel>
-                    </DockPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <Grid>
+            <!-- Contracts, newest first; the current one is marked in words. Double click or Enter changes one. -->
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" local:OpenOnActivate.Command="{Binding EditCommand}"
+                      AutomationProperties.Name="Umowy pracownika" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                      HeadersVisibility="Column" GridLinesVisibility="None" MinRowHeight="44" BorderThickness="0" Background="Transparent"
+                      CanUserSortColumns="False" CanUserReorderColumns="False" HorizontalScrollBarVisibility="Disabled">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Rodzaj umowy" Width="2*" MinWidth="180">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type emp:ContractRow}">
+                                <TextBlock Text="{Binding TypeName}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding TypeName}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Okres" Width="2*" MinWidth="160">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type emp:ContractRow}">
+                                <TextBlock Text="{Binding Period}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Period}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Etat" Width="*" MinWidth="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type emp:ContractRow}">
+                                <TextBlock Text="{Binding WorkingTimeText, TargetNullValue='—'}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="" Width="Auto" MinWidth="96">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type emp:ContractRow}">
+                                <Border Style="{StaticResource SuccessBadge}" Margin="0,0,8,0" Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="obowiązuje" />
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
 
-        <TextBlock DockPanel.Dock="Top" Text="Ten pracownik nie ma jeszcze umów. Uzupełnij formularz poniżej i kliknij Zapisz umowę."
-                   Style="{StaticResource SecondaryText}" Margin="8,0,8,8"
-                   Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
-
-        <!-- Save stays visible while the form scrolls; removal sits apart and needs a second click. -->
-        <Border DockPanel.Dock="Bottom" Style="{StaticResource ActionBar}" Margin="-12,0">
-            <DockPanel IsEnabled="{Binding IsIdle}">
-                <Button DockPanel.Dock="Right" Content="{Binding DeleteText}" Command="{Binding DeleteCommand}" Margin="8,0,0,0" />
-                <WrapPanel>
-                    <Button Content="Zapisz umowę" Command="{Binding SaveCommand}" Style="{DynamicResource AccentButtonStyle}" />
-                </WrapPanel>
-            </DockPanel>
-        </Border>
-
-        <!-- Editor of the selected or new contract. -->
-        <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" Margin="0,8,0,0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Margin="8,12,8,16" IsEnabled="{Binding IsIdle}">
-                    <TextBlock Text="{Binding EditorTitle}" Style="{StaticResource SectionTitle}" />
-
-                    <Label Content="_Rodzaj umowy *" Target="{Binding ElementName=KindBox}" Padding="0" Margin="0,12,0,4" />
-                    <ComboBox x:Name="KindBox" ItemsSource="{x:Static emp:ContractsViewModel.Kinds}" SelectedItem="{Binding EditKind}"
-                              DisplayMemberPath="Name" HorizontalAlignment="Stretch" />
-
-                    <!-- Start and end side by side; they wrap under each other when the card is narrow. -->
-                    <WrapPanel>
-                        <StackPanel Width="200" Margin="0,0,12,0">
-                            <Label Content="_Początek *" Target="{Binding ElementName=StartBox}" Padding="0" Margin="0,16,0,4" />
-                            <DatePicker x:Name="StartBox" SelectedDate="{Binding EditStartDate}"
-                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=StartBox}" Style="{StaticResource FieldError}" />
-                        </StackPanel>
-
-                        <!-- An indefinite contract has no end date, so the field is not offered. -->
-                        <StackPanel Width="200">
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsIndefinite}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Style>
-                            <Label Content="{Binding EndDateLabel}" Target="{Binding ElementName=EndBox}" Padding="0" Margin="0,16,0,4" />
-                            <DatePicker x:Name="EndBox" SelectedDate="{Binding EditEndDate}"
-                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                            <TextBlock Text="{Binding EndDateHint}" Style="{StaticResource HelperText}" />
-                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EndBox}" Style="{StaticResource FieldError}" />
-                        </StackPanel>
-                    </WrapPanel>
-
-                    <!-- Working time applies only to employment contracts. -->
-                    <StackPanel Visibility="{Binding IsEmploymentContract, Converter={StaticResource BoolToVisibility}}">
-                        <Label Content="_Wymiar etatu *" Target="{Binding ElementName=WorkingTimeBox}" Padding="0" Margin="0,16,0,4" />
-                        <TextBox x:Name="WorkingTimeBox" Text="{Binding EditWorkingTime, UpdateSourceTrigger=PropertyChanged}" MaxLength="10" Width="120" HorizontalAlignment="Left"
-                                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                        <TextBlock Text="Np. 1 (pełny etat), 1/2 albo 0,75." Style="{StaticResource HelperText}" />
-                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=WorkingTimeBox}" Style="{StaticResource FieldError}" />
-                    </StackPanel>
-
-                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
-                </StackPanel>
-            </ScrollViewer>
-        </Border>
+            <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="&#xE8A5;" Style="{StaticResource Icon}" FontSize="36" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <TextBlock Text="Brak umów" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" Margin="0,12,0,4" />
+                <TextBlock Text="Kliknij „Dodaj umowę”, aby wpisać pierwszą umowę tej osoby." Style="{StaticResource SecondaryText}" TextAlignment="Center" />
+            </StackPanel>
+        </Grid>
     </DockPanel>
 </UserControl>

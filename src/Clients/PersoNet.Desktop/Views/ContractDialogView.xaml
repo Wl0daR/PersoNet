@@ -1,0 +1,65 @@
+<UserControl x:Class="PersoNet.Desktop.Views.ContractDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=emp:ContractDialogViewModel}"
+             Width="520">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsEnabled="{Binding IsIdle}">
+                <Button Content="Zapisz umowę" Command="{Binding SaveCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}" MinWidth="110" Margin="0,0,8,0" />
+                <Button Content="Anuluj" IsCancel="True" MinWidth="110" ToolTip="Zamknij bez zapisywania (Esc)" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource DialogBody}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
+                    <TextBlock Text="Pola oznaczone * są wymagane." Style="{StaticResource HelperText}" Margin="0" />
+
+                    <Label Content="_Rodzaj umowy *" Target="{Binding ElementName=KindBox}" Padding="0" Margin="0,16,0,4" />
+                    <ComboBox x:Name="KindBox" ItemsSource="{x:Static emp:ContractsViewModel.Kinds}" SelectedItem="{Binding EditKind}"
+                              DisplayMemberPath="Name" HorizontalAlignment="Stretch" />
+
+                    <!-- Start and end side by side. -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <Label Content="_Początek *" Target="{Binding ElementName=StartBox}" Padding="0" Margin="0,16,0,4" />
+                            <DatePicker x:Name="StartBox" SelectedDate="{Binding EditStartDate}"
+                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=StartBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+
+                        <!-- An indefinite contract has no end date, so the field is not offered. -->
+                        <StackPanel Grid.Column="2" Visibility="{Binding IsIndefinite, Converter={StaticResource CollapsedWhenTrue}}">
+                            <Label Content="{Binding EndDateLabel}" Target="{Binding ElementName=EndBox}" Padding="0" Margin="0,16,0,4" />
+                            <DatePicker x:Name="EndBox" SelectedDate="{Binding EditEndDate}"
+                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding EndDateHint}" Style="{StaticResource HelperText}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EndBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Working time applies only to employment contracts. -->
+                    <StackPanel Visibility="{Binding IsEmploymentContract, Converter={StaticResource BoolToVisibility}}">
+                        <Label Content="_Wymiar etatu *" Target="{Binding ElementName=WorkingTimeBox}" Padding="0" Margin="0,16,0,4" />
+                        <TextBox x:Name="WorkingTimeBox" Text="{Binding EditWorkingTime, UpdateSourceTrigger=PropertyChanged}" MaxLength="10" Width="120" HorizontalAlignment="Left"
+                                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                        <TextBlock Text="Np. 1 (pełny etat), 1/2 albo 0,75." Style="{StaticResource HelperText}" />
+                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=WorkingTimeBox}" Style="{StaticResource FieldError}" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</UserControl>

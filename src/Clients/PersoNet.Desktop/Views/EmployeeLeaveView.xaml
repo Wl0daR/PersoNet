@@ -4,7 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:leave="clr-namespace:PersoNet.Desktop.Presentation.Leave;assembly=PersoNet.Desktop.Presentation"
-             xmlns:views="clr-namespace:PersoNet.Desktop.Views"
+             xmlns:local="clr-namespace:PersoNet.Desktop.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=leave:EmployeeLeaveViewModel}">
     <UserControl.Resources>
@@ -81,35 +81,40 @@
         </Style>
     </UserControl.Resources>
 
-    <DockPanel>
-        <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="0,8,0,0">
+    <DockPanel Margin="8,12,8,0">
+        <!-- Commands for the tab: a new request (from the picked day) and the year's entitlement. -->
+        <WrapPanel DockPanel.Dock="Top" Style="{StaticResource Toolbar}" IsEnabled="{Binding IsIdle}">
+            <Button Command="{Binding AddLeaveCommand}" Style="{DynamicResource AccentButtonStyle}" Padding="12,6" Margin="0,0,8,8"
+                    ToolTip="Nowy wniosek od dnia zaznaczonego w kalendarzu">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                    <TextBlock Text="Dodaj urlop" />
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding EditEntitlementCommand}" Padding="12,6" Margin="0,0,8,8">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE787;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                    <TextBlock>
+                        <Run Text="Wymiar urlopu " /><Run Text="{Binding Year, Mode=OneWay}" />
+                    </TextBlock>
+                </StackPanel>
+            </Button>
+        </WrapPanel>
+
+        <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}">
             <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie urlopu" />
         </Border>
 
-        <!-- Main actions stay visible while the tab scrolls: adding leave, or sending the request being filled in. -->
-        <Border DockPanel.Dock="Bottom" Style="{StaticResource ActionBar}" Margin="-12,0">
-            <Grid>
-                <WrapPanel IsEnabled="{Binding IsIdle}" Visibility="{Binding IsAdding, Converter={StaticResource CollapsedWhenTrue}}">
-                    <Button Command="{Binding AddLeaveCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0"
-                            ToolTip="Nowy wniosek od dnia zaznaczonego w kalendarzu">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" />
-                            <TextBlock Text="Dodaj urlop" />
-                        </StackPanel>
-                    </Button>
-                    <Button Content="Zapisz wymiar urlopu" Command="{Binding SaveEntitlementCommand}" />
-                </WrapPanel>
-                <WrapPanel IsEnabled="{Binding Form.IsIdle}" Visibility="{Binding IsAdding, Converter={StaticResource BoolToVisibility}}">
-                    <Button Content="Złóż wniosek" Command="{Binding SubmitLeaveCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0" />
-                    <Button Content="Anuluj" Command="{Binding CancelAddingCommand}" />
-                </WrapPanel>
-            </Grid>
-        </Border>
-
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="8,0,8,16">
-                <!-- Month calendar: leave and days off at a glance; a click picks a day. -->
-                <StackPanel MaxWidth="420" HorizontalAlignment="Left">
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Month calendar: leave and days off at a glance. A double click opens the day's request, or a new one. -->
+                <StackPanel Grid.Column="0" Width="340">
                     <DockPanel Margin="0,0,0,8">
                         <Button DockPanel.Dock="Right" Content="Dziś" Command="{Binding ThisMonthCommand}" Padding="10,4" ToolTip="Wróć do bieżącego miesiąca" />
                         <Button DockPanel.Dock="Left" Command="{Binding PreviousMonthCommand}" Padding="8" Background="Transparent" BorderThickness="0"
@@ -138,6 +143,7 @@
                     </ItemsControl>
 
                     <ListBox x:Name="CalendarBox" ItemsSource="{Binding Days}" SelectedItem="{Binding SelectedDay}" ItemContainerStyle="{StaticResource CalendarCell}"
+                             local:OpenOnActivate.Command="{Binding OpenDayCommand}"
                              Background="Transparent" BorderThickness="0" Padding="0" AutomationProperties.Name="{Binding MonthTitle, StringFormat='Kalendarz: {0}'}"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
                         <ListBox.ItemsPanel>
@@ -148,8 +154,6 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type leave:CalendarDay}">
                                 <Grid Height="40" MinWidth="36">
-                                    <Rectangle RadiusX="6" RadiusY="6" Fill="{DynamicResource AccentFillColorDefaultBrush}" Opacity="0.25"
-                                               Visibility="{Binding IsInDraft, Converter={StaticResource BoolToVisibility}}" />
                                     <Border Style="{StaticResource LeaveFill}" />
                                     <TextBlock Text="{Binding Day}" Style="{StaticResource DayNumber}" />
                                     <TextBlock Text="h" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,5,2"
@@ -183,91 +187,81 @@
                             <TextBlock Text="urlop w godzinach" Style="{StaticResource SecondaryText}" FontSize="12" />
                         </StackPanel>
                     </WrapPanel>
+
+                    <!-- The picked day in words, with what can be done on it. -->
+                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedDay.LongDate, FallbackValue='Wybierz dzień w kalendarzu'}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding SelectedDay.Description}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                       Visibility="{Binding SelectedDay.HasLeave, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+                                <Run Text="{Binding SelectedDay.Leave.Period, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding SelectedDay.Leave.ExtentText, Mode=OneWay}" />
+                            </TextBlock>
+                            <Button Command="{Binding AddLeaveCommand}" Margin="0,10,0,0" HorizontalAlignment="Left" Padding="10,6"
+                                    Visibility="{Binding CanAddOnSelectedDay, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" />
+                                    <TextBlock Text="Dodaj urlop od tego dnia" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding OpenRequestCommand}" CommandParameter="{Binding SelectedDay.Leave}" Margin="0,10,0,0" HorizontalAlignment="Left" Padding="10,6"
+                                    Visibility="{Binding SelectedDay.HasLeave, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" />
+                                    <TextBlock Text="Otwórz wniosek" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
-                <!-- The picked day in words, with a shortcut to add leave on it. -->
-                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12" Margin="0,12,0,0"
-                        Visibility="{Binding IsAdding, Converter={StaticResource CollapsedWhenTrue}}">
-                    <StackPanel>
-                        <TextBlock Text="{Binding SelectedDay.LongDate, FallbackValue='Wybierz dzień w kalendarzu'}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding SelectedDay.Description}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0" />
-                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0"
-                                   Visibility="{Binding SelectedDay.HasLeave, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
-                            <Run Text="{Binding SelectedDay.Leave.Period, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding SelectedDay.Leave.ExtentText, Mode=OneWay}" />
-                        </TextBlock>
-                        <Button Command="{Binding AddLeaveCommand}" Margin="0,10,0,0" HorizontalAlignment="Left" Padding="10,6"
-                                Visibility="{Binding CanAddOnSelectedDay, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" />
-                                <TextBlock Text="Dodaj urlop od tego dnia" />
+                <StackPanel Grid.Column="2">
+                    <!-- The year's annual leave: days left in large type, with what they are made of. -->
+                    <TextBlock Style="{StaticResource FormSection}" Margin="0,4,0,8">
+                        <Run Text="Pula urlopu " /><Run Text="{Binding Year, Mode=OneWay}" />
+                    </TextBlock>
+                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12"
+                            Visibility="{Binding HasEntitlement, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" Text="Zostało do wykorzystania" />
+                            <WrapPanel>
+                                <TextBlock Text="{Binding RemainingText}" FontSize="28" FontWeight="SemiBold" Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding TotalText}" FontSize="16" VerticalAlignment="Bottom" Margin="0,0,0,5" />
+                            </WrapPanel>
+                            <TextBlock Text="{Binding Summary}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- No entitlement yet: say what to do, with the usual values. -->
+                    <Border Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}" CornerRadius="8" Padding="16,12"
+                            Visibility="{Binding HasEntitlement, Converter={StaticResource CollapsedWhenTrue}}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE946;" Style="{StaticResource Icon}" Margin="0,2,12,0" VerticalAlignment="Top" />
+                            <StackPanel>
+                                <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+                                <Button Command="{Binding EditEntitlementCommand}" Content="Ustaw wymiar urlopu" Margin="0,10,0,0" HorizontalAlignment="Left" />
                             </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </Border>
+                        </DockPanel>
+                    </Border>
 
-                <!-- New request for this employee; clicks in the calendar set its days. -->
-                <StackPanel Margin="0,12,0,0" Visibility="{Binding IsAdding, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="Nowy wniosek urlopowy" Style="{StaticResource SectionTitle}" />
-                    <TextBlock Text="Kliknij w kalendarzu ostatni dzień urlopu; wcześniejszy dzień zmienia początek. Wniosek trafi do listy jako oczekujący."
-                               Style="{StaticResource HelperText}" TextWrapping="Wrap" />
-                    <views:LeaveFormView DataContext="{Binding Form}" />
-                </StackPanel>
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
 
-                <!-- The year's annual leave. -->
-                <TextBlock Style="{StaticResource FormSection}" Margin="0,24,0,8">
-                    <Run Text="Pula urlopu " /><Run Text="{Binding Year, Mode=OneWay}" />
-                </TextBlock>
-
-                <!-- Days left in large type, with what they are made of. -->
-                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12"
-                        Visibility="{Binding HasEntitlement, Converter={StaticResource BoolToVisibility}}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" Text="Zostało do wykorzystania" />
-                        <WrapPanel>
-                            <TextBlock Text="{Binding RemainingText}" FontSize="28" FontWeight="SemiBold" Margin="0,0,8,0" />
-                            <TextBlock Text="{Binding TotalText}" FontSize="16" VerticalAlignment="Bottom" Margin="0,0,0,5" />
-                        </WrapPanel>
-                        <TextBlock Text="{Binding Summary}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    </StackPanel>
-                </Border>
-
-                <!-- No entitlement yet: say what to do, with the usual values. -->
-                <Border Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}" CornerRadius="8" Padding="16,12"
-                        Visibility="{Binding HasEntitlement, Converter={StaticResource CollapsedWhenTrue}}">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE946;" Style="{StaticResource Icon}" Margin="0,2,12,0" VerticalAlignment="Top" />
-                        <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
-                    </DockPanel>
-                </Border>
-
-                <!-- Entitlement entered by HR. -->
-                <WrapPanel IsEnabled="{Binding IsIdle}">
-                    <StackPanel Width="160" Margin="0,0,12,0">
-                        <Label Content="_Wymiar (dni) *" Target="{Binding ElementName=DaysBox}" Padding="0" Margin="0,16,0,4" />
-                        <TextBox x:Name="DaysBox" Text="{Binding EditDays, UpdateSourceTrigger=PropertyChanged}" MaxLength="2"
-                                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=DaysBox}" Style="{StaticResource FieldError}" />
-                    </StackPanel>
-                    <StackPanel Width="160">
-                        <Label Content="_Zaległy (dni)" Target="{Binding ElementName=CarriedOverBox}" Padding="0" Margin="0,16,0,4" />
-                        <TextBox x:Name="CarriedOverBox" Text="{Binding EditCarriedOver, UpdateSourceTrigger=PropertyChanged}" MaxLength="2"
-                                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                        <TextBlock Text="Niewykorzystany z poprzedniego roku." Style="{StaticResource HelperText}" />
-                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=CarriedOverBox}" Style="{StaticResource FieldError}" />
-                    </StackPanel>
-                </WrapPanel>
-
-                <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
-
-                <!-- The employee's requests in the year; decisions are made on the Urlopy screen. -->
-                <TextBlock Text="Wnioski w tym roku" Style="{StaticResource FormSection}" Margin="0,20,0,8" />
-                <TextBlock Text="Brak wniosków urlopowych w tym roku." Style="{StaticResource SecondaryText}"
-                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
-                <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.Name="Wnioski urlopowe pracownika">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type leave:LeaveRow}">
-                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" Padding="0,8">
-                                <DockPanel>
+                    <!-- The employee's requests in the year; a double click or Enter opens one with its decision. -->
+                    <TextBlock Text="Wnioski w tym roku" Style="{StaticResource FormSection}" Margin="0,20,0,8" />
+                    <TextBlock Text="Brak wniosków urlopowych w tym roku." Style="{StaticResource SecondaryText}"
+                               Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+                    <ListBox x:Name="RequestsList" ItemsSource="{Binding Items}" local:OpenOnActivate.Command="{Binding OpenRequestCommand}" AutomationProperties.Name="Wnioski urlopowe pracownika"
+                             BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ToolTip="Dwuklik otwiera wniosek">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="AutomationProperties.Name" Value="{Binding KindName}" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type leave:LeaveRow}">
+                                <DockPanel Margin="0,4">
                                     <Border DockPanel.Dock="Right" Style="{StaticResource StateBadge}" Margin="8,0,0,0" VerticalAlignment="Top">
                                         <TextBlock Text="{Binding StateName}" />
                                     </Border>
@@ -278,11 +272,11 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </DockPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Grid>
         </ScrollViewer>
     </DockPanel>
 </UserControl>

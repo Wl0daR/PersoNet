@@ -9,12 +9,10 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Presentation.Organization;
 
 /// <summary>
-/// "Stanowiska" screen: the list of positions and the editor of the selected or new one.
+/// "Stanowiska" screen: the list of positions across the window. A new or renamed position is filled in a dialog.
 /// </summary>
-public sealed partial class PositionsViewModel(IOrganizationApi api) : EditorViewModel
+public sealed partial class PositionsViewModel(IOrganizationApi api, IDialogService dialogs) : EditorViewModel
 {
-    public const int NameMaxLength = 200;
-
     public ObservableCollection<PositionResponse> Positions { get; } = [];
 
     /// <summary>True when there is nothing to show in the list, so the view can explain what to do instead.</summary>
@@ -25,16 +23,9 @@ public sealed partial class PositionsViewModel(IOrganizationApi api) : EditorVie
     public partial bool ShowInactive { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNew), nameof(EditorTitle), nameof(ToggleActiveText))]
-    [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand))]
+    [NotifyPropertyChangedFor(nameof(ToggleActiveText))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand), nameof(EditCommand))]
     public partial PositionResponse? Selected { get; set; }
-
-    [ObservableProperty]
-    public partial string EditName { get; set; } = string.Empty;
-
-    public bool IsNew => Selected is null;
-
-    public string EditorTitle => IsNew ? "Nowe stanowisko" : "Edycja stanowiska";
 
     public string ToggleActiveText => Selected?.IsActive == false ? "Aktywuj" : "Dezaktywuj";
 
@@ -42,22 +33,12 @@ public sealed partial class PositionsViewModel(IOrganizationApi api) : EditorVie
     public Task LoadAsync(CancellationToken cancellationToken) => RunAsync(() => ReloadSelectingAsync(Selected?.Id, cancellationToken));
 
     [RelayCommand]
-    public void New()
-    {
-        Selected = null;
-        EditName = string.Empty;
-        ClearAllErrors();
-    }
+    public Task NewAsync(CancellationToken cancellationToken) => EditInDialogAsync(new PositionDialogViewModel(api, editing: null), cancellationToken);
 
-    [RelayCommand]
-    public Task SaveAsync(CancellationToken cancellationToken) => !Validate() ? Task.CompletedTask : RunAsync(async () =>
-    {
-        var saved = Selected is { } current
-            ? await api.UpdatePositionAsync(current.Id, new UpdatePositionRequest(EditName), cancellationToken)
-            : await api.CreatePositionAsync(new CreatePositionRequest(EditName), cancellationToken);
-
-        await ReloadSelectingAsync(saved.Id, cancellationToken);
-    });
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    public Task EditAsync(PositionResponse? position, CancellationToken cancellationToken) => (position ?? Selected) is not { } current
+        ? Task.CompletedTask
+        : EditInDialogAsync(new PositionDialogViewModel(api, current), cancellationToken);
 
     [RelayCommand(CanExecute = nameof(CanToggleActive))]
     public Task ToggleActiveAsync(CancellationToken cancellationToken) => Selected is not { } current
@@ -68,39 +49,21 @@ public sealed partial class PositionsViewModel(IOrganizationApi api) : EditorVie
             await ReloadSelectingAsync(current.Id, cancellationToken);
         });
 
-    private bool CanToggleActive() => Selected is not null;
-
-    protected override bool TryShowOnField(ApiException exception)
-    {
-        ArgumentNullException.ThrowIfNull(exception);
-
-        if (exception.Code != "position.name_taken")
-        {
-            return false;
-        }
-
-        SetError(nameof(EditName), exception.Message);
-        return true;
-    }
-
-    private bool Validate()
-    {
-        SetError(nameof(EditName), string.IsNullOrWhiteSpace(EditName) ? "Podaj nazwę stanowiska." : null);
-
-        return !HasErrors;
-    }
-
-    partial void OnSelectedChanged(PositionResponse? value)
-    {
-        ClearAllErrors();
-
-        if (value is not null)
-        {
-            EditName = value.Name;
-        }
-    }
+    protected override bool TryShowOnField(ApiException exception) => false;
 
     partial void OnShowInactiveChanged(bool value) => _ = LoadAsync(CancellationToken.None);
+
+    private async Task EditInDialogAsync(PositionDialogViewModel dialog, CancellationToken cancellationToken)
+    {
+        if (await dialogs.ShowAsync(dialog))
+        {
+            await RunAsync(() => ReloadSelectingAsync(dialog.Saved?.Id, cancellationToken));
+        }
+    }
+
+    private bool CanEdit(PositionResponse? position) => (position ?? Selected) is not null;
+
+    private bool CanToggleActive() => Selected is not null;
 
     private async Task ReloadSelectingAsync(Guid? id, CancellationToken cancellationToken)
     {
@@ -113,15 +76,6 @@ public sealed partial class PositionsViewModel(IOrganizationApi api) : EditorVie
         }
 
         IsEmpty = Positions.Count == 0;
-
-        var reselected = positions.FirstOrDefault(position => position.Id == id);
-        if (reselected is null)
-        {
-            New();
-        }
-        else
-        {
-            Selected = reselected;
-        }
+        Selected = Positions.FirstOrDefault(position => position.Id == id);
     }
 }

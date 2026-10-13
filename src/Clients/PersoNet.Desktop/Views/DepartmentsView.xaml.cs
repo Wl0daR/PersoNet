@@ -9,7 +9,6 @@ public partial class DepartmentsView : UserControl
     public DepartmentsView()
     {
         InitializeComponent();
-        FormFocus.Attach(this, NameBox, CodeBox, ParentBox);
     }
 
     // TreeView.SelectedItem cannot be bound, so the selection is passed to the view model here.

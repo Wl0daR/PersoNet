@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
@@ -11,40 +10,26 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Presentation.Leave;
 
 /// <summary>
-/// "Urlop" tab of an employee's card: a month calendar with the employee's leave and days off, where HR can add a request
-/// from a picked day; the annual leave entitlement of the year (set by HR), the balance, and the requests in that year.
+/// "Urlop" tab of an employee's card: a month calendar with the employee's leave and days off, the annual leave left
+/// in that year and the year's requests. A new request, a request's details and the entitlement open in dialogs.
 /// </summary>
 public sealed partial class EmployeeLeaveViewModel : EditorViewModel
 {
-    public const int MaxDays = 60;
-
     private readonly ILeaveApi _api;
     private readonly TimeProvider _time;
+    private readonly IDialogService _dialogs;
     private readonly Dictionary<int, IReadOnlyDictionary<DateOnly, string>> _holidays = [];
 
     private EmployeeResponse? _employee;
     private int _loadVersion;
     private int _loadedYear;
 
-    // Days are rebuilt (new objects) when anything changes; re-selecting the same date then is not a click.
-    private bool _isRebuilding;
-
-    public EmployeeLeaveViewModel(ILeaveApi api, TimeProvider time)
+    public EmployeeLeaveViewModel(ILeaveApi api, TimeProvider time, IDialogService dialogs)
     {
         _api = api;
         _time = time;
+        _dialogs = dialogs;
         Month = FirstOfMonth(Today);
-        Form = new LeaveFormViewModel(api);
-
-        // The period being filled in is highlighted in the calendar.
-        Form.PropertyChanged += (_, e) =>
-        {
-            if (IsAdding && e.PropertyName is nameof(LeaveFormViewModel.EditStartDate) or nameof(LeaveFormViewModel.EditEndDate) or nameof(LeaveFormViewModel.IsHourly))
-            {
-                Rebuild();
-            }
-        };
-
         Rebuild();
     }
 
@@ -55,9 +40,6 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
 
     public static IReadOnlyList<string> WeekdayNames => LeaveCalendar.WeekdayNames;
 
-    /// <summary>Form of a new request for this employee, shown under the calendar while adding.</summary>
-    public LeaveFormViewModel Form { get; }
-
     /// <summary>First day of the month shown in the calendar.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MonthTitle), nameof(Year))]
@@ -65,12 +47,8 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanAddOnSelectedDay))]
+    [NotifyCanExecuteChangedFor(nameof(OpenDayCommand))]
     public partial CalendarDay? SelectedDay { get; set; }
-
-    /// <summary>True while the new request form is open.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanAddOnSelectedDay))]
-    public partial bool IsAdding { get; set; }
 
     /// <summary>The year of the month shown: the entitlement, balance and request list belong to it.</summary>
     public int Year => Month.Year;
@@ -78,20 +56,13 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
     public string MonthTitle => LeaveCalendar.MonthTitle(Month);
 
     /// <summary>A working day without leave is picked, so a request can start on it.</summary>
-    public bool CanAddOnSelectedDay => !IsAdding && SelectedDay is { HasLeave: false, IsDayOff: false };
+    public bool CanAddOnSelectedDay => SelectedDay is { HasLeave: false, IsDayOff: false };
 
     private DateOnly Today => DateOnly.FromDateTime(_time.GetLocalNow().Date);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Summary), nameof(HasEntitlement), nameof(RemainingText), nameof(TotalText))]
     public partial LeaveBalanceResponse? Balance { get; set; }
-
-    /// <summary>Days of the yearly entitlement, as typed.</summary>
-    [ObservableProperty]
-    public partial string EditDays { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string EditCarriedOver { get; set; } = "0";
 
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
@@ -116,12 +87,9 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
     {
         _employee = employee;
         _loadedYear = 0;
-        IsAdding = false;
         Month = FirstOfMonth(Today);
         Items.Clear();
         Balance = null;
-        EditDays = string.Empty;
-        EditCarriedOver = "0";
         ClearAllErrors();
 
         Rebuild();
@@ -146,9 +114,9 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
         SelectedDay = Days.FirstOrDefault(day => day.IsToday);
     }
 
-    /// <summary>Opens the request form starting on the picked day (or today).</summary>
+    /// <summary>Opens the form of a new request for this employee, starting on the picked day (or today).</summary>
     [RelayCommand]
-    public void AddLeave()
+    public async Task AddLeaveAsync(CancellationToken cancellationToken)
     {
         if (_employee is not { } employee)
         {
@@ -156,30 +124,63 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
         }
 
         var start = (SelectedDay?.Date ?? Today).ToDateTime(TimeOnly.MinValue);
-        Form.Reset(new Choice(employee.Id, $"{employee.LastName} {employee.FirstName}"), start, start, employeeFixed: true);
-        IsAdding = true;
-        Rebuild();
+        var form = new LeaveFormViewModel(_api);
+        form.Reset(new Choice(employee.Id, $"{employee.FirstName} {employee.LastName}"), start, start, employeeFixed: true);
+
+        if (await _dialogs.ShowAsync(form) && form.Created is { } created)
+        {
+            Month = FirstOfMonth(created.StartDate);
+            await LoadAsync(cancellationToken);
+            SelectedDay = Days.FirstOrDefault(day => day.Date == created.StartDate);
+        }
     }
 
-    [RelayCommand]
-    public void CancelAdding()
+    /// <summary>Double click on a day: its leave request, or a new one starting on that day.</summary>
+    [RelayCommand(CanExecute = nameof(CanOpenDay))]
+    public Task OpenDayAsync(CalendarDay? day, CancellationToken cancellationToken)
     {
-        IsAdding = false;
-        Rebuild();
+        if ((day ?? SelectedDay) is not { } picked)
+        {
+            return Task.CompletedTask;
+        }
+
+        SelectedDay = Days.FirstOrDefault(candidate => candidate.Date == picked.Date) ?? picked;
+        return picked.Leave is { } leave ? OpenRequestAsync(leave, cancellationToken)
+            : picked.IsDayOff ? Task.CompletedTask
+            : AddLeaveAsync(cancellationToken);
     }
 
+    /// <summary>Opens a request with its details and decision.</summary>
     [RelayCommand]
-    public async Task SubmitLeaveAsync(CancellationToken cancellationToken)
+    public async Task OpenRequestAsync(LeaveRow? row, CancellationToken cancellationToken)
     {
-        if (await Form.SubmitAsync(cancellationToken) is not { } created)
+        if (row is null)
         {
             return;
         }
 
-        IsAdding = false;
-        Month = FirstOfMonth(created.StartDate);
-        await LoadAsync(cancellationToken);
-        SelectedDay = Days.FirstOrDefault(day => day.Date == created.StartDate);
+        var dialog = new LeaveDecisionViewModel(_api, row);
+        await dialog.LoadAsync(cancellationToken);
+        if (await _dialogs.ShowAsync(dialog))
+        {
+            await LoadAsync(cancellationToken);
+        }
+    }
+
+    /// <summary>Opens the entitlement of the shown year.</summary>
+    [RelayCommand]
+    public async Task EditEntitlementAsync(CancellationToken cancellationToken)
+    {
+        if (_employee is not { } employee)
+        {
+            return;
+        }
+
+        var dialog = new EntitlementDialogViewModel(_api, employee, Year, Balance);
+        if (await _dialogs.ShowAsync(dialog))
+        {
+            await LoadAsync(cancellationToken);
+        }
     }
 
     [RelayCommand]
@@ -210,7 +211,7 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
                 return;
             }
 
-            Show(balance);
+            Balance = balance;
             Items.Clear();
             foreach (var request in requests)
             {
@@ -222,29 +223,7 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
         });
     }
 
-    [RelayCommand]
-    public Task SaveEntitlementAsync(CancellationToken cancellationToken)
-    {
-        if (_employee is not { } employee || !Validate(out var days, out var carriedOver))
-        {
-            return Task.CompletedTask;
-        }
-
-        return RunAsync(async () => Show(await _api.SetEntitlementAsync(employee.Id, Year, new SaveLeaveEntitlementRequest(days, carriedOver), cancellationToken)));
-    }
-
-    protected override bool TryShowOnField(ApiException exception)
-    {
-        ArgumentNullException.ThrowIfNull(exception);
-
-        if (exception.Code == "leave.entitlement_invalid")
-        {
-            SetError(nameof(EditDays), exception.Message);
-            return true;
-        }
-
-        return false;
-    }
+    protected override bool TryShowOnField(ApiException exception) => false;
 
     // A month of another year needs that year's leave, balance and holidays.
     partial void OnMonthChanged(DateOnly value)
@@ -256,70 +235,21 @@ public sealed partial class EmployeeLeaveViewModel : EditorViewModel
         }
     }
 
-    // While adding, a click on a later day sets the end of the leave; an earlier day (or any day for leave in hours) its start.
-    partial void OnSelectedDayChanged(CalendarDay? value)
-    {
-        if (_isRebuilding || !IsAdding || value is null)
-        {
-            return;
-        }
-
-        var date = value.Date.ToDateTime(TimeOnly.MinValue);
-        if (!Form.IsHourly && Form.EditStartDate is { } start && date > start)
-        {
-            Form.EditEndDate = date;
-        }
-        else
-        {
-            Form.EditStartDate = date;
-        }
-    }
+    private bool CanOpenDay(CalendarDay? day) => (day ?? SelectedDay) is not null;
 
     private static DateOnly FirstOfMonth(DateOnly day) => new(day.Year, day.Month, 1);
 
     private void Rebuild()
     {
-        (DateOnly, DateOnly)? draft = IsAdding && Form.EditStartDate is { } start
-            ? (DateOnly.FromDateTime(start), DateOnly.FromDateTime(Form.IsHourly ? start : Form.EditEndDate ?? start))
-            : null;
-
-        var days = LeaveCalendar.Build(Month, Today, _holidays.GetValueOrDefault(Month.Year) ?? new Dictionary<DateOnly, string>(), Items, draft);
+        var days = LeaveCalendar.Build(Month, Today, _holidays.GetValueOrDefault(Month.Year) ?? new Dictionary<DateOnly, string>(), Items);
         var selected = SelectedDay?.Date;
 
-        _isRebuilding = true;
-        try
+        Days.Clear();
+        foreach (var day in days)
         {
-            Days.Clear();
-            foreach (var day in days)
-            {
-                Days.Add(day);
-            }
-
-            SelectedDay = Days.FirstOrDefault(day => day.Date == selected);
+            Days.Add(day);
         }
-        finally
-        {
-            _isRebuilding = false;
-        }
-    }
 
-    private void Show(LeaveBalanceResponse balance)
-    {
-        Balance = balance;
-        EditDays = balance.HasEntitlement ? balance.EntitlementDays.ToString(CultureInfo.InvariantCulture) : string.Empty;
-        EditCarriedOver = balance.CarriedOverDays.ToString(CultureInfo.InvariantCulture);
-        ClearAllErrors();
-    }
-
-    private bool Validate(out int days, out int carriedOver)
-    {
-        var daysOk = int.TryParse(EditDays.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out days) && days <= MaxDays;
-        var carriedOk = int.TryParse(string.IsNullOrWhiteSpace(EditCarriedOver) ? "0" : EditCarriedOver.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out carriedOver)
-            && carriedOver <= MaxDays;
-
-        SetError(nameof(EditDays), daysOk ? null : "Podaj liczbę dni od 0 do 60, np. 20 albo 26.");
-        SetError(nameof(EditCarriedOver), carriedOk ? null : "Podaj liczbę dni od 0 do 60 albo zostaw 0.");
-
-        return daysOk && carriedOk;
+        SelectedDay = Days.FirstOrDefault(day => day.Date == selected);
     }
 }

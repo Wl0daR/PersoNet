@@ -7,6 +7,5 @@ public partial class ContractsView : UserControl
     public ContractsView()
     {
         InitializeComponent();
-        FormFocus.Attach(this, StartBox, EndBox, WorkingTimeBox);
     }
 }

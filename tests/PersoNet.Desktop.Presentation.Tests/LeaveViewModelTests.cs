@@ -12,7 +12,9 @@ public sealed class LeaveViewModelTests
     private readonly FakeEmployeesApi _employees = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2025, 5, 20, 9, 0, 0, TimeSpan.Zero));
 
-    private LeaveViewModel CreateViewModel() => new(_leave, _employees, _time);
+    private readonly FakeDialogService _dialogs = new();
+
+    private LeaveViewModel CreateViewModel() => new(_leave, _employees, _time, _dialogs);
 
     [Fact]
     public async Task Opens_on_requests_waiting_for_a_decision_and_counts_them()
@@ -27,7 +29,6 @@ public sealed class LeaveViewModelTests
         viewModel.Year.ShouldBe(2025);
         viewModel.Items.ShouldHaveSingleItem().IsPending.ShouldBeTrue();
         viewModel.PendingCount.ShouldBe(1);
-        viewModel.Form.Employees.Count.ShouldBe(2);
 
         viewModel.StateFilter = LeaveViewModel.States.Single(choice => choice.State is null);
         await Task.Yield();
@@ -35,7 +36,7 @@ public sealed class LeaveViewModelTests
     }
 
     [Fact]
-    public async Task Rejecting_needs_a_reason_and_approving_moves_the_request_out_of_the_waiting_list()
+    public async Task Rejecting_needs_a_reason_and_approving_in_the_request_window_moves_it_out_of_the_waiting_list()
     {
         var employee = _employees.Add("P001", "Jan", "Nowak");
         var first = _leave.Add(employee.Id, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 6));
@@ -43,16 +44,39 @@ public sealed class LeaveViewModelTests
         var viewModel = CreateViewModel();
         await viewModel.LoadAsync(Cancellation);
 
-        viewModel.Selected = viewModel.Items.Single(row => row.Request.Id == first.Id);
-        await viewModel.RejectAsync(Cancellation);
-        viewModel.GetError(nameof(viewModel.DecisionNote)).ShouldNotBeNull();
+        viewModel.OpenCommand.CanExecute(null).ShouldBeFalse();
+        LeaveDecisionViewModel? dialog = null;
+        _dialogs.When<LeaveDecisionViewModel>(async opened =>
+        {
+            dialog = opened;
+            await opened.RejectAsync(Cancellation);
+            opened.GetError(nameof(opened.DecisionNote)).ShouldNotBeNull();
+            opened.HasChanges.ShouldBeFalse();
 
-        await viewModel.ApproveAsync(Cancellation);
+            await opened.ApproveAsync(Cancellation);
+        });
+        await viewModel.OpenAsync(viewModel.Items.Single(row => row.Request.Id == first.Id), Cancellation);
 
+        dialog!.Title.ShouldBe("Wniosek urlopowy – Nowak Jan");
+        dialog.Row.Request.State.ShouldBe(LeaveState.Approved);
+        dialog.CanDecide.ShouldBeFalse();
         viewModel.Items.ShouldHaveSingleItem().Request.Id.ShouldBe(second.Id);
-        viewModel.Selected!.Request.State.ShouldBe(LeaveState.Approved);
         viewModel.PendingCount.ShouldBe(1);
-        viewModel.ApproveCommand.CanExecute(null).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Closing_the_request_window_without_a_decision_changes_nothing()
+    {
+        var employee = _employees.Add("P001", "Jan", "Nowak");
+        _leave.Add(employee.Id, new DateOnly(2025, 6, 2), new DateOnly(2025, 6, 6));
+        var viewModel = CreateViewModel();
+        await viewModel.LoadAsync(Cancellation);
+        viewModel.Selected = viewModel.Items.Single();
+
+        await viewModel.OpenAsync(null, Cancellation);
+
+        _dialogs.Shown.ShouldHaveSingleItem().ShouldBeOfType<LeaveDecisionViewModel>();
+        viewModel.Items.ShouldHaveSingleItem().IsPending.ShouldBeTrue();
     }
 
     [Fact]
@@ -62,88 +86,71 @@ public sealed class LeaveViewModelTests
         var viewModel = CreateViewModel();
         await viewModel.LoadAsync(Cancellation);
 
-        viewModel.New();
-        await viewModel.SaveAsync(Cancellation);
-        viewModel.Form.GetError(nameof(viewModel.Form.EditEmployee)).ShouldBe("Wybierz pracownika.");
+        LeaveFormViewModel? form = null;
+        _dialogs.When<LeaveFormViewModel>(async opened =>
+        {
+            form = opened;
+            opened.Employees.Count.ShouldBe(2);
+            await opened.SubmitAsync(Cancellation);
+            opened.GetError(nameof(opened.EditEmployee)).ShouldBe("Wybierz pracownika.");
 
-        viewModel.Form.EditEmployee = viewModel.Form.Employees.Single(choice => choice.Id == employee.Id);
-        viewModel.Form.EditStartDate = new DateTime(2025, 6, 2);
-        viewModel.Form.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
-        viewModel.Form.EditEndDate = new DateTime(2025, 6, 6);
-        await viewModel.SaveAsync(Cancellation);
+            opened.EditEmployee = opened.Employees.Single(choice => choice.Id == employee.Id);
+            opened.EditStartDate = new DateTime(2025, 6, 2);
+            opened.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
+            opened.EditEndDate = new DateTime(2025, 6, 6);
+            await opened.SubmitAsync(Cancellation);
 
-        viewModel.Form.GetError(nameof(viewModel.Form.EditKind)).ShouldBe("Najpierw ustaw wymiar urlopu pracownika na ten rok.");
-        viewModel.IsCreating.ShouldBeTrue();
+            opened.GetError(nameof(opened.EditKind)).ShouldBe("Najpierw ustaw wymiar urlopu pracownika na ten rok.");
+            opened.Created.ShouldBeNull();
 
-        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
-        await viewModel.SaveAsync(Cancellation);
+            opened.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
+            await opened.SubmitAsync(Cancellation);
+        });
+        await viewModel.NewAsync(Cancellation);
 
-        viewModel.IsCreating.ShouldBeFalse();
+        form!.Title.ShouldBe("Nowy wniosek urlopowy");
+        form.Created.ShouldNotBeNull();
         viewModel.Selected!.KindName.ShouldBe("Urlop bezpłatny");
         viewModel.Selected.DaysText.ShouldBe("5 dni");
         viewModel.Selected.Period.ShouldBe("2 cze – 6 cze 2025");
     }
 
     [Fact]
-    public async Task Employee_card_sets_the_entitlement_and_shows_the_balance()
-    {
-        var employee = _employees.Add("P001", "Jan", "Nowak");
-        var viewModel = new EmployeeLeaveViewModel(_leave, _time);
-        await viewModel.ShowAsync(employee, Cancellation);
-
-        viewModel.HasEntitlement.ShouldBeFalse();
-        viewModel.EditDays = "dużo";
-        await viewModel.SaveEntitlementAsync(Cancellation);
-        viewModel.GetError(nameof(viewModel.EditDays)).ShouldNotBeNull();
-
-        viewModel.EditDays = "26";
-        viewModel.EditCarriedOver = "3";
-        await viewModel.SaveEntitlementAsync(Cancellation);
-
-        viewModel.HasEntitlement.ShouldBeTrue();
-        viewModel.Balance!.RemainingHours.ShouldBe(232m);
-        viewModel.RemainingText.ShouldBe("29 dni");
-        _leave.Entitlements[(employee.Id, 2025)].Days.ShouldBe(26);
-    }
-
-    [Fact]
     public async Task Leave_in_hours_is_one_day_and_only_for_kinds_that_allow_it()
     {
         var employee = _employees.Add("P001", "Jan", "Nowak");
-        var viewModel = CreateViewModel();
-        await viewModel.LoadAsync(Cancellation);
-        viewModel.New();
-        viewModel.Form.EditEmployee = viewModel.Form.Employees.Single(choice => choice.Id == employee.Id);
+        var form = await CreateViewModel().CreateFormAsync(Cancellation);
+        form.EditEmployee = form.Employees.Single(choice => choice.Id == employee.Id);
 
-        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.OnDemand);
-        viewModel.Form.CanUseHours.ShouldBeFalse();
+        form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.OnDemand);
+        form.CanUseHours.ShouldBeFalse();
 
-        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
-        viewModel.Form.IsHourly = true;
-        viewModel.Form.EditStartDate = new DateTime(2025, 6, 2);
-        viewModel.Form.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
+        form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
+        form.IsHourly = true;
+        form.EditStartDate = new DateTime(2025, 6, 2);
+        form.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
 
-        viewModel.Form.EditHours = "dwie";
-        await viewModel.SaveAsync(Cancellation);
-        viewModel.Form.GetError(nameof(viewModel.Form.EditHours)).ShouldNotBeNull();
+        form.EditHours = "dwie";
+        await form.SubmitAsync(Cancellation);
+        form.GetError(nameof(form.EditHours)).ShouldNotBeNull();
 
-        viewModel.Form.EditHours = "9";
-        await viewModel.SaveAsync(Cancellation);
-        viewModel.Form.GetError(nameof(viewModel.Form.EditHours)).ShouldNotBeNull();
-        viewModel.IsCreating.ShouldBeTrue();
+        form.EditHours = "9";
+        await form.SubmitAsync(Cancellation);
+        form.GetError(nameof(form.EditHours)).ShouldNotBeNull();
+        form.Created.ShouldBeNull();
 
-        viewModel.Form.EditHours = "2:30";
-        await viewModel.SaveAsync(Cancellation);
+        form.EditHours = "2:30";
+        await form.SubmitAsync(Cancellation);
 
-        viewModel.Selected!.Request.IsHourly.ShouldBeTrue();
-        viewModel.Selected.Request.Hours.ShouldBe(2.5m);
-        viewModel.Selected.DaysText.ShouldBe("2,5 godz.");
+        form.Created!.IsHourly.ShouldBeTrue();
+        form.Created.Hours.ShouldBe(2.5m);
+        LeaveTexts.ToRow(form.Created).DaysText.ShouldBe("2,5 godz.");
 
-        viewModel.New();
-        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
-        viewModel.Form.IsHourly = true;
-        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
-        viewModel.Form.IsHourly.ShouldBeFalse();
+        var other = await CreateViewModel().CreateFormAsync(Cancellation);
+        other.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
+        other.IsHourly = true;
+        other.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
+        other.IsHourly.ShouldBeFalse();
     }
 
     [Theory]
