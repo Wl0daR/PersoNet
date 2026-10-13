@@ -81,6 +81,7 @@ jobs:
         run: dotnet run --project tools/PersoNet.Desktop.Snapshots/PersoNet.Desktop.Snapshots.csproj --configuration Release -- snapshots
 
       - name: Upload desktop screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: desktop-screenshots
@@ -89,7 +90,7 @@ jobs:
 
       # The same images on a throwaway branch (one commit, overwritten every run), readable where artifact storage is not.
       - name: Publish desktop screenshots branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         shell: pwsh
         working-directory: snapshots
         run: |

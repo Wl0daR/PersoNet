@@ -26,7 +26,16 @@ var thread = new Thread(() =>
     work.ContinueWith(_ => frame.Continue = false, TaskScheduler.FromCurrentSynchronizationContext());
     Dispatcher.PushFrame(frame);
 
-    work.GetAwaiter().GetResult();
+    try
+    {
+        work.GetAwaiter().GetResult();
+    }
+    catch (Exception exception)
+    {
+        // As a GitHub Actions annotation, so the cause is readable on the check run without opening the log.
+        Console.WriteLine("::error title=Desktop screenshots::" + exception.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", "%0A", StringComparison.Ordinal));
+        Environment.ExitCode = 1;
+    }
 });
 thread.SetApartmentState(ApartmentState.STA);
 thread.Start();

@@ -39,16 +39,7 @@
 
     <Grid>
         <!-- Signed out: who we are and one clear action, with feedback while the browser sign-in is in progress. -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <ScrollViewer.Style>
-                <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsSignedIn}" Value="True">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ScrollViewer.Style>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding IsSignedIn, Converter={StaticResource CollapsedWhenTrue}}">
             <Border Style="{StaticResource Card}" Padding="32" Margin="16" MaxWidth="440" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
                     <Border Width="56" Height="56" CornerRadius="12" HorizontalAlignment="Left" Background="{DynamicResource AccentFillColorDefaultBrush}">
