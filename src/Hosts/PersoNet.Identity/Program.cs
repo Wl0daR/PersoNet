@@ -106,6 +106,18 @@ builder.Services.AddAuthorization();
 builder.Services.AddRazorPages();
 
 builder.Services.AddOptions<WebClientOptions>().BindConfiguration(WebClientOptions.SectionName);
+builder.Services.AddOptions<ApiDocsClientOptions>().BindConfiguration(ApiDocsClientOptions.SectionName);
+
+// Only the API documentation calls the token endpoint from another origin; the apps exchange codes server side.
+const string ApiDocsCors = "api-docs";
+var apiDocsOrigin = builder.Configuration[$"{ApiDocsClientOptions.SectionName}:Origin"];
+builder.Services.AddCors(options => options.AddPolicy(ApiDocsCors, policy =>
+{
+    if (!string.IsNullOrEmpty(apiDocsOrigin))
+    {
+        policy.WithOrigins(apiDocsOrigin).AllowAnyHeader().WithMethods(HttpMethods.Post);
+    }
+}));
 
 builder.Services.AddHealthChecks().AddDbContextCheck<IdentityDbContext>("database");
 
@@ -127,6 +139,7 @@ await app.Services.SyncClientsAsync().ConfigureAwait(false);
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseCors(ApiDocsCors);
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -16,6 +16,9 @@ public static class PersoNetAuth
 
     public const string WebClientId = "personet-web";
 
+    /// <summary>Interactive API documentation (Scalar), Development only.</summary>
+    public const string ApiDocsClientId = "personet-api-docs";
+
     /// <summary>
     /// Roles carried in the "role" claim. The API maps them to permissions; endpoints never check roles directly.
     /// </summary>
