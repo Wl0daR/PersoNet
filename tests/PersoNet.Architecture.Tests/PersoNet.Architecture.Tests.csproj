@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core\PersoNet.Domain\PersoNet.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Core\PersoNet.Application\PersoNet.Application.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\PersoNet.Infrastructure\PersoNet.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Shared\PersoNet.Contracts\PersoNet.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Clients\PersoNet.Desktop.Presentation\PersoNet.Desktop.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>

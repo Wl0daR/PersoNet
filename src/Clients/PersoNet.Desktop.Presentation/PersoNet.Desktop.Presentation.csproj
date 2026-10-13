@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ViewModels and UI services. No WPF reference, so this code is unit-testable on any OS. -->
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\PersoNet.ApiClient\PersoNet.ApiClient.csproj" />
+  </ItemGroup>
+
+</Project>

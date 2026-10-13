@@ -1,0 +1,43 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+    <File Path=".github/workflows/ci.yml" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Aspire/">
+    <Project Path="src/Aspire/PersoNet.AppHost/PersoNet.AppHost.csproj" />
+    <Project Path="src/Aspire/PersoNet.ServiceDefaults/PersoNet.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Clients/">
+    <Project Path="src/Clients/PersoNet.Desktop.Presentation/PersoNet.Desktop.Presentation.csproj" />
+    <Project Path="src/Clients/PersoNet.Desktop/PersoNet.Desktop.csproj" />
+    <Project Path="src/Clients/PersoNet.Web/PersoNet.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/PersoNet.Application/PersoNet.Application.csproj" />
+    <Project Path="src/Core/PersoNet.Domain/PersoNet.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Hosts/">
+    <Project Path="src/Hosts/PersoNet.Api/PersoNet.Api.csproj" />
+    <Project Path="src/Hosts/PersoNet.Identity/PersoNet.Identity.csproj" />
+    <Project Path="src/Hosts/PersoNet.Worker/PersoNet.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/PersoNet.Infrastructure/PersoNet.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/PersoNet.ApiClient/PersoNet.ApiClient.csproj" />
+    <Project Path="src/Shared/PersoNet.Contracts/PersoNet.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PersoNet.Api.IntegrationTests/PersoNet.Api.IntegrationTests.csproj" />
+    <Project Path="tests/PersoNet.Application.Tests/PersoNet.Application.Tests.csproj" />
+    <Project Path="tests/PersoNet.Architecture.Tests/PersoNet.Architecture.Tests.csproj" />
+    <Project Path="tests/PersoNet.Desktop.Presentation.Tests/PersoNet.Desktop.Presentation.Tests.csproj" />
+    <Project Path="tests/PersoNet.Domain.Tests/PersoNet.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
