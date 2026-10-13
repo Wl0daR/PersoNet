@@ -147,12 +147,12 @@ public sealed class LeaveViewModelTests
     }
 
     [Theory]
-    [InlineData(0, "0 godz.")]
+    [InlineData(0, "0 dni")]
     [InlineData(4, "4 godz.")]
     [InlineData(8, "1 dzień")]
     [InlineData(108, "13 dni 4 godz.")]
     [InlineData(2.5, "2,5 godz.")]
-    [InlineData(-3, "0 godz.")]
+    [InlineData(-3, "0 dni")]
     public void Leave_time_reads_in_days_of_8_hours(double hours, string text) => LeaveTexts.Amount((decimal)hours).ShouldBe(text);
 
     [Theory]

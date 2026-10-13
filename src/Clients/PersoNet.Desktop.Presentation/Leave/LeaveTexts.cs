@@ -69,7 +69,7 @@ public static class LeaveTexts
     public static string Hours(decimal hours) => $"{hours.ToString("0.##", Polish)} godz.";
 
     /// <summary>
-    /// Leave time in the Labour Code's days of 8 hours: "13 dni", "1 dzień 4 godz.", "6 godz.". Negative amounts are shown as 0.
+    /// Leave time in the Labour Code's days of 8 hours: "13 dni", "1 dzień 4 godz.", "6 godz.", "0 dni". Negative amounts are shown as 0.
     /// </summary>
     public static string Amount(decimal hours)
     {
@@ -79,6 +79,7 @@ public static class LeaveTexts
 
         return (days, rest) switch
         {
+            (0, 0) => "0 dni",
             (0, _) => Hours(rest),
             (_, 0) => Days(days),
             _ => $"{Days(days)} {Hours(rest)}",
