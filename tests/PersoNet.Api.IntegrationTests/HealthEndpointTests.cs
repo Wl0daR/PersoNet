@@ -1,10 +1,8 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace PersoNet.Api.IntegrationTests;
 
-public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HealthEndpointTests(PersoNetApiFactory factory) : IClassFixture<PersoNetApiFactory>
 {
     [Theory]
     [InlineData("/health/live")]

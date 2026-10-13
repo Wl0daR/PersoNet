@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <Compile Include="..\TestDatabase.cs" Link="TestDatabase.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Infrastructure\PersoNet.Infrastructure\PersoNet.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

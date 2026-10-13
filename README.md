@@ -32,6 +32,8 @@ Aplikacja desktopowa (Windows):
 dotnet run --project src/Clients/PersoNet.Desktop
 ```
 
+W środowisku Development API przy starcie samo stosuje brakujące migracje bazy.
+
 ## Budowanie i testy
 
 ```bash
@@ -39,6 +41,21 @@ dotnet build PersoNet.slnx
 dotnet test --solution PersoNet.slnx
 dotnet format PersoNet.slnx --verify-no-changes
 ```
+
+Testy integracyjne używają lokalnego PostgreSQL i same tworzą swoje bazy (`personet_api_tests`, `personet_infrastructure_tests`). Domyślnie łączą się jako `postgres` z hasłem `postgres`; jeśli masz inne, ustaw zmienną środowiskową, np. w PowerShell:
+
+```powershell
+$env:PERSONET_TEST_POSTGRES = "Host=localhost;Port=5432;Username=postgres;Password=<hasło>"
+```
+
+## Migracje bazy
+
+```bash
+dotnet tool restore
+dotnet ef migrations add <Nazwa> --project src/Infrastructure/PersoNet.Infrastructure --output-dir Persistence/Migrations
+```
+
+Migracje przechodzą przez Pull Request jak kod. Na serwerze uruchamiane są osobnym krokiem wdrożenia, nie przy starcie aplikacji.
 
 ## Struktura
 
