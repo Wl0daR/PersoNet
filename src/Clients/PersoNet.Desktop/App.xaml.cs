@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PersoNet.ApiClient;
 using PersoNet.Desktop.Authentication;
+using PersoNet.Desktop.Dialogs;
+using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
@@ -39,6 +41,7 @@ public partial class App : Application
         var apiBaseAddress = builder.Configuration["PersoNetApi:BaseAddress"] ?? "https://localhost:7016";
         builder.Services.AddPersoNetApiClient(new Uri(apiBaseAddress));
 
+        builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<HomeViewModel>();
         builder.Services.AddSingleton<EmployeesViewModel>();
         builder.Services.AddSingleton<LeaveViewModel>();

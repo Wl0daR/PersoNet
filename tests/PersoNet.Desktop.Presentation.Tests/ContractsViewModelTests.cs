@@ -9,45 +9,77 @@ public sealed class ContractsViewModelTests
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     private readonly FakeEmployeesApi _api = new();
+    private readonly FakeDialogService _dialogs = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2024, 5, 10, 9, 0, 0, TimeSpan.Zero));
 
     [Fact]
     public async Task Probation_then_follow_up_contract_starts_the_day_after()
     {
         var employee = _api.Add("P001", "Jan", "Nowak", new DateOnly(2024, 3, 1));
-        var viewModel = new ContractsViewModel(_api, _time);
+        var viewModel = new ContractsViewModel(_api, _time, _dialogs);
         await viewModel.ShowAsync(employee, Cancellation);
 
-        viewModel.EditStartDate.ShouldBe(new DateTime(2024, 3, 1));
-        viewModel.EditKind = ContractsViewModel.Kinds.Single(kind => kind.Kind == ContractKind.Probation);
-        viewModel.EditEndDate = new DateTime(2024, 5, 31);
-        await viewModel.SaveAsync(Cancellation);
+        ContractDialogViewModel? first = null;
+        _dialogs.When<ContractDialogViewModel>(async dialog =>
+        {
+            first = dialog;
+            dialog.EditKind = ContractsViewModel.Kinds.Single(kind => kind.Kind == ContractKind.Probation);
+            dialog.EditEndDate = new DateTime(2024, 5, 31);
+            await dialog.SaveAsync(Cancellation);
+        });
+        await viewModel.NewAsync(Cancellation);
 
+        first!.Title.ShouldBe("Nowa umowa – Jan Nowak");
+        first.EditStartDate.ShouldBe(new DateTime(2024, 3, 1));
         var row = viewModel.Items.ShouldHaveSingleItem();
         row.TypeName.ShouldBe("Umowa o pracę na okres próbny");
         row.Period.ShouldBe("1 mar 2024 – 31 maj 2024");
         row.WorkingTimeText.ShouldBe("pełny etat");
         row.IsCurrent.ShouldBeTrue();
+        viewModel.Selected.ShouldBe(row);
 
-        viewModel.New();
+        // The next one is proposed from the day after; closing it with "Anuluj" saves nothing.
+        _dialogs.OnShow = null;
+        await viewModel.NewAsync(Cancellation);
 
-        viewModel.EditStartDate.ShouldBe(new DateTime(2024, 6, 1));
+        _dialogs.Shown.OfType<ContractDialogViewModel>().Last().EditStartDate.ShouldBe(new DateTime(2024, 6, 1));
+        _api.Contracts.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Picked_contract_opens_filled_in_and_saving_changes_it()
+    {
+        var employee = _api.Add("P001", "Jan", "Nowak");
+        _api.Contracts.Add(new ContractResponse(Guid.CreateVersion7(), employee.Id, ContractKind.Indefinite, new DateOnly(2024, 1, 1), null, 1m));
+        var viewModel = new ContractsViewModel(_api, _time, _dialogs);
+        await viewModel.ShowAsync(employee, Cancellation);
+
+        _dialogs.When<ContractDialogViewModel>(async dialog =>
+        {
+            dialog.EditKind.Kind.ShouldBe(ContractKind.Indefinite);
+            dialog.EditWorkingTime.ShouldBe("1");
+            dialog.EditWorkingTime = "3/4";
+            await dialog.SaveAsync(Cancellation);
+        });
+        await viewModel.EditAsync(viewModel.Items.Single(), Cancellation);
+
+        viewModel.Items.ShouldHaveSingleItem().WorkingTimeText.ShouldBe("3/4 etatu");
     }
 
     [Fact]
     public async Task Fixed_term_without_end_and_bad_working_time_are_flagged_without_calling_the_api()
     {
         var employee = _api.Add("P001", "Jan", "Nowak");
-        var viewModel = new ContractsViewModel(_api, _time);
-        await viewModel.ShowAsync(employee, Cancellation);
+        var dialog = new ContractDialogViewModel(_api, employee, row: null, new DateTime(2024, 1, 1));
 
-        viewModel.EditKind = ContractsViewModel.Kinds.Single(kind => kind.Kind == ContractKind.FixedTerm);
-        viewModel.EditWorkingTime = "pół";
-        await viewModel.SaveAsync(Cancellation);
+        dialog.EditKind = ContractsViewModel.Kinds.Single(kind => kind.Kind == ContractKind.FixedTerm);
+        dialog.EditWorkingTime = "pół";
+        await dialog.SaveAsync(Cancellation);
 
         _api.Contracts.ShouldBeEmpty();
-        viewModel.GetError(nameof(viewModel.EditEndDate)).ShouldBe("Podaj datę końca umowy.");
-        viewModel.GetError(nameof(viewModel.EditWorkingTime)).ShouldNotBeNull();
+        dialog.HasChanges.ShouldBeFalse();
+        dialog.GetError(nameof(dialog.EditEndDate)).ShouldBe("Podaj datę końca umowy.");
+        dialog.GetError(nameof(dialog.EditWorkingTime)).ShouldNotBeNull();
     }
 
     [Theory]
@@ -61,18 +93,18 @@ public sealed class ContractsViewModelTests
     }
 
     [Fact]
-    public async Task Overlap_from_the_server_is_shown_under_the_start_date()
+    public async Task Overlap_from_the_server_is_shown_under_the_start_date_and_keeps_the_dialog_open()
     {
         var employee = _api.Add("P001", "Jan", "Nowak");
         _api.Contracts.Add(new ContractResponse(Guid.CreateVersion7(), employee.Id, ContractKind.Indefinite, new DateOnly(2024, 1, 1), null, 1m));
-        var viewModel = new ContractsViewModel(_api, _time);
-        await viewModel.ShowAsync(employee, Cancellation);
+        var dialog = new ContractDialogViewModel(_api, employee, row: null, new DateTime(2024, 6, 1));
+        var closed = false;
+        dialog.CloseRequested += (_, _) => closed = true;
 
-        viewModel.New();
-        viewModel.EditStartDate = new DateTime(2024, 6, 1);
-        await viewModel.SaveAsync(Cancellation);
+        await dialog.SaveAsync(Cancellation);
 
-        viewModel.GetError(nameof(viewModel.EditStartDate)).ShouldBe("W tym okresie pracownik ma już inną umowę o pracę.");
+        dialog.GetError(nameof(dialog.EditStartDate)).ShouldBe("W tym okresie pracownik ma już inną umowę o pracę.");
+        closed.ShouldBeFalse();
     }
 
     [Fact]
@@ -80,7 +112,7 @@ public sealed class ContractsViewModelTests
     {
         var employee = _api.Add("P001", "Jan", "Nowak");
         _api.Contracts.Add(new ContractResponse(Guid.CreateVersion7(), employee.Id, ContractKind.Mandate, new DateOnly(2024, 1, 1), null, null));
-        var viewModel = new ContractsViewModel(_api, _time);
+        var viewModel = new ContractsViewModel(_api, _time, _dialogs);
         await viewModel.ShowAsync(employee, Cancellation);
         viewModel.Selected = viewModel.Items.Single();
 
@@ -100,11 +132,10 @@ public sealed class ContractsViewModelTests
     {
         var employee = _api.Add("P001", "Jan", "Nowak");
         _api.Contracts.Add(new ContractResponse(Guid.CreateVersion7(), employee.Id, ContractKind.Indefinite, new DateOnly(2024, 1, 1), null, 0.5m));
-        var employees = new EmployeesViewModel(_api, new FakeOrganizationApi(), new FakeLeaveApi(), _time);
-        await employees.LoadAsync(Cancellation);
+        var card = new EmployeesViewModel(_api, new FakeOrganizationApi(), new FakeLeaveApi(), _time, _dialogs).CreateCard();
 
-        await employees.OpenAsync(employees.Items.Single(), Cancellation);
+        await card.LoadAsync(employee.Id, Cancellation);
 
-        employees.Contracts.Items.ShouldHaveSingleItem().WorkingTimeText.ShouldBe("1/2 etatu");
+        card.Contracts.Items.ShouldHaveSingleItem().WorkingTimeText.ShouldBe("1/2 etatu");
     }
 }

@@ -91,7 +91,7 @@ public sealed partial class ShellViewModel : ObservableObject
         }
     }
 
-    /// <summary>Shortcut from the start screen: an empty employee card.</summary>
+    /// <summary>Shortcut from the start screen: the card of a new employee.</summary>
     [RelayCommand]
     public void AddEmployee()
     {

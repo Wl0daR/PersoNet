@@ -107,6 +107,18 @@ public static class LeaveTexts
         return decimal.TryParse(value.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var hours) ? hours : null;
     }
 
+    /// <summary>
+    /// The annual leave balance in one sentence, e.g. "Urlop wypoczynkowy 2026: zostało 14 dni z 26 dni (2 dni czeka na decyzję)."
+    /// </summary>
+    public static string? BalanceText(LeaveBalanceResponse? balance) => balance switch
+    {
+        null => null,
+        { HasEntitlement: false } => $"Wymiar urlopu na {balance.Year} nie jest ustawiony (kartoteka pracownika, zakładka Urlop).",
+        _ => $"Urlop wypoczynkowy {balance.Year}: zostało {Amount(balance.RemainingHours)} z {Amount(balance.TotalHours)}"
+            + (balance.PendingHours > 0 ? $" ({Amount(balance.PendingHours)} czeka na decyzję)" : string.Empty) + "."
+            + (balance.DailyHours != HoursPerDay ? $" Dzień urlopu tego pracownika to {Hours(balance.DailyHours)}" : string.Empty),
+    };
+
     public static LeaveRow ToRow(LeaveRequestResponse request)
     {
         ArgumentNullException.ThrowIfNull(request);

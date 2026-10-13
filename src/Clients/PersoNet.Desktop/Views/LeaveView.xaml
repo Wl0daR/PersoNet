@@ -4,256 +4,123 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:leave="clr-namespace:PersoNet.Desktop.Presentation.Leave;assembly=PersoNet.Desktop.Presentation"
-             xmlns:views="clr-namespace:PersoNet.Desktop.Views"
+             xmlns:local="clr-namespace:PersoNet.Desktop.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=leave:LeaveViewModel}">
     <UserControl.InputBindings>
         <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewCommand}" />
         <KeyBinding Key="F5" Command="{Binding LoadCommand}" />
-        <KeyBinding Key="Escape" Command="{Binding ClosePaneCommand}" />
     </UserControl.InputBindings>
 
     <DockPanel>
-        <!-- Page header: what this screen is, and its main action on the right. -->
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-                <Button Command="{Binding LoadCommand}" Padding="8" Margin="0,0,8,0" ToolTip="Odśwież (F5)" AutomationProperties.Name="Odśwież">
-                    <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" />
-                </Button>
-                <Button Command="{Binding NewCommand}" Style="{DynamicResource AccentButtonStyle}" Padding="12,8" ToolTip="Wniosek w imieniu pracownika (Ctrl+N)">
+        <!-- Page header: what this screen is. -->
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+            <TextBlock Text="Urlopy" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="Wnioski urlopowe pracowników. Wniosek otwiera się w osobnym oknie, gdzie go zatwierdzisz albo odrzucisz."
+                       Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+        </StackPanel>
+
+        <!-- Commands for the list: a new request, open the picked one, and the filters. -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <Button DockPanel.Dock="Right" Command="{Binding LoadCommand}" Padding="8" Margin="8,0,0,0" VerticalAlignment="Top"
+                    ToolTip="Odśwież (F5)" AutomationProperties.Name="Odśwież">
+                <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" />
+            </Button>
+            <WrapPanel Style="{StaticResource Toolbar}">
+                <Button Command="{Binding NewCommand}" Style="{DynamicResource AccentButtonStyle}" Padding="12,6" Margin="0,0,8,8" ToolTip="Wniosek w imieniu pracownika (Ctrl+N)">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
+                        <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
                         <TextBlock Text="Nowy wniosek" />
                     </StackPanel>
                 </Button>
-            </StackPanel>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Urlopy" Style="{StaticResource PageTitle}" />
-                <TextBlock Text="Wnioski urlopowe pracowników i decyzje w ich sprawie." Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-            </StackPanel>
+                <Button Command="{Binding OpenCommand}" Padding="12,6" Margin="0,0,16,8" ToolTip="Szczegóły i decyzja w sprawie zaznaczonego wniosku (Enter)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+                        <TextBlock Text="Otwórz wniosek" />
+                    </StackPanel>
+                </Button>
+                <StackPanel Orientation="Horizontal" Margin="0,0,12,8">
+                    <Label Content="_Pokaż" Target="{Binding ElementName=StateBox}" Padding="0" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <ComboBox x:Name="StateBox" ItemsSource="{x:Static leave:LeaveViewModel.States}" SelectedItem="{Binding StateFilter}"
+                              DisplayMemberPath="Name" MinWidth="170" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Label Content="_Rok" Target="{Binding ElementName=YearBox}" Padding="0" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <ComboBox x:Name="YearBox" ItemsSource="{Binding Years}" SelectedItem="{Binding Year}" MinWidth="96" />
+                </StackPanel>
+            </WrapPanel>
         </DockPanel>
 
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*" MinWidth="360" />
-                <ColumnDefinition Width="12" />
-                <ColumnDefinition Width="2*" MinWidth="340" MaxWidth="560" />
-            </Grid.ColumnDefinitions>
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" Margin="0,8,0,0" />
 
-            <!-- Request list with its filters. -->
-            <Border Grid.Column="0" Style="{StaticResource Card}" Padding="0">
-                <DockPanel>
-                    <WrapPanel DockPanel.Dock="Top" Margin="16,16,16,8">
-                        <StackPanel Margin="0,0,12,4">
-                            <Label Content="_Pokaż" Target="{Binding ElementName=StateBox}" Padding="0" Margin="0,0,0,4" />
-                            <ComboBox x:Name="StateBox" ItemsSource="{x:Static leave:LeaveViewModel.States}" SelectedItem="{Binding StateFilter}"
-                                      DisplayMemberPath="Name" MinWidth="180" />
-                        </StackPanel>
-                        <StackPanel Margin="0,0,0,4">
-                            <Label Content="_Rok" Target="{Binding ElementName=YearBox}" Padding="0" Margin="0,0,0,4" />
-                            <ComboBox x:Name="YearBox" ItemsSource="{Binding Years}" SelectedItem="{Binding Year}" MinWidth="100" />
-                        </StackPanel>
-                    </WrapPanel>
+        <!-- Requests across the whole window. -->
+        <Border Style="{StaticResource Card}" Padding="0">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="16,8,16,0">
+                    <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie" />
+                </Border>
 
-                    <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="16,0,16,4">
-                        <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie" />
-                    </Border>
-
-                    <Grid>
-                        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" AutomationProperties.Name="Wnioski urlopowe"
-                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" HeadersVisibility="Column" MinRowHeight="52"
-                                  GridLinesVisibility="None" BorderThickness="0" Background="Transparent" Padding="8,0"
-                                  HorizontalScrollBarVisibility="Disabled" CanUserSortColumns="False" CanUserReorderColumns="False">
-                            <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="Pracownik" Width="2*" MinWidth="170">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate DataType="{x:Type leave:LeaveRow}">
-                                            <DockPanel VerticalAlignment="Center" Margin="0,6">
-                                                <Border DockPanel.Dock="Left" Style="{StaticResource Avatar}" Margin="0,0,12,0">
-                                                    <TextBlock Text="{Binding EmployeeInitials}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Border>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Request.EmployeeName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{Binding KindName}" Style="{StaticResource HelperText}" Margin="0,2,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Termin" Width="*" MinWidth="120">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate DataType="{x:Type leave:LeaveRow}">
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Period}" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding DaysText}" Style="{StaticResource HelperText}" Margin="0,2,0,0" TextWrapping="NoWrap" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Status" Width="Auto" MinWidth="112">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate DataType="{x:Type leave:LeaveRow}">
-                                            <Border Style="{StaticResource StateBadge}" Margin="0,0,8,0">
-                                                <TextBlock Text="{Binding StateName}" />
-                                            </Border>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-
-                        <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="&#xE787;" Style="{StaticResource Icon}" FontSize="40" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                            <TextBlock Text="{Binding EmptyTitle}" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,4" />
-                            <TextBlock Text="{Binding EmptyHint}" Style="{StaticResource SecondaryText}" TextAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-                </DockPanel>
-            </Border>
-
-            <GridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False"
-                          ResizeBehavior="PreviousAndNext" ToolTip="Przeciągnij, aby zmienić szerokość" />
-
-            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
                 <Grid>
-                    <!-- Nothing picked yet. -->
-                    <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsPane, Converter={StaticResource CollapsedWhenTrue}}">
+                    <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" local:OpenOnActivate.Command="{Binding OpenCommand}"
+                              AutomationProperties.Name="Wnioski urlopowe" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                              HeadersVisibility="Column" MinRowHeight="52" GridLinesVisibility="None" BorderThickness="0" Background="Transparent" Padding="8,0"
+                              HorizontalScrollBarVisibility="Disabled" CanUserSortColumns="False" CanUserReorderColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Pracownik" Width="1.6*" MinWidth="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type leave:LeaveRow}">
+                                        <DockPanel VerticalAlignment="Center" Margin="0,6">
+                                            <Border DockPanel.Dock="Left" Style="{StaticResource Avatar}" Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding EmployeeInitials}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Request.EmployeeName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Request.EmployeeNumber}" Style="{StaticResource HelperText}" Margin="0,2,0,0" TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Rodzaj" Width="1.4*" MinWidth="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type leave:LeaveRow}">
+                                        <TextBlock Text="{Binding KindName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding KindName}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Termin" Width="1.2*" MinWidth="130">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type leave:LeaveRow}">
+                                        <TextBlock Text="{Binding Period}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Period}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Wymiar" Width="Auto" MinWidth="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type leave:LeaveRow}">
+                                        <TextBlock Text="{Binding DaysText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Status" Width="Auto" MinWidth="112">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type leave:LeaveRow}">
+                                        <Border Style="{StaticResource StateBadge}" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding StateName}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Text="&#xE787;" Style="{StaticResource Icon}" FontSize="40" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                        <TextBlock Text="Wybierz wniosek z listy" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" Margin="0,12,0,4" />
-                        <TextBlock Text="Zobaczysz szczegóły i saldo urlopu pracownika, a oczekujący wniosek zatwierdzisz albo odrzucisz."
-                                   Style="{StaticResource SecondaryText}" TextAlignment="Center" />
+                        <TextBlock Text="{Binding EmptyTitle}" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,4" />
+                        <TextBlock Text="{Binding EmptyHint}" Style="{StaticResource SecondaryText}" TextAlignment="Center" />
                     </StackPanel>
-
-                    <!-- The picked request and its decision. -->
-                    <DockPanel Visibility="{Binding IsShowingRequest, Converter={StaticResource BoolToVisibility}}">
-                        <DockPanel DockPanel.Dock="Top" Margin="16,16,8,4" DataContext="{Binding Selected}">
-                            <Border DockPanel.Dock="Left" Style="{StaticResource Avatar}" Width="40" Height="40" CornerRadius="20" VerticalAlignment="Top">
-                                <TextBlock Text="{Binding EmployeeInitials}" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <Button DockPanel.Dock="Right" Command="{Binding DataContext.ClosePaneCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    Padding="8" VerticalAlignment="Top" Background="Transparent" BorderThickness="0"
-                                    ToolTip="Zamknij (Esc)" AutomationProperties.Name="Zamknij">
-                                <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="12" />
-                            </Button>
-                            <StackPanel Margin="12,0,8,0" VerticalAlignment="Center">
-                                <WrapPanel>
-                                    <TextBlock Text="{Binding Request.EmployeeName}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,8,0" />
-                                    <Border Style="{StaticResource StateBadge}">
-                                        <TextBlock Text="{Binding StateName}" />
-                                    </Border>
-                                </WrapPanel>
-                                <TextBlock Text="{Binding Request.EmployeeNumber}" Style="{StaticResource SecondaryText}" FontSize="12" Margin="0,2,0,0" />
-                            </StackPanel>
-                        </DockPanel>
-
-                        <!-- Decision buttons stay visible while the details scroll. -->
-                        <Border DockPanel.Dock="Bottom" Style="{StaticResource ActionBar}">
-                            <DockPanel IsEnabled="{Binding IsIdle}">
-                                <Button DockPanel.Dock="Right" Content="{Binding CancelText}" Command="{Binding CancelLeaveCommand}" Margin="8,0,0,0"
-                                        ToolTip="Wycofaj wniosek; dni wracają do salda" />
-                                <WrapPanel Visibility="{Binding Selected.IsPending, Converter={StaticResource BoolToVisibility}}">
-                                    <Button Command="{Binding ApproveCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0" Padding="12,6">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" />
-                                            <TextBlock Text="Zatwierdź" />
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Command="{Binding RejectCommand}" Padding="12,6" ToolTip="Wymaga podania powodu">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" />
-                                            <TextBlock Text="Odrzuć" />
-                                        </StackPanel>
-                                    </Button>
-                                </WrapPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel Margin="20,8,20,16">
-                                <!-- The facts of the request. -->
-                                <Grid DataContext="{Binding Selected}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Text="Rodzaj" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding KindName}" TextWrapping="Wrap" Margin="0,4" />
-                                    <TextBlock Grid.Row="1" Text="Termin" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Period}" TextWrapping="Wrap" Margin="0,4" />
-                                    <TextBlock Grid.Row="2" Text="Wymiar" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ExtentText}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4" />
-                                    <TextBlock Grid.Row="3" Text="Uwagi" Style="{StaticResource SecondaryText}" Margin="0,4,16,4" />
-                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Request.Note, TargetNullValue='—'}" TextWrapping="Wrap" Margin="0,4" />
-                                </Grid>
-
-                                <!-- Balance of the employee, so the decision is made with it in view. -->
-                                <Border Style="{StaticResource Card}" Padding="12" Margin="0,12,0,0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                        Visibility="{Binding BalanceText, Converter={StaticResource CollapsedWhenEmpty}}">
-                                    <DockPanel>
-                                        <TextBlock DockPanel.Dock="Left" Text="&#xE946;" Style="{StaticResource Icon}" Margin="0,0,10,0" VerticalAlignment="Top"
-                                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                                        <TextBlock Text="{Binding BalanceText}" TextWrapping="Wrap" />
-                                    </DockPanel>
-                                </Border>
-
-                                <!-- Decision already made. -->
-                                <StackPanel Visibility="{Binding Selected.IsPending, Converter={StaticResource CollapsedWhenTrue}}">
-                                    <TextBlock Text="Decyzja" Style="{StaticResource FormSection}" />
-                                    <TextBlock Text="{Binding Selected.DecisionText}" Margin="0,8,0,0" />
-                                    <TextBlock Text="{Binding Selected.Request.DecisionNote}" Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
-                                               Visibility="{Binding Selected.Request.DecisionNote, Converter={StaticResource CollapsedWhenEmpty}}" />
-                                </StackPanel>
-
-                                <TextBlock Text="Decyzja" Style="{StaticResource FormSection}"
-                                           Visibility="{Binding Selected.IsPending, Converter={StaticResource BoolToVisibility}}" />
-                                <Label Content="_Uwagi do decyzji" Target="{Binding ElementName=DecisionBox}" Padding="0" Margin="0,12,0,4" />
-                                <TextBox x:Name="DecisionBox" Text="{Binding DecisionNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
-                                         MinHeight="64" MaxLength="{x:Static leave:LeaveViewModel.NoteMaxLength}" VerticalScrollBarVisibility="Auto"
-                                         AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                                <TextBlock Text="Przy odrzuceniu wymagane: pracownik zobaczy powód." Style="{StaticResource HelperText}" />
-                                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=DecisionBox}" Style="{StaticResource FieldError}" />
-
-                                <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
-                            </StackPanel>
-                        </ScrollViewer>
-                    </DockPanel>
-
-                    <!-- New request on behalf of an employee. -->
-                    <DockPanel Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}">
-                        <Border DockPanel.Dock="Bottom" Style="{StaticResource ActionBar}">
-                            <WrapPanel IsEnabled="{Binding Form.IsIdle}">
-                                <Button Content="Złóż wniosek" Command="{Binding SaveCommand}" IsDefault="True"
-                                        Style="{DynamicResource AccentButtonStyle}" MinWidth="96" Margin="0,0,8,0" ToolTip="Zapisz wniosek (Enter)" />
-                                <Button Content="Anuluj" Command="{Binding ClosePaneCommand}" ToolTip="Zamknij bez zapisywania (Esc)" />
-                            </WrapPanel>
-                        </Border>
-
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel Margin="20,20,20,16">
-                                <TextBlock Text="Nowy wniosek urlopowy" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                <TextBlock Text="Wniosek trafia do listy jako oczekujący; zatwierdzisz go osobno." Style="{StaticResource HelperText}" />
-
-                                <views:LeaveFormView DataContext="{Binding Form}" />
-
-                                <Border Style="{StaticResource Card}" Padding="12" Margin="0,16,0,0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                        Visibility="{Binding BalanceText, Converter={StaticResource CollapsedWhenEmpty}}">
-                                    <DockPanel>
-                                        <TextBlock DockPanel.Dock="Left" Text="&#xE946;" Style="{StaticResource Icon}" Margin="0,0,10,0" VerticalAlignment="Top"
-                                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                                        <TextBlock Text="{Binding BalanceText}" TextWrapping="Wrap" />
-                                    </DockPanel>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </DockPanel>
                 </Grid>
-            </Border>
-        </Grid>
+            </DockPanel>
+        </Border>
     </DockPanel>
 </UserControl>

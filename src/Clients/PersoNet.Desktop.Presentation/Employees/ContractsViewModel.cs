@@ -16,9 +16,10 @@ public sealed record ContractKindChoice(ContractKind Kind, string Name);
 public sealed record ContractRow(ContractResponse Contract, string TypeName, string Period, string? WorkingTimeText, bool IsCurrent);
 
 /// <summary>
-/// "Umowy" tab of an employee's card: the contracts, newest first, and the editor of the selected or new one.
+/// "Umowy" tab of an employee's card: the contracts, newest first. A contract is added or changed in a dialog
+/// ("Dodaj umowę", or a double click on the contract); removal needs a second click.
 /// </summary>
-public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider time) : EditorViewModel
+public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider time, IDialogService dialogs) : EditorViewModel
 {
     private static readonly CultureInfo Polish = CultureInfo.GetCultureInfo("pl-PL");
 
@@ -41,42 +42,13 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
     public partial bool IsEmpty { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNew), nameof(EditorTitle))]
-    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(EditCommand))]
     public partial ContractRow? Selected { get; set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmploymentContract), nameof(IsIndefinite), nameof(EndDateLabel), nameof(EndDateHint))]
-    public partial ContractKindChoice EditKind { get; set; } = Kinds[0];
-
-    [ObservableProperty]
-    public partial DateTime? EditStartDate { get; set; }
-
-    [ObservableProperty]
-    public partial DateTime? EditEndDate { get; set; }
-
-    /// <summary>Working time as typed: "1", "0,5", "1/2" or "3/4".</summary>
-    [ObservableProperty]
-    public partial string EditWorkingTime { get; set; } = "1";
 
     /// <summary>First click on "Usuń" asks for confirmation; the second one deletes.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeleteText))]
     public partial bool IsConfirmingDelete { get; set; }
-
-    public bool IsNew => Selected is null;
-
-    public string EditorTitle => IsNew ? "Nowa umowa" : "Edycja umowy";
-
-    public bool IsEmploymentContract => EditKind.Kind is ContractKind.Indefinite or ContractKind.FixedTerm or ContractKind.Probation;
-
-    public bool IsIndefinite => EditKind.Kind == ContractKind.Indefinite;
-
-    public string EndDateLabel => EditKind.Kind is ContractKind.FixedTerm or ContractKind.Probation ? "Data _końca *" : "Data _końca";
-
-    public string EndDateHint => EditKind.Kind == ContractKind.Probation
-        ? "Okres próbny trwa najwyżej 3 miesiące."
-        : "Zostaw puste, jeśli umowa nie ma ustalonego końca.";
 
     public string DeleteText => IsConfirmingDelete ? "Na pewno usunąć?" : "Usuń umowę";
 
@@ -87,8 +59,8 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
         var version = ++_loadVersion;
 
         Items.Clear();
-        IsEmpty = employee is not null;
-        StartNew();
+        IsEmpty = false;
+        Selected = null;
 
         if (employee is null)
         {
@@ -107,36 +79,17 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
         });
     }
 
+    /// <summary>Opens the form of a new contract; a follow-up contract starts the day after the last one ends.</summary>
     [RelayCommand]
-    public void New()
-    {
-        Selected = null;
-        StartNew();
-    }
+    public Task NewAsync(CancellationToken cancellationToken) => _employee is not { } employee
+        ? Task.CompletedTask
+        : EditInDialogAsync(new ContractDialogViewModel(api, employee, row: null, LatestEnd() ?? employee.HireDate.ToDateTime(TimeOnly.MinValue)), cancellationToken);
 
-    [RelayCommand]
-    public Task SaveAsync(CancellationToken cancellationToken)
-    {
-        if (_employee is not { } employee || !Validate(out var workingTime))
-        {
-            return Task.CompletedTask;
-        }
-
-        var request = new SaveContractRequest(
-            EditKind.Kind,
-            DateOnly.FromDateTime(EditStartDate!.Value),
-            EditEndDate is { } end ? DateOnly.FromDateTime(end) : null,
-            workingTime);
-
-        return RunAsync(async () =>
-        {
-            var saved = Selected is { } current
-                ? await api.UpdateContractAsync(employee.Id, current.Contract.Id, request, cancellationToken)
-                : await api.CreateContractAsync(employee.Id, request, cancellationToken);
-
-            Fill(await api.ListContractsAsync(employee.Id, cancellationToken), saved.Id);
-        });
-    }
+    /// <summary>Opens the picked contract in the form.</summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    public Task EditAsync(ContractRow? row, CancellationToken cancellationToken) => _employee is not { } employee || (row ?? Selected) is not { } contract
+        ? Task.CompletedTask
+        : EditInDialogAsync(new ContractDialogViewModel(api, employee, contract, contract.Contract.StartDate.ToDateTime(TimeOnly.MinValue)), cancellationToken);
 
     [RelayCommand(CanExecute = nameof(CanDelete))]
     public Task DeleteAsync(CancellationToken cancellationToken)
@@ -159,63 +112,23 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
         });
     }
 
-    protected override bool TryShowOnField(ApiException exception)
+    protected override bool TryShowOnField(ApiException exception) => false;
+
+    partial void OnSelectedChanged(ContractRow? value) => IsConfirmingDelete = false;
+
+    private async Task EditInDialogAsync(ContractDialogViewModel dialog, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(exception);
-
-        var field = exception.Code switch
-        {
-            "contract.overlap" or "contract.before_hire" => nameof(EditStartDate),
-            "contract.end_required" or "contract.no_end_for_indefinite" or "contract.end_before_start" or "contract.probation_too_long" => nameof(EditEndDate),
-            "contract.working_time_invalid" => nameof(EditWorkingTime),
-            _ => null,
-        };
-
-        if (field is not null)
-        {
-            SetError(field, exception.Message);
-        }
-
-        return field is not null;
-    }
-
-    partial void OnSelectedChanged(ContractRow? value)
-    {
-        IsConfirmingDelete = false;
-
-        if (value is null)
+        if (_employee is not { } employee || !await dialogs.ShowAsync(dialog))
         {
             return;
         }
 
-        var contract = value.Contract;
-        EditKind = Kinds.First(kind => kind.Kind == contract.Type);
-        EditStartDate = contract.StartDate.ToDateTime(TimeOnly.MinValue);
-        EditEndDate = contract.EndDate?.ToDateTime(TimeOnly.MinValue);
-        EditWorkingTime = FormatFraction(contract.WorkingTime ?? 1m);
-        ClearAllErrors();
+        await RunAsync(async () => Fill(await api.ListContractsAsync(employee.Id, cancellationToken), dialog.Saved?.Id));
     }
 
-    // An indefinite contract has no end, so a date left from another kind would only cause an error.
-    partial void OnEditKindChanged(ContractKindChoice value)
-    {
-        if (value.Kind == ContractKind.Indefinite)
-        {
-            EditEndDate = null;
-        }
-    }
+    private bool CanEdit(ContractRow? row) => (row ?? Selected) is not null;
 
     private bool CanDelete() => Selected is not null;
-
-    private void StartNew()
-    {
-        Selected = null;
-        EditKind = Kinds[0];
-        EditStartDate = _employee is null ? time.GetLocalNow().Date : LatestEnd() ?? _employee.HireDate.ToDateTime(TimeOnly.MinValue);
-        EditEndDate = null;
-        EditWorkingTime = "1";
-        ClearAllErrors();
-    }
 
     // A follow-up contract usually starts the day after the last one ends.
     private DateTime? LatestEnd() =>
@@ -234,38 +147,7 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
         }
 
         IsEmpty = Items.Count == 0;
-
-        var selected = Items.FirstOrDefault(row => row.Contract.Id == selectId);
-        if (selected is null)
-        {
-            StartNew();
-        }
-        else
-        {
-            Selected = selected;
-        }
-    }
-
-    private bool Validate(out decimal? workingTime)
-    {
-        workingTime = null;
-
-        SetError(nameof(EditStartDate), EditStartDate is null ? "Podaj datę początku umowy." : null);
-
-        var needsEnd = EditKind.Kind is ContractKind.FixedTerm or ContractKind.Probation;
-        SetError(nameof(EditEndDate), needsEnd && EditEndDate is null ? "Podaj datę końca umowy." : null);
-
-        if (IsEmploymentContract)
-        {
-            workingTime = ParseFraction(EditWorkingTime);
-            SetError(nameof(EditWorkingTime), workingTime is > 0m and <= 1m ? null : "Wpisz wymiar etatu, np. 1, 1/2 albo 0,75.");
-        }
-        else
-        {
-            SetError(nameof(EditWorkingTime), null);
-        }
-
-        return !HasErrors;
+        Selected = Items.FirstOrDefault(row => row.Contract.Id == selectId);
     }
 
     /// <summary>Reads working time typed as "1", "1/2" or "0,75"; null when it is not a number.</summary>
@@ -287,7 +169,7 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
         return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number) ? number : null;
     }
 
-    private static string FormatFraction(decimal value) => value switch
+    internal static string FormatFraction(decimal value) => value switch
     {
         1m => "1",
         0.5m => "1/2",

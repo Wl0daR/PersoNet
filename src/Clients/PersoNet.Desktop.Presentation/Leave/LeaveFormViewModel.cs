@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
 using PersoNet.ApiClient.Leave;
 using PersoNet.Contracts.Leave;
@@ -8,10 +9,11 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Presentation.Leave;
 
 /// <summary>
-/// Form of a new leave request: who, what kind, which days (or hours of one day) and a note. Used on the "Urlopy" screen,
-/// where HR picks the employee, and in the calendar of an employee's card, where the employee is fixed.
+/// Dialog with the form of a new leave request: who, what kind, which days (or hours of one day) and a note, with the
+/// employee's annual leave balance next to it. Opened from the "Urlopy" screen, where HR picks the employee, and from the
+/// calendar of an employee's card, where the employee is fixed.
 /// </summary>
-public sealed partial class LeaveFormViewModel(ILeaveApi leave) : EditorViewModel
+public sealed partial class LeaveFormViewModel(ILeaveApi leave) : DialogViewModel
 {
     public const int NoteMaxLength = 500;
 
@@ -19,12 +21,28 @@ public sealed partial class LeaveFormViewModel(ILeaveApi leave) : EditorViewMode
 
     public ObservableCollection<Choice> Employees { get; } = [NoEmployee];
 
+    private int _balanceVersion;
+
     /// <summary>True in an employee's card: the request is for that employee and the picker is hidden.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
     public partial bool IsEmployeeFixed { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
     public partial Choice EditEmployee { get; set; } = NoEmployee;
+
+    /// <summary>Annual leave balance of the picked employee in the year of the first day.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BalanceText))]
+    public partial LeaveBalanceResponse? Balance { get; set; }
+
+    /// <summary>The request after it was sent.</summary>
+    public LeaveRequestResponse? Created { get; private set; }
+
+    public override string Title => IsEmployeeFixed ? $"Nowy wniosek urlopowy – {EditEmployee.Name}" : "Nowy wniosek urlopowy";
+
+    public string? BalanceText => LeaveTexts.BalanceText(Balance);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanUseHours), nameof(PeriodHint))]
@@ -76,7 +94,7 @@ public sealed partial class LeaveFormViewModel(ILeaveApi leave) : EditorViewMode
     }
 
     /// <summary>Sends the request; returns it, or null when a field or the server refused it (the error is shown).</summary>
-    public async Task<LeaveRequestResponse?> SubmitAsync(CancellationToken cancellationToken)
+    public async Task<LeaveRequestResponse?> SendAsync(CancellationToken cancellationToken)
     {
         if (!Validate())
         {
@@ -94,6 +112,49 @@ public sealed partial class LeaveFormViewModel(ILeaveApi leave) : EditorViewMode
         LeaveRequestResponse? created = null;
         await RunAsync(async () => created = await leave.CreateAsync(request, cancellationToken));
         return created;
+    }
+
+    /// <summary>"Złóż wniosek": sends the request and closes the dialog when the server accepts it.</summary>
+    [RelayCommand]
+    public async Task SubmitAsync(CancellationToken cancellationToken)
+    {
+        if (await SendAsync(cancellationToken) is { } created)
+        {
+            Created = created;
+            HasChanges = true;
+            Close(true);
+        }
+    }
+
+    /// <summary>Loads the balance shown next to the form, for the picked employee and the year of the first day.</summary>
+    public async Task LoadBalanceAsync(CancellationToken cancellationToken)
+    {
+        var version = ++_balanceVersion;
+        if (EditEmployee.Id is not { } id || EditStartDate is not { } start)
+        {
+            Balance = null;
+            return;
+        }
+
+        LeaveBalanceResponse? balance;
+        try
+        {
+            balance = await leave.GetBalanceAsync(id, start.Year, cancellationToken);
+        }
+        catch (ApiException)
+        {
+            balance = null;
+        }
+        catch (HttpRequestException)
+        {
+            balance = null;
+        }
+
+        // Only the answer for the latest pick is shown.
+        if (version == _balanceVersion)
+        {
+            Balance = balance;
+        }
     }
 
     protected override bool TryShowOnField(ApiException exception)
@@ -129,7 +190,14 @@ public sealed partial class LeaveFormViewModel(ILeaveApi leave) : EditorViewMode
         {
             EditEndDate = start;
         }
+
+        if (value?.Year != Balance?.Year)
+        {
+            _ = LoadBalanceAsync(CancellationToken.None);
+        }
     }
+
+    partial void OnEditEmployeeChanged(Choice value) => _ = LoadBalanceAsync(CancellationToken.None);
 
     partial void OnEditKindChanged(LeaveKindChoice value)
     {

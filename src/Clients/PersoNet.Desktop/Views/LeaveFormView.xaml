@@ -5,56 +5,81 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:leave="clr-namespace:PersoNet.Desktop.Presentation.Leave;assembly=PersoNet.Desktop.Presentation"
              mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=leave:LeaveFormViewModel}">
-    <!-- Fields of a new leave request; the screen around it provides the title and the Save / Cancel buttons. -->
-    <StackPanel IsEnabled="{Binding IsIdle}">
-        <StackPanel Visibility="{Binding IsEmployeeFixed, Converter={StaticResource CollapsedWhenTrue}}">
-            <Label Content="_Pracownik *" Target="{Binding ElementName=EmployeeBox}" Padding="0" Margin="0,16,0,4" />
-            <ComboBox x:Name="EmployeeBox" ItemsSource="{Binding Employees}" SelectedItem="{Binding EditEmployee}"
-                      DisplayMemberPath="Name" HorizontalAlignment="Stretch" IsTextSearchEnabled="True"
-                      AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EmployeeBox}" Style="{StaticResource FieldError}" />
-        </StackPanel>
-
-        <Label Content="_Rodzaj urlopu *" Target="{Binding ElementName=KindBox}" Padding="0" Margin="0,16,0,4" />
-        <ComboBox x:Name="KindBox" ItemsSource="{x:Static leave:LeaveTexts.Kinds}" SelectedItem="{Binding EditKind}"
-                  DisplayMemberPath="Name" HorizontalAlignment="Stretch"
-                  AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=KindBox}" Style="{StaticResource FieldError}" />
-
-        <!-- Child care, force majeure and the rest of annual leave may be taken in hours (Kodeks pracy). -->
-        <CheckBox x:Name="HourlyBox" Content="Na _godziny (w jednym dniu)" IsChecked="{Binding IsHourly}" Margin="0,12,0,0"
-                  Visibility="{Binding CanUseHours, Converter={StaticResource BoolToVisibility}}" />
-
-        <!-- First and last day side by side, or the day and its hours; they wrap under each other when the pane is narrow. -->
-        <WrapPanel>
-            <StackPanel Width="200" Margin="0,0,12,0">
-                <Label Content="{Binding StartLabel}" Target="{Binding ElementName=StartBox}" Padding="0" Margin="0,16,0,4" />
-                <DatePicker x:Name="StartBox" SelectedDate="{Binding EditStartDate}"
-                            AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=StartBox}" Style="{StaticResource FieldError}" />
+             d:DataContext="{d:DesignInstance Type=leave:LeaveFormViewModel}"
+             Width="540">
+    <!-- Dialog with a new leave request: the fields, the employee's balance and the buttons at the bottom right. -->
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsEnabled="{Binding IsIdle}">
+                <Button Content="Złóż wniosek" Command="{Binding SubmitCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}"
+                        MinWidth="110" Margin="0,0,8,0" ToolTip="Wniosek trafi na listę jako oczekujący (Enter)" />
+                <Button Content="Anuluj" IsCancel="True" MinWidth="110" ToolTip="Zamknij bez zapisywania (Esc)" />
             </StackPanel>
-            <StackPanel Width="200" Visibility="{Binding IsHourly, Converter={StaticResource CollapsedWhenTrue}}">
-                <Label Content="_Do (włącznie) *" Target="{Binding ElementName=EndBox}" Padding="0" Margin="0,16,0,4" />
-                <DatePicker x:Name="EndBox" SelectedDate="{Binding EditEndDate}"
-                            AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EndBox}" Style="{StaticResource FieldError}" />
-            </StackPanel>
-            <StackPanel Width="200" Visibility="{Binding IsHourly, Converter={StaticResource BoolToVisibility}}">
-                <Label Content="_Liczba godzin *" Target="{Binding ElementName=HoursBox}" Padding="0" Margin="0,16,0,4" />
-                <TextBox x:Name="HoursBox" Text="{Binding EditHours, UpdateSourceTrigger=PropertyChanged}" MaxLength="5" Width="120" HorizontalAlignment="Left"
-                         AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=HoursBox}" Style="{StaticResource FieldError}" />
-            </StackPanel>
-        </WrapPanel>
-        <TextBlock Text="{Binding PeriodHint}" Style="{StaticResource HelperText}" TextWrapping="Wrap" />
+        </Border>
 
-        <Label Content="_Uwagi" Target="{Binding ElementName=NoteBox}" Padding="0" Margin="0,16,0,4" />
-        <TextBox x:Name="NoteBox" Text="{Binding EditNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
-                 MinHeight="64" MaxLength="{x:Static leave:LeaveFormViewModel.NoteMaxLength}" VerticalScrollBarVisibility="Auto"
-                 AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NoteBox}" Style="{StaticResource FieldError}" />
+        <Border Style="{StaticResource DialogBody}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
+                    <StackPanel Visibility="{Binding IsEmployeeFixed, Converter={StaticResource CollapsedWhenTrue}}">
+                        <Label Content="_Pracownik *" Target="{Binding ElementName=EmployeeBox}" Padding="0" Margin="0,0,0,4" />
+                        <ComboBox x:Name="EmployeeBox" ItemsSource="{Binding Employees}" SelectedItem="{Binding EditEmployee}"
+                                  DisplayMemberPath="Name" HorizontalAlignment="Stretch" IsTextSearchEnabled="True"
+                                  AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EmployeeBox}" Style="{StaticResource FieldError}" />
+                    </StackPanel>
 
-        <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
-    </StackPanel>
+                    <Label Content="_Rodzaj urlopu *" Target="{Binding ElementName=KindBox}" Padding="0" Margin="0,16,0,4" />
+                    <ComboBox x:Name="KindBox" ItemsSource="{x:Static leave:LeaveTexts.Kinds}" SelectedItem="{Binding EditKind}"
+                              DisplayMemberPath="Name" HorizontalAlignment="Stretch"
+                              AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=KindBox}" Style="{StaticResource FieldError}" />
+
+                    <!-- Child care, force majeure and the rest of annual leave may be taken in hours (Kodeks pracy). -->
+                    <CheckBox x:Name="HourlyBox" Content="Na _godziny (w jednym dniu)" IsChecked="{Binding IsHourly}" Margin="0,12,0,0"
+                              Visibility="{Binding CanUseHours, Converter={StaticResource BoolToVisibility}}" />
+
+                    <!-- First and last day side by side, or the day and its hours; they wrap under each other when the pane is narrow. -->
+                    <WrapPanel>
+                        <StackPanel Width="200" Margin="0,0,12,0">
+                            <Label Content="{Binding StartLabel}" Target="{Binding ElementName=StartBox}" Padding="0" Margin="0,16,0,4" />
+                            <DatePicker x:Name="StartBox" SelectedDate="{Binding EditStartDate}"
+                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=StartBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                        <StackPanel Width="200" Visibility="{Binding IsHourly, Converter={StaticResource CollapsedWhenTrue}}">
+                            <Label Content="_Do (włącznie) *" Target="{Binding ElementName=EndBox}" Padding="0" Margin="0,16,0,4" />
+                            <DatePicker x:Name="EndBox" SelectedDate="{Binding EditEndDate}"
+                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EndBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                        <StackPanel Width="200" Visibility="{Binding IsHourly, Converter={StaticResource BoolToVisibility}}">
+                            <Label Content="_Liczba godzin *" Target="{Binding ElementName=HoursBox}" Padding="0" Margin="0,16,0,4" />
+                            <TextBox x:Name="HoursBox" Text="{Binding EditHours, UpdateSourceTrigger=PropertyChanged}" MaxLength="5" Width="120" HorizontalAlignment="Left"
+                                     AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=HoursBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding PeriodHint}" Style="{StaticResource HelperText}" TextWrapping="Wrap" />
+
+                    <Label Content="_Uwagi" Target="{Binding ElementName=NoteBox}" Padding="0" Margin="0,16,0,4" />
+                    <TextBox x:Name="NoteBox" Text="{Binding EditNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="64" MaxLength="{x:Static leave:LeaveFormViewModel.NoteMaxLength}" VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NoteBox}" Style="{StaticResource FieldError}" />
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+
+                    <!-- Balance of the employee, so the request is filled in with it in view. -->
+                    <Border Style="{StaticResource Card}" Padding="12" Margin="0,16,0,0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            Visibility="{Binding BalanceText, Converter={StaticResource CollapsedWhenEmpty}}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE946;" Style="{StaticResource Icon}" Margin="0,0,10,0" VerticalAlignment="Top"
+                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="{Binding BalanceText}" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
 </UserControl>
