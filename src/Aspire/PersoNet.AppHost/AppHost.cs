@@ -8,16 +8,19 @@ var database = builder.AddConnectionString("personet");
 var identity = builder.AddProject<Projects.PersoNet_Identity>("identity")
     .WithReference(database);
 
+// The login server must be HTTPS (OpenID Connect); its address is passed to the API and the web app explicitly.
+var identityUrl = identity.GetEndpoint("https");
+
 var api = builder.AddProject<Projects.PersoNet_Api>("api")
     .WithReference(database)
-    .WithReference(identity);
+    .WithEnvironment("Identity__Authority", identityUrl);
 
 builder.AddProject<Projects.PersoNet_Worker>("worker")
     .WithReference(database);
 
 builder.AddProject<Projects.PersoNet_Web>("web")
     .WithReference(api)
-    .WithReference(identity)
+    .WithEnvironment("Identity__Authority", identityUrl)
     .WaitFor(api)
     .WaitFor(identity);
 
