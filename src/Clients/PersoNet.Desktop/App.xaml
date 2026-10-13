@@ -62,6 +62,8 @@
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextElement.FontSize" Value="12" />
+            <!-- Own text colour, so the badge stays readable on a selected (accent) row. -->
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         </Style>
 
         <Style x:Key="SuccessBadge" TargetType="Border" BasedOn="{StaticResource Badge}">
