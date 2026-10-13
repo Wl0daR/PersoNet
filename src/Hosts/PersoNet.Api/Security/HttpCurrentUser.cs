@@ -12,6 +12,6 @@ internal sealed class HttpCurrentUser(IHttpContextAccessor httpContextAccessor) 
             ? userId
             : throw new InvalidOperationException("The request has no authenticated user.");
 
-    // Roles and permissions arrive with the HR configuration module; until then nobody has extra permissions.
-    public bool HasPermission(string permission) => false;
+    public bool HasPermission(string permission) =>
+        httpContextAccessor.HttpContext?.User is { } user && RolePermissions.HasPermission(user, permission);
 }

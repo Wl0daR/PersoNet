@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
 
 namespace PersoNet.Application.Abstractions;
@@ -9,6 +10,10 @@ namespace PersoNet.Application.Abstractions;
 public interface IAppDbContext
 {
     DbSet<Tenant> Tenants { get; }
+
+    DbSet<Department> Departments { get; }
+
+    DbSet<Position> Positions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

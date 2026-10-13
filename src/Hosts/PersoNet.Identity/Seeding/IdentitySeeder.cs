@@ -72,9 +72,25 @@ internal static class IdentitySeeder
         var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         await dbContext.Database.MigrateAsync(cancellationToken);
 
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        if (await users.FindByEmailAsync(PersoNetAuth.DevelopmentSeed.UserEmail) is not null)
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        foreach (var role in PersoNetAuth.Roles.All)
         {
+            if (!await roles.RoleExistsAsync(role))
+            {
+                EnsureSucceeded(await roles.CreateAsync(new IdentityRole<Guid>(role) { Id = Guid.CreateVersion7() }), "role " + role);
+            }
+        }
+
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var existing = await users.FindByEmailAsync(PersoNetAuth.DevelopmentSeed.UserEmail);
+        if (existing is not null)
+        {
+            // Accounts created before roles existed get the HR role too.
+            if (!await users.IsInRoleAsync(existing, PersoNetAuth.Roles.HrAdmin))
+            {
+                EnsureSucceeded(await users.AddToRoleAsync(existing, PersoNetAuth.Roles.HrAdmin), "demo account role");
+            }
+
             return;
         }
 
@@ -87,11 +103,16 @@ internal static class IdentitySeeder
             TenantId = PersoNetAuth.DevelopmentSeed.TenantId,
         };
 
-        var result = await users.CreateAsync(user, PersoNetAuth.DevelopmentSeed.UserPassword);
+        EnsureSucceeded(await users.CreateAsync(user, PersoNetAuth.DevelopmentSeed.UserPassword), "demo account");
+        EnsureSucceeded(await users.AddToRoleAsync(user, PersoNetAuth.Roles.HrAdmin), "demo account role");
+    }
+
+    private static void EnsureSucceeded(IdentityResult result, string what)
+    {
         if (!result.Succeeded)
         {
             throw new InvalidOperationException(
-                "Could not create the demo account: " + string.Join("; ", result.Errors.Select(error => error.Description)));
+                $"Could not create the {what}: " + string.Join("; ", result.Errors.Select(error => error.Description)));
         }
     }
 }

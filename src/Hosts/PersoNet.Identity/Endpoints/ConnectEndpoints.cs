@@ -57,7 +57,8 @@ internal static class ConnectEndpoints
             .SetClaim(Claims.Subject, user.Id.ToString())
             .SetClaim(Claims.Email, user.Email)
             .SetClaim(Claims.Name, user.DisplayName)
-            .SetClaim(PersoNetAuth.TenantIdClaim, user.TenantId.ToString());
+            .SetClaim(PersoNetAuth.TenantIdClaim, user.TenantId.ToString())
+            .SetClaims(Claims.Role, [.. await users.GetRolesAsync(user)]);
 
         identity.SetScopes(request.GetScopes());
         if (identity.HasScope(PersoNetAuth.ApiScope))
@@ -109,7 +110,7 @@ internal static class ConnectEndpoints
 
     private static IEnumerable<string> GetDestinations(Claim claim, ClaimsIdentity identity) => claim.Type switch
     {
-        Claims.Subject or PersoNetAuth.TenantIdClaim => [Destinations.AccessToken, Destinations.IdentityToken],
+        Claims.Subject or PersoNetAuth.TenantIdClaim or Claims.Role => [Destinations.AccessToken, Destinations.IdentityToken],
         Claims.Name when identity.HasScope(Scopes.Profile) => [Destinations.AccessToken, Destinations.IdentityToken],
         Claims.Email when identity.HasScope(Scopes.Email) => [Destinations.AccessToken, Destinations.IdentityToken],
         _ => [Destinations.AccessToken],

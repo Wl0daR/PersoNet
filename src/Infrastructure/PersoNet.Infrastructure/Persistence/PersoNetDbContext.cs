@@ -2,13 +2,15 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
 using PersoNet.Domain.Abstractions;
+using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
 
 namespace PersoNet.Infrastructure.Persistence;
 
 /// <summary>
 /// The single EF Core context. Every <see cref="ITenantOwned"/> entity is filtered to the current tenant,
-/// and writes of another tenant's data are rejected (see docs/adr/0003).
+/// writes of another tenant's data are rejected, and every connection carries the tenant for PostgreSQL row-level security
+/// (see docs/adr/0003).
 /// </summary>
 public class PersoNetDbContext : DbContext, IAppDbContext
 {
@@ -35,6 +37,10 @@ public class PersoNetDbContext : DbContext, IAppDbContext
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
 
+    public DbSet<Department> Departments => Set<Department>();
+
+    public DbSet<Position> Positions => Set<Position>();
+
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;
 
@@ -48,6 +54,13 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     {
         EnsureWritesStayInTenant();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+
+        optionsBuilder.AddInterceptors(new TenantSessionInterceptor(() => CurrentTenantId));
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

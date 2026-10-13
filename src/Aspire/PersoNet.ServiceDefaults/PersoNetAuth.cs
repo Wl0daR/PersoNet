@@ -17,6 +17,17 @@ public static class PersoNetAuth
     public const string WebClientId = "personet-web";
 
     /// <summary>
+    /// Roles carried in the "role" claim. The API maps them to permissions; endpoints never check roles directly.
+    /// </summary>
+    public static class Roles
+    {
+        /// <summary>HR department: configures the company and manages employee records.</summary>
+        public const string HrAdmin = "hr_admin";
+
+        public static IReadOnlyList<string> All { get; } = [HrAdmin];
+    }
+
+    /// <summary>
     /// Demo data created on startup in Development only, so a fresh local setup can sign in.
     /// </summary>
     public static class DevelopmentSeed

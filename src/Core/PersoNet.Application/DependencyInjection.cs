@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PersoNet.Application.Organization;
 
 namespace PersoNet.Application;
 
@@ -9,6 +10,11 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton(TimeProvider.System);
+
+        services.AddScoped<DepartmentQueries>();
+        services.AddScoped<DepartmentCommands>();
+        services.AddScoped<PositionQueries>();
+        services.AddScoped<PositionCommands>();
 
         return services;
     }
