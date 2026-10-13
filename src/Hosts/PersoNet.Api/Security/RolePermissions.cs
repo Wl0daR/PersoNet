@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using PersoNet.Application.Abstractions;
+using PersoNet.Contracts;
 
 namespace PersoNet.Api.Security;
 

@@ -2,5 +2,89 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ThemeMode="System">
-    <Application.Resources />
+    <!--
+        Visual rules (from the ui-ux-pro-max review, adapted to a dense desktop admin tool):
+        - colors only from Fluent theme resources (DynamicResource), so light, dark and high contrast all work;
+        - every field has a visible label (Label with Target, Padding 0, Margin 0,16,0,4) with an access key, helper text where the format is not obvious,
+          and its error directly under it; a form-level message only for errors not tied to a field;
+        - one accent (primary) button per form; long operations show a progress bar and lock the form;
+        - spacing on a 4 px grid: 4 / 8 / 12 / 16 / 24.
+    -->
+    <Application.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!-- Shared text styles. -->
+        <Style x:Key="PageTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style x:Key="SecondaryText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <!-- Small grey hint under a field, e.g. the expected format. -->
+        <Style x:Key="HelperText" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+
+        <!-- Red message; hidden while the bound text is empty, announced by screen readers when it appears. -->
+        <Style x:Key="ErrorText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+                <Trigger Property="Text" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Error directly under its field. -->
+        <Style x:Key="FieldError" TargetType="TextBlock" BasedOn="{StaticResource ErrorText}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+
+        <!-- Error for the whole form (connection lost, conflict not tied to one field). -->
+        <Style x:Key="FormError" TargetType="TextBlock" BasedOn="{StaticResource ErrorText}">
+            <Setter Property="Margin" Value="0,16,0,0" />
+        </Style>
+
+        <!-- Surface that groups one area of a screen (a list, an editor). -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <!--
+            Holder of the thin progress bar shown while the screen's view model (IsBusy) loads or saves. Hidden, not
+            collapsed, so the content below does not jump when it appears.
+            Fluent-themed controls (Label, ProgressBar, Button) get no app-level styles here: an explicit style would drop
+            their Fluent look, so their spacing is set where they are used.
+        -->
+        <Style x:Key="BusyArea" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Visibility" Value="Hidden" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Application.Resources>
 </Application>

@@ -1,4 +1,4 @@
-namespace Microsoft.Extensions.Hosting;
+namespace PersoNet.Contracts;
 
 /// <summary>
 /// Names shared by the identity server, the API and the clients.
@@ -15,6 +15,17 @@ public static class PersoNetAuth
     public const string TenantIdClaim = "tenant_id";
 
     public const string WebClientId = "personet-web";
+
+    /// <summary>HR desktop app. Signs in through the system browser and receives the callback on a local port.</summary>
+    public const string DesktopClientId = "personet-desktop";
+
+    /// <summary>
+    /// Local ports the desktop app listens on for the sign-in callback; the first free one is used.
+    /// Each is registered as a redirect URI, because the login server matches redirect URIs exactly.
+    /// </summary>
+    public static IReadOnlyList<int> DesktopCallbackPorts { get; } = [58740, 58741, 58742];
+
+    public const string DesktopCallbackPath = "callback/login/local";
 
     /// <summary>Interactive API documentation (Scalar), Development only.</summary>
     public const string ApiDocsClientId = "personet-api-docs";

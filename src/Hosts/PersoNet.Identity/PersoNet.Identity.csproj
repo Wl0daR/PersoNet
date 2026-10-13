@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Aspire\PersoNet.ServiceDefaults\PersoNet.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Shared\PersoNet.Contracts\PersoNet.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
