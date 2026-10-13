@@ -2,7 +2,8 @@ using System.Net;
 
 namespace PersoNet.Api.IntegrationTests;
 
-public sealed class HealthEndpointTests(PersoNetApiFactory factory) : IClassFixture<PersoNetApiFactory>
+[Collection(ApiTestGroup.Name)]
+public sealed class HealthEndpointTests(PersoNetApiFactory factory)
 {
     [Theory]
     [InlineData("/health/live")]

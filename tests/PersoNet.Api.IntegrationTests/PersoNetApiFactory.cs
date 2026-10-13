@@ -25,5 +25,17 @@ public sealed class PersoNetApiFactory : WebApplicationFactory<Program>, IAsyncL
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:personet", TestDatabase.ConnectionStringFor(DatabaseName));
+
+        // Never contacted: requests without a token are rejected before discovery, and other tests sign in with TestAuthHandler.
+        builder.UseSetting("Identity:Authority", "https://identity.personet.test/");
     }
+}
+
+/// <summary>
+/// All API tests share one host and one test database, so startup migrations and seeding run once.
+/// </summary>
+[CollectionDefinition(Name)]
+public sealed class ApiTestGroup : ICollectionFixture<PersoNetApiFactory>
+{
+    public const string Name = "Api";
 }

@@ -18,7 +18,8 @@ public sealed partial class Tenant : Entity
         Subdomain = string.Empty;
     }
 
-    private Tenant(string name, string subdomain)
+    private Tenant(Guid id, string name, string subdomain)
+        : base(id)
     {
         Name = name;
         Subdomain = subdomain;
@@ -35,7 +36,13 @@ public sealed partial class Tenant : Entity
     public bool IsActive { get; private set; }
 
     public static Tenant Create(string name, string subdomain) =>
-        new(NormalizeName(name), NormalizeSubdomain(subdomain));
+        Create(Guid.CreateVersion7(), name, subdomain);
+
+    /// <summary>
+    /// Creates a tenant with a known id, for example one already assigned to its accounts in PersoNet.Identity.
+    /// </summary>
+    public static Tenant Create(Guid id, string name, string subdomain) =>
+        new(id, NormalizeName(name), NormalizeSubdomain(subdomain));
 
     public void Rename(string name) => Name = NormalizeName(name);
 

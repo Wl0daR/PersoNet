@@ -5,7 +5,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var database = builder.AddConnectionString("personet");
 
-var identity = builder.AddProject<Projects.PersoNet_Identity>("identity");
+var identity = builder.AddProject<Projects.PersoNet_Identity>("identity")
+    .WithReference(database);
 
 var api = builder.AddProject<Projects.PersoNet_Api>("api")
     .WithReference(database)
@@ -17,6 +18,7 @@ builder.AddProject<Projects.PersoNet_Worker>("worker")
 builder.AddProject<Projects.PersoNet_Web>("web")
     .WithReference(api)
     .WithReference(identity)
-    .WaitFor(api);
+    .WaitFor(api)
+    .WaitFor(identity);
 
 await builder.Build().RunAsync().ConfigureAwait(false);

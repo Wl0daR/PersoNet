@@ -1,9 +1,12 @@
 using PersoNet.ApiClient;
+using PersoNet.Web.Authentication;
 using PersoNet.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+builder.AddPersoNetAuthentication();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -23,12 +26,16 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapAuthenticationEndpoints();
 app.MapDefaultEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);

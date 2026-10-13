@@ -1,3 +1,5 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using System.Net.Http
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Forms
@@ -9,3 +11,6 @@
 @using PersoNet.Web
 @using PersoNet.Web.Components
 @using PersoNet.Web.Components.Layout
+
+@* The whole portal requires a signed-in user; pages that must stay public opt out with [AllowAnonymous]. *@
+@attribute [Authorize]

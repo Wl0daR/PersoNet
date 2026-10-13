@@ -5,3 +5,7 @@
 <h1>PersoNet</h1>
 
 <p>Portal pracownika i kierownika.</p>
+
+<AuthorizeView>
+    <p>Zalogowano jako <strong>@context.User.FindFirst("name")?.Value</strong> (@context.User.FindFirst("email")?.Value).</p>
+</AuthorizeView>
