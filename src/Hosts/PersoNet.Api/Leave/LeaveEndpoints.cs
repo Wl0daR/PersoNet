@@ -50,6 +50,11 @@ internal static class LeaveEndpoints
             .RequireAuthorization(Permissions.LeaveManage)
             .WithName("CancelLeaveRequest").WithSummary("Anuluj oczekujący lub zatwierdzony urlop");
 
+        api.MapGet("/holidays/{year:int}", (int year) => LeaveService.Holidays(year).ToOk())
+            .RequireAuthorization(Permissions.LeaveRead)
+            .WithTags("Urlopy")
+            .WithName("ListHolidays").WithSummary("Święta państwowe w roku (dni wolne od pracy)");
+
         var employee = api.MapGroup("/employees/{employeeId:guid}/leave/{year:int}").WithTags("Urlopy");
 
         employee.MapGet("/", async (Guid employeeId, int year, LeaveService service, CancellationToken cancellationToken) =>

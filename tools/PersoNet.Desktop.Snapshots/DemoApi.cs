@@ -72,6 +72,15 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
         AddLeave(kadry, LeaveKind.ChildCare, new DateOnly(year, 3, 12), new DateOnly(year, 3, 12), 1, LeaveState.Approved, null);
         AddLeave(kadry, LeaveKind.Annual, new DateOnly(year, 8, 24), new DateOnly(year, 8, 28), 5, LeaveState.Rejected, null,
             "W tym tygodniu zamykamy listy płac za sierpień. Proszę o inny termin.");
+        // In the current month too, so the calendar of the card has something to show whenever it is rendered.
+        var firstMonday = new DateOnly(year, DateTime.Today.Month, 1);
+        while (firstMonday.DayOfWeek != DayOfWeek.Monday)
+        {
+            firstMonday = firstMonday.AddDays(1);
+        }
+
+        AddLeave(kadry, LeaveKind.Annual, firstMonday, firstMonday.AddDays(4), 5, LeaveState.Approved, "Wyjazd w góry.");
+        AddLeave(kadry, LeaveKind.ChildCare, firstMonday.AddDays(15), firstMonday.AddDays(15), 1, LeaveState.Pending, null, hours: 2m);
         AddLeave(wozniak, LeaveKind.Occasional, new DateOnly(year, 9, 18), new DateOnly(year, 9, 18), 1, LeaveState.Approved, "Ślub brata.");
         AddLeave(wojcik, LeaveKind.ChildCare, new DateOnly(year, 10, 22), new DateOnly(year, 10, 22), 1, LeaveState.Pending, "Wizyta u lekarza z synem.", hours: 3m);
         AddLeave(wozniak, LeaveKind.ForceMajeure, new DateOnly(year, 9, 3), new DateOnly(year, 9, 3), 1, LeaveState.Approved, "Awaria ogrzewania w domu.", hours: 2.5m);
@@ -168,6 +177,22 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
     public Task<LeaveRequestResponse> RejectAsync(Guid id, string reason, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<LeaveRequestResponse> CancelAsync(Guid id, string? note, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    // Fixed-date holidays only; enough for the months the screenshots show.
+    public Task<IReadOnlyList<HolidayResponse>> GetHolidaysAsync(int year, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<HolidayResponse>>(
+        [
+            new(new DateOnly(year, 1, 1), "Nowy Rok"),
+            new(new DateOnly(year, 1, 6), "Trzech Króli"),
+            new(new DateOnly(year, 5, 1), "Święto Pracy"),
+            new(new DateOnly(year, 5, 3), "Święto Konstytucji 3 Maja"),
+            new(new DateOnly(year, 8, 15), "Wniebowzięcie Najświętszej Maryi Panny"),
+            new(new DateOnly(year, 11, 1), "Wszystkich Świętych"),
+            new(new DateOnly(year, 11, 11), "Narodowe Święto Niepodległości"),
+            new(new DateOnly(year, 12, 24), "Wigilia Bożego Narodzenia"),
+            new(new DateOnly(year, 12, 25), "Boże Narodzenie (pierwszy dzień)"),
+            new(new DateOnly(year, 12, 26), "Boże Narodzenie (drugi dzień)"),
+        ]);
 
     public Task<LeaveBalanceResponse> GetBalanceAsync(Guid employeeId, int year, CancellationToken cancellationToken)
     {

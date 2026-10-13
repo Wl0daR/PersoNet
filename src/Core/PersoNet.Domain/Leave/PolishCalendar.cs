@@ -9,19 +9,46 @@ public static class PolishCalendar
     /// <summary>Christmas Eve is a public holiday from 2025 on.</summary>
     public const int ChristmasEveFromYear = 2025;
 
-    public static bool IsPublicHoliday(DateOnly date)
+    public static bool IsPublicHoliday(DateOnly date) => HolidayName(date) is not null;
+
+    /// <summary>Polish name of the public holiday on <paramref name="date"/>, or null on other days.</summary>
+    public static string? HolidayName(DateOnly date)
     {
         var easter = EasterSunday(date.Year);
 
         return (date.Month, date.Day) switch
         {
-            (1, 1) or (1, 6) or (5, 1) or (5, 3) or (8, 15) or (11, 1) or (11, 11) or (12, 25) or (12, 26) => true,
-            (12, 24) => date.Year >= ChristmasEveFromYear,
-            _ => date == easter
-                || date == easter.AddDays(1) // Easter Monday
-                || date == easter.AddDays(49) // Pentecost (always a Sunday)
-                || date == easter.AddDays(60), // Corpus Christi
+            (1, 1) => "Nowy Rok",
+            (1, 6) => "Trzech Króli",
+            (5, 1) => "Święto Pracy",
+            (5, 3) => "Święto Konstytucji 3 Maja",
+            (8, 15) => "Wniebowzięcie Najświętszej Maryi Panny",
+            (11, 1) => "Wszystkich Świętych",
+            (11, 11) => "Narodowe Święto Niepodległości",
+            (12, 24) when date.Year >= ChristmasEveFromYear => "Wigilia Bożego Narodzenia",
+            (12, 25) => "Boże Narodzenie (pierwszy dzień)",
+            (12, 26) => "Boże Narodzenie (drugi dzień)",
+            _ when date == easter => "Wielkanoc",
+            _ when date == easter.AddDays(1) => "Poniedziałek Wielkanocny",
+            _ when date == easter.AddDays(49) => "Zielone Świątki", // always a Sunday
+            _ when date == easter.AddDays(60) => "Boże Ciało",
+            _ => null,
         };
+    }
+
+    /// <summary>All public holidays of a year with their names, in date order.</summary>
+    public static IReadOnlyList<(DateOnly Date, string Name)> Holidays(int year)
+    {
+        var holidays = new List<(DateOnly, string)>();
+        for (var day = new DateOnly(year, 1, 1); day.Year == year; day = day.AddDays(1))
+        {
+            if (HolidayName(day) is { } name)
+            {
+                holidays.Add((day, name));
+            }
+        }
+
+        return holidays;
     }
 
     public static bool IsWorkingDay(DateOnly date) =>

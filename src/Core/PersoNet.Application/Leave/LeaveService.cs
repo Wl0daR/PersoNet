@@ -136,6 +136,17 @@ public sealed class LeaveService(IAppDbContext db, ITenantContext tenant, ICurre
     public Task<Result<LeaveRequestResponse>> CancelAsync(Guid id, LeaveDecisionRequest decision, CancellationToken cancellationToken) =>
         DecideAsync(id, decision, LeaveStatus.Cancelled, cancellationToken);
 
+    /// <summary>Public holidays of a year, for calendars.</summary>
+    public static Result<IReadOnlyList<HolidayResponse>> Holidays(int year)
+    {
+        if (year is < 2000 or > 2100)
+        {
+            return LeaveErrors.YearOutOfRange;
+        }
+
+        return PolishCalendar.Holidays(year).Select(holiday => new HolidayResponse(holiday.Date, holiday.Name)).ToList();
+    }
+
     public async Task<Result<LeaveBalanceResponse>> GetBalanceAsync(Guid employeeId, int year, CancellationToken cancellationToken)
     {
         if (!await db.Employees.AnyAsync(employee => employee.Id == employeeId, cancellationToken))

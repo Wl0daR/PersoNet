@@ -13,11 +13,37 @@ namespace PersoNet.Desktop.Presentation.Leave;
 /// "Urlopy" screen: requests of the whole company (waiting ones first) on the left; on the right the picked request with
 /// its decision, or the form of a new request registered on behalf of an employee.
 /// </summary>
-public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employees, TimeProvider time) : EditorViewModel
+public sealed partial class LeaveViewModel : EditorViewModel
 {
-    public const int NoteMaxLength = 500;
+    public const int NoteMaxLength = LeaveFormViewModel.NoteMaxLength;
 
-    public static readonly Choice NoEmployee = new(null, "(wybierz pracownika)");
+    private readonly ILeaveApi _leave;
+    private readonly IEmployeesApi _employees;
+    private readonly TimeProvider _time;
+
+    // Set once constructed, so setting the first year does not load anything yet.
+    private readonly bool _isConstructed;
+
+    public LeaveViewModel(ILeaveApi leave, IEmployeesApi employees, TimeProvider time)
+    {
+        _leave = leave;
+        _employees = employees;
+        _time = time;
+        Years = Enumerable.Range(time.GetLocalNow().Year - 1, 3).ToList();
+        Year = time.GetLocalNow().Year;
+        Form = new LeaveFormViewModel(leave);
+
+        // The balance next to the form follows the employee and the year picked in it.
+        Form.PropertyChanged += (_, e) =>
+        {
+            if (IsCreating && e.PropertyName is nameof(LeaveFormViewModel.EditEmployee) or nameof(LeaveFormViewModel.EditStartDate))
+            {
+                ShowFormBalance();
+            }
+        };
+
+        _isConstructed = true;
+    }
 
     public static IReadOnlyList<LeaveStateChoice> States { get; } =
     [
@@ -30,16 +56,17 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
 
     public ObservableCollection<LeaveRow> Items { get; } = [];
 
-    public ObservableCollection<Choice> Employees { get; } = [NoEmployee];
+    /// <summary>The new request form (on behalf of an employee picked in it).</summary>
+    public LeaveFormViewModel Form { get; }
 
     /// <summary>The current year and its neighbours.</summary>
-    public IReadOnlyList<int> Years { get; } = Enumerable.Range(time.GetLocalNow().Year - 1, 3).ToList();
+    public IReadOnlyList<int> Years { get; }
 
     [ObservableProperty]
     public partial LeaveStateChoice StateFilter { get; set; } = States[0];
 
     [ObservableProperty]
-    public partial int Year { get; set; } = time.GetLocalNow().Year;
+    public partial int Year { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyTitle), nameof(EmptyHint))]
@@ -71,42 +98,6 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     [NotifyPropertyChangedFor(nameof(CancelText))]
     public partial bool IsConfirmingCancel { get; set; }
 
-    [ObservableProperty]
-    public partial Choice EditEmployee { get; set; } = NoEmployee;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanUseHours), nameof(PeriodHint))]
-    public partial LeaveKindChoice EditKind { get; set; } = LeaveTexts.Kinds[0];
-
-    /// <summary>Leave taken in hours on one day instead of whole days.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StartLabel), nameof(PeriodHint))]
-    public partial bool IsHourly { get; set; }
-
-    /// <summary>Hours as typed: "2", "2,5" or "2:30".</summary>
-    [ObservableProperty]
-    public partial string EditHours { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial DateTime? EditStartDate { get; set; }
-
-    [ObservableProperty]
-    public partial DateTime? EditEndDate { get; set; }
-
-    [ObservableProperty]
-    public partial string EditNote { get; set; } = string.Empty;
-
-    /// <summary>Child care, force majeure and the rest of annual leave can be taken in hours (Labour Code).</summary>
-    public bool CanUseHours => LeaveTexts.AllowsHours(EditKind.Kind);
-
-    public string StartLabel => IsHourly ? "_Dzień *" : "_Od *";
-
-    public string PeriodHint => !IsHourly
-        ? "Liczą się dni robocze: bez weekendów i świąt."
-        : EditKind.Kind == LeaveKind.Annual
-            ? "Np. 2, 2,5 albo 2:30. Urlop wypoczynkowy na godziny tylko na resztę urlopu mniejszą niż dzień pracy."
-            : "Np. 2, 2,5 albo 2:30. W roku 16 godzin (przy niepełnym etacie proporcjonalnie mniej).";
-
     public bool IsShowingRequest => Selected is not null && !IsCreating;
 
     /// <summary>True when the right pane has something to show (a request or the form).</summary>
@@ -133,16 +124,16 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     [RelayCommand]
     public Task LoadAsync(CancellationToken cancellationToken) => RunAsync(async () =>
     {
-        var people = await employees.LookupAsync(cancellationToken);
-        var keep = EditEmployee.Id;
-        Employees.Clear();
-        Employees.Add(NoEmployee);
+        var people = await _employees.LookupAsync(cancellationToken);
+        var keep = Form.EditEmployee.Id;
+        Form.Employees.Clear();
+        Form.Employees.Add(LeaveFormViewModel.NoEmployee);
         foreach (var person in people)
         {
-            Employees.Add(new Choice(person.Id, $"{person.FullName} ({person.Number})"));
+            Form.Employees.Add(new Choice(person.Id, $"{person.FullName} ({person.Number})"));
         }
 
-        EditEmployee = Employees.FirstOrDefault(choice => choice.Id == keep) ?? NoEmployee;
+        Form.EditEmployee = Form.Employees.FirstOrDefault(choice => choice.Id == keep) ?? LeaveFormViewModel.NoEmployee;
         await ReloadAsync(Selected?.Request.Id, cancellationToken);
     });
 
@@ -153,14 +144,8 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
         Selected = null;
         IsCreating = true;
         Balance = null;
-        EditEmployee = NoEmployee;
-        EditKind = LeaveTexts.Kinds[0];
-        IsHourly = false;
-        EditHours = string.Empty;
-        var today = time.GetLocalNow().Date;
-        EditStartDate = today;
-        EditEndDate = today;
-        EditNote = string.Empty;
+        var today = _time.GetLocalNow().Date;
+        Form.Reset(LeaveFormViewModel.NoEmployee, today, today, employeeFixed: false);
         ClearAllErrors();
     }
 
@@ -173,41 +158,29 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     }
 
     [RelayCommand]
-    public Task SaveAsync(CancellationToken cancellationToken)
+    public async Task SaveAsync(CancellationToken cancellationToken)
     {
-        if (!Validate())
+        if (await Form.SubmitAsync(cancellationToken) is not { } created)
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        var request = new CreateLeaveRequest(
-            EditEmployee.Id!.Value,
-            EditKind.Kind,
-            DateOnly.FromDateTime(EditStartDate!.Value),
-            DateOnly.FromDateTime(IsHourly ? EditStartDate!.Value : EditEndDate!.Value),
-            string.IsNullOrWhiteSpace(EditNote) ? null : EditNote.Trim(),
-            IsHourly ? LeaveTexts.ParseHours(EditHours) : null);
+        IsCreating = false;
 
-        return RunAsync(async () =>
+        // Show the new request even when the filter hides its year or state.
+        Year = created.StartDate.Year;
+        if (StateFilter.State is { } state && state != created.State)
         {
-            var created = await leave.CreateAsync(request, cancellationToken);
-            IsCreating = false;
+            StateFilter = States[0];
+        }
 
-            // Show the new request even when the filter hides its year or state.
-            Year = created.StartDate.Year;
-            if (StateFilter.State is { } state && state != created.State)
-            {
-                StateFilter = States[0];
-            }
-
-            await ReloadAsync(created.Id, cancellationToken);
-        });
+        await RunAsync(() => ReloadAsync(created.Id, cancellationToken));
     }
 
     [RelayCommand(CanExecute = nameof(CanDecide))]
     public Task ApproveAsync(CancellationToken cancellationToken) => Selected is not { } row
         ? Task.CompletedTask
-        : RunAsync(async () => await AfterDecisionAsync(await leave.ApproveAsync(row.Request.Id, NoteOrNull(), cancellationToken), cancellationToken));
+        : RunAsync(async () => await AfterDecisionAsync(await _leave.ApproveAsync(row.Request.Id, NoteOrNull(), cancellationToken), cancellationToken));
 
     [RelayCommand(CanExecute = nameof(CanDecide))]
     public Task RejectAsync(CancellationToken cancellationToken)
@@ -223,7 +196,7 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
             return Task.CompletedTask;
         }
 
-        return RunAsync(async () => await AfterDecisionAsync(await leave.RejectAsync(row.Request.Id, DecisionNote.Trim(), cancellationToken), cancellationToken));
+        return RunAsync(async () => await AfterDecisionAsync(await _leave.RejectAsync(row.Request.Id, DecisionNote.Trim(), cancellationToken), cancellationToken));
     }
 
     [RelayCommand(CanExecute = nameof(CanCancel))]
@@ -240,7 +213,7 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
             return Task.CompletedTask;
         }
 
-        return RunAsync(async () => await AfterDecisionAsync(await leave.CancelAsync(row.Request.Id, NoteOrNull(), cancellationToken), cancellationToken));
+        return RunAsync(async () => await AfterDecisionAsync(await _leave.CancelAsync(row.Request.Id, NoteOrNull(), cancellationToken), cancellationToken));
     }
 
     protected override bool TryShowOnField(ApiException exception)
@@ -249,15 +222,7 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
 
         var field = exception.Code switch
         {
-            "leave.employee_not_found" => nameof(EditEmployee),
-            "leave.no_entitlement" or "leave.on_demand_limit" or "leave.child_care_limit" or "leave.force_majeure_limit" => nameof(EditKind),
-            "leave.not_enough_days" => IsHourly ? nameof(EditHours) : nameof(EditKind),
-            "leave.hours_invalid" or "leave.hours_only_for_remainder" or "leave.hours_not_allowed" or "leave.hours_one_day" => nameof(EditHours),
-            "leave.days_or_hours" => IsHourly ? nameof(EditHours) : nameof(EditKind),
-            "leave.outside_employment" or "leave.overlap" => nameof(EditStartDate),
-            "leave.end_before_start" or "leave.crosses_year" or "leave.no_working_days" => nameof(EditEndDate),
-            "leave.note_too_long" => IsCreating ? nameof(EditNote) : nameof(DecisionNote),
-            "leave.reason_required" => nameof(DecisionNote),
+            "leave.note_too_long" or "leave.reason_required" => nameof(DecisionNote),
             _ => null,
         };
 
@@ -282,42 +247,15 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
         }
     }
 
-    partial void OnEditEmployeeChanged(Choice value)
+    private void ShowFormBalance()
     {
-        if (IsCreating && value.Id is { } id)
+        if (Form.EditEmployee.Id is { } id)
         {
-            _ = LoadBalanceAsync(id, (EditStartDate ?? time.GetLocalNow().Date).Year);
+            _ = LoadBalanceAsync(id, (Form.EditStartDate ?? _time.GetLocalNow().Date).Year);
         }
-        else if (IsCreating)
+        else
         {
             Balance = null;
-        }
-    }
-
-    // A one-day leave is the most common case, so the end follows the start until it is set later than it.
-    // Leave in hours is always one day.
-    partial void OnEditStartDateChanged(DateTime? value)
-    {
-        if (value is { } start && (IsHourly || EditEndDate is null || EditEndDate < start))
-        {
-            EditEndDate = start;
-        }
-    }
-
-    partial void OnEditKindChanged(LeaveKindChoice value)
-    {
-        if (!LeaveTexts.AllowsHours(value.Kind))
-        {
-            IsHourly = false;
-        }
-    }
-
-    partial void OnIsHourlyChanged(bool value)
-    {
-        SetError(nameof(EditHours), null);
-        if (value)
-        {
-            EditEndDate = EditStartDate;
         }
     }
 
@@ -330,7 +268,13 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
         _ = RunAsync(() => ReloadAsync(Selected?.Request.Id, CancellationToken.None));
     }
 
-    partial void OnYearChanged(int value) => _ = RunAsync(() => ReloadAsync(Selected?.Request.Id, CancellationToken.None));
+    partial void OnYearChanged(int value)
+    {
+        if (_isConstructed)
+        {
+            _ = RunAsync(() => ReloadAsync(Selected?.Request.Id, CancellationToken.None));
+        }
+    }
 
     private bool CanDecide() => Selected?.IsPending == true;
 
@@ -351,7 +295,7 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
 
     private async Task ReloadAsync(Guid? keepSelected, CancellationToken cancellationToken)
     {
-        var requests = await leave.ListAsync(StateFilter.State, Year, employeeId: null, cancellationToken);
+        var requests = await _leave.ListAsync(StateFilter.State, Year, employeeId: null, cancellationToken);
         var pending = StateFilter.State == LeaveState.Pending
             ? requests.Count
             : requests.Count(request => request.State == LeaveState.Pending);
@@ -375,10 +319,10 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
     {
         try
         {
-            var balance = await leave.GetBalanceAsync(employeeId, year, CancellationToken.None);
+            var balance = await _leave.GetBalanceAsync(employeeId, year, CancellationToken.None);
 
             // Only if the pane still shows the same person.
-            var current = IsCreating ? EditEmployee.Id : Selected?.Request.EmployeeId;
+            var current = IsCreating ? Form.EditEmployee.Id : Selected?.Request.EmployeeId;
             if (current == employeeId)
             {
                 Balance = balance;
@@ -392,17 +336,5 @@ public sealed partial class LeaveViewModel(ILeaveApi leave, IEmployeesApi employ
         {
             Balance = null;
         }
-    }
-
-    private bool Validate()
-    {
-        SetError(nameof(EditEmployee), EditEmployee.Id is null ? "Wybierz pracownika." : null);
-        SetError(nameof(EditStartDate), EditStartDate is null ? "Podaj pierwszy dzień urlopu." : null);
-        SetError(nameof(EditEndDate), IsHourly ? null : EditEndDate is null ? "Podaj ostatni dzień urlopu."
-            : EditStartDate is { } start && EditEndDate < start ? "Ostatni dzień nie może być przed pierwszym." : null);
-        SetError(nameof(EditHours), IsHourly && LeaveTexts.ParseHours(EditHours) is not > 0 ? "Podaj liczbę godzin, np. 2, 2,5 albo 2:30." : null);
-        SetError(nameof(EditNote), EditNote.Trim().Length > NoteMaxLength ? $"Uwagi mogą mieć najwyżej {NoteMaxLength} znaków." : null);
-
-        return !HasErrors;
     }
 }

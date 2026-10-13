@@ -27,7 +27,7 @@ public sealed class LeaveViewModelTests
         viewModel.Year.ShouldBe(2025);
         viewModel.Items.ShouldHaveSingleItem().IsPending.ShouldBeTrue();
         viewModel.PendingCount.ShouldBe(1);
-        viewModel.Employees.Count.ShouldBe(2);
+        viewModel.Form.Employees.Count.ShouldBe(2);
 
         viewModel.StateFilter = LeaveViewModel.States.Single(choice => choice.State is null);
         await Task.Yield();
@@ -64,18 +64,18 @@ public sealed class LeaveViewModelTests
 
         viewModel.New();
         await viewModel.SaveAsync(Cancellation);
-        viewModel.GetError(nameof(viewModel.EditEmployee)).ShouldBe("Wybierz pracownika.");
+        viewModel.Form.GetError(nameof(viewModel.Form.EditEmployee)).ShouldBe("Wybierz pracownika.");
 
-        viewModel.EditEmployee = viewModel.Employees.Single(choice => choice.Id == employee.Id);
-        viewModel.EditStartDate = new DateTime(2025, 6, 2);
-        viewModel.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
-        viewModel.EditEndDate = new DateTime(2025, 6, 6);
+        viewModel.Form.EditEmployee = viewModel.Form.Employees.Single(choice => choice.Id == employee.Id);
+        viewModel.Form.EditStartDate = new DateTime(2025, 6, 2);
+        viewModel.Form.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
+        viewModel.Form.EditEndDate = new DateTime(2025, 6, 6);
         await viewModel.SaveAsync(Cancellation);
 
-        viewModel.GetError(nameof(viewModel.EditKind)).ShouldBe("Najpierw ustaw wymiar urlopu pracownika na ten rok.");
+        viewModel.Form.GetError(nameof(viewModel.Form.EditKind)).ShouldBe("Najpierw ustaw wymiar urlopu pracownika na ten rok.");
         viewModel.IsCreating.ShouldBeTrue();
 
-        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
+        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
         await viewModel.SaveAsync(Cancellation);
 
         viewModel.IsCreating.ShouldBeFalse();
@@ -113,26 +113,26 @@ public sealed class LeaveViewModelTests
         var viewModel = CreateViewModel();
         await viewModel.LoadAsync(Cancellation);
         viewModel.New();
-        viewModel.EditEmployee = viewModel.Employees.Single(choice => choice.Id == employee.Id);
+        viewModel.Form.EditEmployee = viewModel.Form.Employees.Single(choice => choice.Id == employee.Id);
 
-        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.OnDemand);
-        viewModel.CanUseHours.ShouldBeFalse();
+        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.OnDemand);
+        viewModel.Form.CanUseHours.ShouldBeFalse();
 
-        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
-        viewModel.IsHourly = true;
-        viewModel.EditStartDate = new DateTime(2025, 6, 2);
-        viewModel.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
+        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
+        viewModel.Form.IsHourly = true;
+        viewModel.Form.EditStartDate = new DateTime(2025, 6, 2);
+        viewModel.Form.EditEndDate.ShouldBe(new DateTime(2025, 6, 2));
 
-        viewModel.EditHours = "dwie";
+        viewModel.Form.EditHours = "dwie";
         await viewModel.SaveAsync(Cancellation);
-        viewModel.GetError(nameof(viewModel.EditHours)).ShouldNotBeNull();
+        viewModel.Form.GetError(nameof(viewModel.Form.EditHours)).ShouldNotBeNull();
 
-        viewModel.EditHours = "9";
+        viewModel.Form.EditHours = "9";
         await viewModel.SaveAsync(Cancellation);
-        viewModel.GetError(nameof(viewModel.EditHours)).ShouldNotBeNull();
+        viewModel.Form.GetError(nameof(viewModel.Form.EditHours)).ShouldNotBeNull();
         viewModel.IsCreating.ShouldBeTrue();
 
-        viewModel.EditHours = "2:30";
+        viewModel.Form.EditHours = "2:30";
         await viewModel.SaveAsync(Cancellation);
 
         viewModel.Selected!.Request.IsHourly.ShouldBeTrue();
@@ -140,10 +140,10 @@ public sealed class LeaveViewModelTests
         viewModel.Selected.DaysText.ShouldBe("2,5 godz.");
 
         viewModel.New();
-        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
-        viewModel.IsHourly = true;
-        viewModel.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
-        viewModel.IsHourly.ShouldBeFalse();
+        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.ChildCare);
+        viewModel.Form.IsHourly = true;
+        viewModel.Form.EditKind = LeaveTexts.Kinds.Single(kind => kind.Kind == LeaveKind.Unpaid);
+        viewModel.Form.IsHourly.ShouldBeFalse();
     }
 
     [Theory]

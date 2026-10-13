@@ -66,6 +66,9 @@ internal static class LeaveErrors
     public static readonly AppError EntitlementInvalid =
         AppError.Validation("leave.entitlement_invalid", "Liczba dni musi być od 0 do 60.");
 
+    public static readonly AppError YearOutOfRange =
+        AppError.Validation("leave.year_out_of_range", "Rok musi być z zakresu 2000–2100.");
+
     public static readonly AppError NoTenant =
         AppError.Forbidden("tenant.missing", "Użytkownik nie jest przypisany do firmy.");
 

@@ -81,3 +81,6 @@ public sealed record LeaveBalanceResponse(
     decimal DailyHours);
 
 public sealed record SaveLeaveEntitlementRequest(int Days, int CarriedOverDays);
+
+/// <summary>A public holiday in Poland: a day off for everyone, not counted as leave.</summary>
+public sealed record HolidayResponse(DateOnly Date, string Name);
