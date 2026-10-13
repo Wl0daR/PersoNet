@@ -11,7 +11,7 @@ public sealed class EmployeesViewModelTests
     private readonly FakeOrganizationApi _organization = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2025, 5, 20, 9, 0, 0, TimeSpan.Zero));
 
-    private EmployeesViewModel CreateViewModel() => new(_employees, _organization, _time);
+    private EmployeesViewModel CreateViewModel() => new(_employees, _organization, new FakeLeaveApi(), _time);
 
     [Fact]
     public async Task New_card_saves_an_employee_who_then_appears_selected_in_the_list()

@@ -100,7 +100,7 @@ public sealed class ContractsViewModelTests
     {
         var employee = _api.Add("P001", "Jan", "Nowak");
         _api.Contracts.Add(new ContractResponse(Guid.CreateVersion7(), employee.Id, ContractKind.Indefinite, new DateOnly(2024, 1, 1), null, 0.5m));
-        var employees = new EmployeesViewModel(_api, new FakeOrganizationApi(), _time);
+        var employees = new EmployeesViewModel(_api, new FakeOrganizationApi(), new FakeLeaveApi(), _time);
         await employees.LoadAsync(Cancellation);
 
         await employees.OpenAsync(employees.Items.Single(), Cancellation);

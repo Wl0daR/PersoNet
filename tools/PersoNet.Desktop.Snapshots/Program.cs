@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using PersoNet.Desktop;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
+using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
 using PersoNet.Desktop.Snapshots;
@@ -59,8 +60,9 @@ namespace PersoNet.Desktop.Snapshots
         {
             var api = new DemoApi();
             var time = TimeProvider.System;
-            var employees = new EmployeesViewModel(api, api, time);
-            var shell = new ShellViewModel(api, new HomeViewModel(api, api, time), employees, new DepartmentsViewModel(api), new PositionsViewModel(api));
+            var employees = new EmployeesViewModel(api, api, api, time);
+            var leave = new LeaveViewModel(api, api, time);
+            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, time), employees, leave, new DepartmentsViewModel(api), new PositionsViewModel(api));
 
             var window = new MainWindow(shell)
             {
@@ -118,11 +120,40 @@ namespace PersoNet.Desktop.Snapshots
 
                 // The contracts tab of the same card.
                 await employees.OpenAsync(api.ListItem(api.FirstEmployeeWithContracts), CancellationToken.None);
-                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 2).SelectedIndex = 1;
+                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 1;
                 await RenderAsync(window, Sizes[1], Path.Combine(output, $"12-umowy-srodek-{suffix}.png"));
                 await RenderAsync(window, Sizes[2], Path.Combine(output, $"12-umowy-laptop150-{suffix}.png"));
-                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 2).SelectedIndex = 0;
+                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 0;
                 employees.CloseCardCommand.Execute(null);
+
+                // The leave tab of an employee with requests of every state.
+                await employees.OpenAsync(api.ListItem(api.FirstEmployeeWithLeave), CancellationToken.None);
+                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 2;
+                await RenderAsync(window, Sizes[1], Path.Combine(output, $"13-karta-urlop-srodek-{suffix}.png"));
+                await RenderAsync(window, Sizes[2], Path.Combine(output, $"13-karta-urlop-laptop150-{suffix}.png"));
+                FindAll<TabControl>(window).First(tabs => tabs.Items.Count == 3).SelectedIndex = 0;
+                employees.CloseCardCommand.Execute(null);
+
+                // A pending request waiting for a decision, all requests of the year, and the form of a new one.
+                shell.NavigateCommand.Execute(shell.LeaveItem);
+                leave.Selected = leave.Items.First(row => row.IsPending);
+                foreach (var size in Sizes)
+                {
+                    await RenderAsync(window, size, Path.Combine(output, $"14-wniosek-{size.Name}-{suffix}.png"));
+                }
+
+                leave.StateFilter = LeaveViewModel.States[1];
+                leave.Selected = leave.Items.First(row => row.Request.State == PersoNet.Contracts.Leave.LeaveState.Rejected);
+                await RenderAsync(window, Sizes[1], Path.Combine(output, $"15-wnioski-wszystkie-srodek-{suffix}.png"));
+
+                leave.NewCommand.Execute(null);
+                foreach (var size in Sizes)
+                {
+                    await RenderAsync(window, size, Path.Combine(output, $"16-nowy-wniosek-{size.Name}-{suffix}.png"));
+                }
+
+                leave.ClosePaneCommand.Execute(null);
+                leave.StateFilter = LeaveViewModel.States[0];
             }
 
             window.Close();
