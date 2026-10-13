@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PersoNet.Application.Employees;
 using PersoNet.Application.Organization;
 
 namespace PersoNet.Application;
@@ -15,6 +16,8 @@ public static class DependencyInjection
         services.AddScoped<DepartmentCommands>();
         services.AddScoped<PositionQueries>();
         services.AddScoped<PositionCommands>();
+        services.AddScoped<EmployeeQueries>();
+        services.AddScoped<EmployeeCommands>();
 
         return services;
     }

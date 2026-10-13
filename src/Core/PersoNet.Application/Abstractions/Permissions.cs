@@ -8,5 +8,11 @@ public static class Permissions
     /// <summary>Create and change departments and positions.</summary>
     public const string OrganizationManage = "organization.manage";
 
-    public static IReadOnlyList<string> All { get; } = [OrganizationManage];
+    /// <summary>See employee cards and the employee list (personal data, so HR only for now).</summary>
+    public const string EmployeesRead = "employees.read";
+
+    /// <summary>Hire, edit and terminate employees.</summary>
+    public const string EmployeesManage = "employees.manage";
+
+    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage];
 }

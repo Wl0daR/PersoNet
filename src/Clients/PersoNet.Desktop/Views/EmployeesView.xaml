@@ -1,0 +1,200 @@
+<UserControl x:Class="PersoNet.Desktop.Views.EmployeesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=emp:EmployeesViewModel}">
+    <UserControl.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewCommand}" />
+        <KeyBinding Key="F5" Command="{Binding LoadCommand}" />
+    </UserControl.InputBindings>
+
+    <Grid Margin="0,16,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="420" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="420" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Employee list: search, filter, pages. -->
+        <Border Grid.Column="0" Style="{StaticResource Card}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Content="Odśwież" Command="{Binding LoadCommand}" ToolTip="Wczytaj listę ponownie (F5)" />
+                    <TextBlock Text="Pracownicy" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                </DockPanel>
+
+                <!-- Search runs on Enter or the button, so typing does not hit the server on every key. -->
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Content="Szukaj" Command="{Binding SearchCommand}" Margin="8,0,0,0" />
+                    <TextBox x:Name="SearchBox" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Szukaj pracownika" ToolTip="Nazwisko, imię, numer lub e-mail (Ctrl+F)">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                </DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Szukaj po nazwisku, imieniu, numerze ewidencyjnym lub e-mailu."
+                           Style="{StaticResource HelperText}" Margin="0,0,0,8" />
+                <CheckBox DockPanel.Dock="Top" Content="Pokaż _byłych pracowników" IsChecked="{Binding IncludeFormer}" Margin="0,0,0,8" />
+
+                <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}">
+                    <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie" />
+                </Border>
+
+                <!-- Pager. -->
+                <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0" LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding PageInfo}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+                    <Button DockPanel.Dock="Right" Content="Następna" Command="{Binding NextPageCommand}" Margin="8,0,0,0" />
+                    <Button DockPanel.Dock="Right" Content="Poprzednia" Command="{Binding PreviousPageCommand}" />
+                </DockPanel>
+
+                <Grid>
+                    <DataGrid x:Name="List" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" SelectionChanged="OnSelectionChanged"
+                              AutomationProperties.Name="Lista pracowników" AutoGenerateColumns="False" IsReadOnly="True"
+                              SelectionMode="Single" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                              BorderThickness="0" Background="Transparent" CanUserSortColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nr" Binding="{Binding Number}" Width="Auto" />
+                            <DataGridTemplateColumn Header="Nazwisko i imię" Width="2*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Center">
+                                            <Run Text="{Binding LastName, Mode=OneWay}" FontWeight="SemiBold" /> <Run Text="{Binding FirstName, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Dział" Binding="{Binding DepartmentName}" Width="*" />
+                            <DataGridTextColumn Header="Stanowisko" Binding="{Binding PositionName}" Width="*" />
+                            <!-- Status in words, not color alone. -->
+                            <DataGridTextColumn Header="Status" Width="Auto"
+                                                Binding="{Binding TerminationDate, StringFormat='pracuje do {0:d}', TargetNullValue='zatrudniony'}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Empty state: explain why and what to do next. -->
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="340"
+                                Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding EmptyTitle}" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding EmptyHint}" Style="{StaticResource SecondaryText}" TextAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <!-- Employee card. -->
+        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16" IsEnabled="{Binding IsIdle}">
+                    <TextBlock Text="{Binding EditorTitle}" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="Pola oznaczone * są wymagane." Style="{StaticResource HelperText}" />
+
+                    <Label Content="Nu_mer ewidencyjny *" Target="{Binding ElementName=NumberBox}" Padding="0" Margin="0,16,0,4" />
+                    <TextBox x:Name="NumberBox" Text="{Binding EditNumber, UpdateSourceTrigger=PropertyChanged}" CharacterCasing="Upper"
+                             MaxLength="{x:Static emp:EmployeesViewModel.NumberMaxLength}"
+                             AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="Unikalny w firmie, np. P0042. Możesz zachować numerację z poprzedniego systemu." Style="{StaticResource HelperText}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NumberBox}" Style="{StaticResource FieldError}" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <Label Content="_Imię *" Target="{Binding ElementName=FirstNameBox}" Padding="0" Margin="0,16,0,4" />
+                            <TextBox x:Name="FirstNameBox" Text="{Binding EditFirstName, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="{x:Static emp:EmployeesViewModel.NameMaxLength}"
+                                     AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=FirstNameBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <Label Content="Na_zwisko *" Target="{Binding ElementName=LastNameBox}" Padding="0" Margin="0,16,0,4" />
+                            <TextBox x:Name="LastNameBox" Text="{Binding EditLastName, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="{x:Static emp:EmployeesViewModel.NameMaxLength}"
+                                     AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=LastNameBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Label Content="_E-mail służbowy" Target="{Binding ElementName=EmailBox}" Padding="0" Margin="0,16,0,4" />
+                    <TextBox x:Name="EmailBox" Text="{Binding EditEmail, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="{x:Static emp:EmployeesViewModel.EmailMaxLength}"
+                             AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EmailBox}" Style="{StaticResource FieldError}" />
+
+                    <Label Content="_Telefon" Target="{Binding ElementName=PhoneBox}" Padding="0" Margin="0,16,0,4" />
+                    <TextBox x:Name="PhoneBox" Text="{Binding EditPhone, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="{x:Static emp:EmployeesViewModel.PhoneMaxLength}" />
+
+                    <Label Content="Data _zatrudnienia *" Target="{Binding ElementName=HireDateBox}" Padding="0" Margin="0,16,0,4" />
+                    <DatePicker x:Name="HireDateBox" SelectedDate="{Binding EditHireDate}"
+                                AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=HireDateBox}" Style="{StaticResource FieldError}" />
+
+                    <Label Content="_Dział" Target="{Binding ElementName=DepartmentBox}" Padding="0" Margin="0,16,0,4" />
+                    <ComboBox x:Name="DepartmentBox" ItemsSource="{Binding Departments}" SelectedItem="{Binding EditDepartment}"
+                              DisplayMemberPath="Name" HorizontalAlignment="Stretch" IsTextSearchEnabled="True"
+                              AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=DepartmentBox}" Style="{StaticResource FieldError}" />
+
+                    <Label Content="_Stanowisko" Target="{Binding ElementName=PositionBox}" Padding="0" Margin="0,16,0,4" />
+                    <ComboBox x:Name="PositionBox" ItemsSource="{Binding Positions}" SelectedItem="{Binding EditPosition}"
+                              DisplayMemberPath="Name" HorizontalAlignment="Stretch" IsTextSearchEnabled="True"
+                              AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=PositionBox}" Style="{StaticResource FieldError}" />
+
+                    <Label Content="_Przełożony" Target="{Binding ElementName=ManagerBox}" Padding="0" Margin="0,16,0,4" />
+                    <ComboBox x:Name="ManagerBox" ItemsSource="{Binding Managers}" SelectedItem="{Binding EditManager}"
+                              DisplayMemberPath="Name" HorizontalAlignment="Stretch" IsTextSearchEnabled="True"
+                              AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="Wpisz pierwsze litery nazwiska, aby szybko znaleźć osobę." Style="{StaticResource HelperText}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=ManagerBox}" Style="{StaticResource FieldError}" />
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
+                        <Button Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True"
+                                Style="{DynamicResource AccentButtonStyle}" MinWidth="96" Margin="0,0,8,0" ToolTip="Zapisz kartotekę (Enter)" />
+                        <Button Content="Nowy pracownik" Command="{Binding NewCommand}" ToolTip="Pusta kartoteka (Ctrl+N)" />
+                    </StackPanel>
+
+                    <!-- End of employment: separate from everyday edits, with the date asked for explicitly. -->
+                    <Border Margin="0,24,0,0" Padding="0,16,0,0" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsNew}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="Zatrudnienie" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Text="{Binding StatusText}" Style="{StaticResource SecondaryText}" />
+
+                            <StackPanel Visibility="{Binding IsEmployed, Converter={StaticResource BoolToVisibility}}">
+                                <Label Content="_Ostatni dzień pracy" Target="{Binding ElementName=LastDayBox}" Padding="0" Margin="0,12,0,4" />
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Zakończ zatrudnienie" Command="{Binding TerminateCommand}" Margin="8,0,0,0" />
+                                    <DatePicker x:Name="LastDayBox" SelectedDate="{Binding TerminationLastDay}"
+                                                AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                                </DockPanel>
+                                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=LastDayBox}" Style="{StaticResource FieldError}" />
+                                <TextBlock Text="Osoba zniknie z listy po tym dniu; dane zostają w kartotece." Style="{StaticResource HelperText}" />
+                            </StackPanel>
+
+                            <Button Content="Cofnij zakończenie zatrudnienia" Command="{Binding ReinstateCommand}" Margin="0,12,0,0" HorizontalAlignment="Left"
+                                    Visibility="{Binding IsTerminated, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

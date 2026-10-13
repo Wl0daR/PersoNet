@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
 using PersoNet.Domain.Abstractions;
+using PersoNet.Domain.Employees;
 using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
 
@@ -40,6 +41,8 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     public DbSet<Department> Departments => Set<Department>();
 
     public DbSet<Position> Positions => Set<Position>();
+
+    public DbSet<Employee> Employees => Set<Employee>();
 
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;

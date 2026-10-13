@@ -97,6 +97,23 @@ public sealed class RowLevelSecurityTests : IAsyncLifetime
         exception.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
     }
 
+    [Fact]
+    public async Task Every_table_with_tenant_data_has_row_level_security()
+    {
+        await using var context = CreateContext(AdminConnectionString, tenantId: null);
+
+        var unprotected = await context.Database.SqlQueryRaw<string>("""
+            SELECT c.relname AS "Value"
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relkind = 'r'
+              AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'tenant_id' AND NOT a.attisdropped)
+              AND NOT (c.relrowsecurity AND c.relforcerowsecurity)
+            """).ToListAsync(Cancellation);
+
+        unprotected.ShouldBeEmpty("Każda tabela z danymi firmy musi mieć EnableTenantIsolation w migracji.");
+    }
+
     private static PersoNetDbContext CreateContext(string connectionString, Guid? tenantId)
     {
         var options = new DbContextOptionsBuilder<PersoNetDbContext>();

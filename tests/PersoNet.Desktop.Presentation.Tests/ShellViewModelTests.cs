@@ -1,4 +1,5 @@
 using PersoNet.Desktop.Presentation.Authentication;
+using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
 
@@ -6,6 +7,9 @@ namespace PersoNet.Desktop.Presentation.Tests;
 
 public sealed class ShellViewModelTests
 {
+    private static EmployeesViewModel Employees(FakeOrganizationApi organization) =>
+        new(new FakeEmployeesApi(), organization, TimeProvider.System);
+
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -13,7 +17,7 @@ public sealed class ShellViewModelTests
     {
         var api = new FakeOrganizationApi();
         api.Add("Dział IT", "IT");
-        var shell = new ShellViewModel(new FakeSignIn(), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn(), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
 
         await shell.SignInAsync(Cancellation);
 
@@ -26,7 +30,7 @@ public sealed class ShellViewModelTests
     public async Task Cancelled_sign_in_shows_a_message_and_stays_signed_out()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn { Cancel = true }, Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
 
         await shell.SignInAsync(Cancellation);
 
@@ -38,7 +42,7 @@ public sealed class ShellViewModelTests
     public async Task Sign_out_forgets_the_user()
     {
         var api = new FakeOrganizationApi();
-        var shell = new ShellViewModel(new FakeSignIn(), new DepartmentsViewModel(api), new PositionsViewModel(api));
+        var shell = new ShellViewModel(new FakeSignIn(), Employees(api), new DepartmentsViewModel(api), new PositionsViewModel(api));
         await shell.SignInAsync(Cancellation);
 
         await shell.SignOutAsync(Cancellation);
