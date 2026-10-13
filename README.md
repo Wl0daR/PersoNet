@@ -32,7 +32,16 @@ Aplikacja desktopowa (Windows):
 dotnet run --project src/Clients/PersoNet.Desktop
 ```
 
-W środowisku Development API przy starcie samo stosuje brakujące migracje bazy.
+W środowisku Development API i serwer logowania przy starcie same stosują brakujące migracje bazy.
+
+### Logowanie
+
+Na razie działa logowanie kontami lokalnymi (Entra ID dojdzie później). W Development przy starcie powstaje firma demonstracyjna i konto:
+
+- e-mail: `admin@demo.personet.local`
+- hasło: `Demo!Haslo123`
+
+Aplikacja webowa wymaga zalogowania i przekierowuje na stronę logowania serwera `PersoNet.Identity`. API przyjmuje tylko tokeny wystawione przez ten serwer (`GET /api/v1/me` zwraca zalogowanego użytkownika). Przy pierwszym uruchomieniu zaufaj certyfikatowi deweloperskiemu HTTPS: `dotnet dev-certs https --trust`.
 
 ## Budowanie i testy
 
@@ -53,6 +62,12 @@ $env:PERSONET_TEST_POSTGRES = "Host=localhost;Port=5432;Username=postgres;Passwo
 ```bash
 dotnet tool restore
 dotnet ef migrations add <Nazwa> --project src/Infrastructure/PersoNet.Infrastructure --output-dir Persistence/Migrations
+```
+
+Konta i dane serwera logowania mają osobne migracje (schemat `identity`):
+
+```bash
+dotnet ef migrations add <Nazwa> --project src/Hosts/PersoNet.Identity --output-dir Data/Migrations
 ```
 
 Migracje przechodzą przez Pull Request jak kod. Na serwerze uruchamiane są osobnym krokiem wdrożenia, nie przy starcie aplikacji.

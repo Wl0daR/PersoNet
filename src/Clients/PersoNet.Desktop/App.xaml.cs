@@ -17,7 +17,7 @@ public partial class App : Application
     {
         var builder = Host.CreateApplicationBuilder();
 
-        var apiBaseAddress = builder.Configuration["PersoNetApi:BaseAddress"] ?? "https://localhost:7001";
+        var apiBaseAddress = builder.Configuration["PersoNetApi:BaseAddress"] ?? "https://localhost:7016";
         builder.Services.AddPersoNetApiClient(new Uri(apiBaseAddress));
 
         builder.Services.AddSingleton<ShellViewModel>();

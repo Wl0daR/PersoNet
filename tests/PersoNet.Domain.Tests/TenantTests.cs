@@ -15,6 +15,16 @@ public sealed class TenantTests
         tenant.IsActive.ShouldBeTrue();
     }
 
+    [Fact]
+    public void Create_with_id_keeps_the_given_id()
+    {
+        var id = Guid.CreateVersion7();
+
+        var tenant = Tenant.Create(id, "Acme", "acme");
+
+        tenant.Id.ShouldBe(id);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("-acme")]
