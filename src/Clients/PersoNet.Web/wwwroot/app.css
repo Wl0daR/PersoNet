@@ -1,39 +1,132 @@
-html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+/*
+    PersoNet visual tokens (same values as PersoNet.Identity/wwwroot/css/site.css; keep them in sync).
+    Chosen with the ui-ux-pro-max skill: navy "authority and trust" palette on slate neutrals, system fonts
+    (no external font hosts on a self-hosted HR system), WCAG AA contrast in light and dark mode,
+    visible focus ring, 44 px touch targets. Bootstrap is themed through its own variables below.
+*/
+:root {
+    color-scheme: light dark;
+    --color-primary: #1e3a8a;
+    --color-primary-hover: #1e40af;
+    --color-on-primary: #ffffff;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-foreground: #0f172a;
+    --color-muted-foreground: #475569;
+    --color-border: #cbd5e1;
+    --color-danger: #b91c1c;
+    --color-danger-surface: #fef2f2;
+    --color-ring: #2563eb;
+    --color-sidebar: #172554;
+    --color-sidebar-foreground: #dbeafe;
+    --color-sidebar-active: #1e3a8a;
+    --radius: 8px;
+    --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+    --bs-body-font-family: var(--font-sans);
+    --bs-body-bg: var(--color-background);
+    --bs-body-color: var(--color-foreground);
+    --bs-secondary-color: var(--color-muted-foreground);
+    --bs-border-color: var(--color-border);
+    --bs-link-color: var(--color-primary);
+    --bs-link-color-rgb: 30, 58, 138;
+    --bs-link-hover-color: var(--color-primary-hover);
+    --bs-link-hover-color-rgb: 30, 64, 175;
 }
 
-a, .btn-link {
-    color: #006bb7;
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-primary: #93c5fd;
+        --color-primary-hover: #bfdbfe;
+        --color-on-primary: #0f172a;
+        --color-background: #0f172a;
+        --color-surface: #1e293b;
+        --color-foreground: #f1f5f9;
+        --color-muted-foreground: #cbd5e1;
+        --color-border: #334155;
+        --color-danger: #fca5a5;
+        --color-danger-surface: #3b1219;
+        --color-ring: #93c5fd;
+        --color-sidebar: #020617;
+        --color-sidebar-foreground: #cbd5e1;
+        --color-sidebar-active: #1e293b;
+
+        --bs-link-color-rgb: 147, 197, 253;
+        --bs-link-hover-color-rgb: 191, 219, 254;
+    }
 }
+
+html, body {
+    font-family: var(--font-sans);
+    background: var(--color-background);
+    color: var(--color-foreground);
+}
+
+h1 { font-size: 1.75rem; font-weight: 600; line-height: 1.25; }
+h2 { font-size: 1.25rem; font-weight: 600; }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    --bs-btn-color: var(--color-on-primary);
+    --bs-btn-bg: var(--color-primary);
+    --bs-btn-border-color: var(--color-primary);
+    --bs-btn-hover-color: var(--color-on-primary);
+    --bs-btn-hover-bg: var(--color-primary-hover);
+    --bs-btn-hover-border-color: var(--color-primary-hover);
+    min-height: 44px;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+/* Secondary action (e.g. sign out): clear outline with full-contrast text. */
+.btn-quiet {
+    --bs-btn-color: var(--color-foreground);
+    --bs-btn-border-color: var(--color-border);
+    --bs-btn-hover-color: var(--color-foreground);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--color-foreground) 6%, transparent);
+    --bs-btn-hover-border-color: var(--color-muted-foreground);
+    --bs-btn-active-color: var(--color-foreground);
+    --bs-btn-active-border-color: var(--color-muted-foreground);
 }
 
-.content {
-    padding-top: 1.1rem;
+/* Never remove the focus ring; show it for keyboard users. */
+:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-check-input:focus-visible {
+    outline: 3px solid var(--color-ring);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 
-h1:focus {
-    outline: none;
+/* Headings get focus after navigation (FocusOnNavigate) only so screen readers announce the page. */
+h1:focus { outline: none; }
+
+.text-muted-foreground { color: var(--color-muted-foreground); }
+
+.surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 24px;
 }
 
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
+/* Forms: error under its field, announced by screen readers. */
+.invalid { outline: 1px solid var(--color-danger); }
+.validation-message { color: var(--color-danger); font-size: .875rem; margin-top: 4px; }
 
-.invalid {
-    outline: 1px solid #e50000;
+/* "Skip to content" link, visible only when focused. */
+.skip-link {
+    position: absolute;
+    left: 16px;
+    top: -100px;
+    z-index: 1100;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
 }
+.skip-link:focus { top: 8px; }
 
-.validation-message {
-    color: #e50000;
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 
 .blazor-error-boundary {
@@ -43,18 +136,5 @@ h1:focus {
 }
 
     .blazor-error-boundary::after {
-        content: "An error has occurred."
+        content: "Wystąpił błąd w tej części strony."
     }
-
-.darker-border-checkbox.form-check-input {
-    border-color: #929292;
-}
-
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
-}

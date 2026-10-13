@@ -8,8 +8,9 @@
 </head>
 <body>
     <main class="card">
-        <h1 class="brand">PersoNet</h1>
+        <p class="brand">PersoNet</p>
         @RenderBody()
     </main>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

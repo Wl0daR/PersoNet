@@ -1,11 +1,15 @@
 @page "/"
 
-<PageTitle>PersoNet</PageTitle>
-
-<h1>PersoNet</h1>
-
-<p>Portal pracownika i kierownika.</p>
+<PageTitle>Strona główna – PersoNet</PageTitle>
 
 <AuthorizeView>
-    <p>Zalogowano jako <strong>@context.User.FindFirst("name")?.Value</strong> (@context.User.FindFirst("email")?.Value).</p>
+    <h1>Dzień dobry, @(context.User.FindFirst("given_name")?.Value ?? context.User.FindFirst("name")?.Value)</h1>
+    <p class="text-muted-foreground">Zalogowano jako @context.User.FindFirst("email")?.Value</p>
 </AuthorizeView>
+
+<section class="surface mt-4" aria-labelledby="soon-title">
+    <h2 id="soon-title">Portal pracownika jest w przygotowaniu</h2>
+    <p class="mb-0 text-muted-foreground">
+        Wkrótce znajdziesz tu swoje dane kadrowe i wnioski urlopowe, a kierownicy także akceptację wniosków zespołu.
+    </p>
+</section>

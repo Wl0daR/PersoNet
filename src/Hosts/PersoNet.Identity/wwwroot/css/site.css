@@ -1,23 +1,41 @@
+/*
+    PersoNet visual tokens (shared values with PersoNet.Web/wwwroot/app.css; keep them in sync).
+    Chosen with the ui-ux-pro-max skill: navy "authority and trust" palette on slate neutrals, system fonts
+    (no external font hosts on a self-hosted HR system), WCAG AA contrast in light and dark mode,
+    visible focus ring, 44 px controls.
+*/
 :root {
     color-scheme: light dark;
-    --bg: #f4f5f7;
-    --surface: #ffffff;
-    --text: #1f2328;
-    --muted: #59636e;
-    --accent: #0b5cad;
-    --danger: #b42318;
-    --border: #d0d7de;
+    --color-primary: #1e3a8a;
+    --color-primary-hover: #1e40af;
+    --color-on-primary: #ffffff;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-foreground: #0f172a;
+    --color-muted-foreground: #475569;
+    --color-border: #cbd5e1;
+    --color-input-border: #64748b;
+    --color-danger: #b91c1c;
+    --color-danger-surface: #fef2f2;
+    --color-ring: #2563eb;
+    --radius: 8px;
+    --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #0d1117;
-        --surface: #161b22;
-        --text: #e6edf3;
-        --muted: #9198a1;
-        --accent: #4493f8;
-        --danger: #f85149;
-        --border: #30363d;
+        --color-primary: #93c5fd;
+        --color-primary-hover: #bfdbfe;
+        --color-on-primary: #0f172a;
+        --color-background: #0f172a;
+        --color-surface: #1e293b;
+        --color-foreground: #f1f5f9;
+        --color-muted-foreground: #cbd5e1;
+        --color-border: #334155;
+        --color-input-border: #94a3b8;
+        --color-danger: #fca5a5;
+        --color-danger-surface: #3b1219;
+        --color-ring: #93c5fd;
     }
 }
 
@@ -29,49 +47,107 @@ body {
     display: grid;
     place-items: center;
     padding: 16px;
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 .card {
     width: 100%;
-    max-width: 380px;
+    max-width: 400px;
     padding: 32px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 6%), 0 4px 16px rgb(15 23 42 / 6%);
 }
 
-.brand { margin: 0 0 4px; font-size: 1.5rem; color: var(--accent); }
-h2 { margin: 0 0 24px; font-size: 1.1rem; font-weight: 500; color: var(--muted); }
+.brand {
+    margin: 0 0 24px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
 
-label { display: block; margin-bottom: 4px; font-weight: 500; }
+h1, h2 { margin: 0 0 8px; font-size: 1.5rem; font-weight: 600; line-height: 1.25; }
 
-input[type=email], input[type=password] {
+.lead { margin: 0 0 24px; color: var(--color-muted-foreground); }
+
+.field { margin-bottom: 16px; }
+
+label { display: block; margin-bottom: 4px; font-weight: 600; }
+
+input[type=email], input[type=password], input[type=text] {
     width: 100%;
-    margin-bottom: 16px;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    color: var(--text);
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-input-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-foreground);
     font: inherit;
 }
 
-.check { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; font-weight: 400; }
+input[aria-invalid=true] { border-color: var(--color-danger); }
+
+/* Password with a show/hide button inside the field. */
+.password { position: relative; }
+.password input { padding-right: 88px; }
+.password .toggle {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: auto;
+    min-height: 36px;
+    padding: 0 12px;
+    background: transparent;
+    color: var(--color-primary);
+    font-weight: 600;
+}
+.password .toggle:hover { background: color-mix(in srgb, var(--color-primary) 10%, transparent); }
+
+.check { display: flex; gap: 8px; align-items: center; min-height: 44px; margin-bottom: 16px; font-weight: 400; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-primary); }
 
 button {
     width: 100%;
-    padding: 10px;
+    min-height: 44px;
+    padding: 10px 16px;
     border: 0;
-    border-radius: 6px;
-    background: var(--accent);
-    color: #fff;
+    border-radius: var(--radius);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
     font: inherit;
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 150ms ease-out;
 }
 
-.error { margin-bottom: 16px; color: var(--danger); }
-.field-error { display: block; margin: -12px 0 12px; color: var(--danger); font-size: .875rem; }
+button:hover { background: var(--color-primary-hover); }
+button:disabled { opacity: .7; cursor: progress; }
+
+/* Never remove the focus ring; show it for keyboard users. */
+:focus-visible { outline: 3px solid var(--color-ring); outline-offset: 2px; }
+
+/* Problem with the whole form (wrong password, locked account). */
+.alert {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--color-danger);
+    border-left-width: 4px;
+    border-radius: var(--radius);
+    background: var(--color-danger-surface);
+    color: var(--color-foreground);
+}
+
+/* Error directly under its field. */
+.field-error { display: block; margin-top: 4px; color: var(--color-danger); font-size: .875rem; }
+.field-error:empty { display: none; }
+
+.hint { margin: 16px 0 0; color: var(--color-muted-foreground); font-size: .875rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+}
