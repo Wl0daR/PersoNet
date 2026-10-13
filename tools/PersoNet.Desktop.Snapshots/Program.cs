@@ -134,7 +134,9 @@ namespace PersoNet.Desktop.Snapshots
             var background = new DrawingVisual();
             using (var context = background.RenderOpen())
             {
-                context.DrawRectangle(window.Background ?? Brushes.White, null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                // The Fluent window background is Mica (drawn by Windows, not WPF), so paint the theme's solid base colour under the content.
+                var themeBackground = window.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
+                context.DrawRectangle(themeBackground, null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
             }
 
             bitmap.Render(background);
