@@ -42,4 +42,7 @@
     <Project Path="tests/PersoNet.Domain.Tests/PersoNet.Domain.Tests.csproj" />
     <Project Path="tests/PersoNet.Infrastructure.IntegrationTests/PersoNet.Infrastructure.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PersoNet.Desktop.Snapshots/PersoNet.Desktop.Snapshots.csproj" />
+  </Folder>
 </Solution>

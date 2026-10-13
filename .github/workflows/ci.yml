@@ -72,3 +72,14 @@ jobs:
 
       - name: Build WPF app
         run: dotnet build src/Clients/PersoNet.Desktop/PersoNet.Desktop.csproj --configuration Release
+
+      # Screenshots of every screen at several window sizes, light and dark, for layout review.
+      - name: Render desktop screenshots
+        run: dotnet run --project tools/PersoNet.Desktop.Snapshots/PersoNet.Desktop.Snapshots.csproj --configuration Release -- snapshots
+
+      - name: Upload desktop screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-screenshots
+          path: snapshots/
+          retention-days: 14
