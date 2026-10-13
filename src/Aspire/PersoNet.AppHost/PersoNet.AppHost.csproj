@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Hosts\PersoNet.Api\PersoNet.Api.csproj" />
     <ProjectReference Include="..\..\Hosts\PersoNet.Identity\PersoNet.Identity.csproj" />
     <ProjectReference Include="..\..\Hosts\PersoNet.Worker\PersoNet.Worker.csproj" />

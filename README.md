@@ -7,16 +7,30 @@ Architektura: [docs/architecture.md](docs/architecture.md) · Decyzje: [docs/adr
 ## Wymagania
 
 - .NET 10 SDK
-- Docker lub Podman (lokalny PostgreSQL uruchamiany przez Aspire)
+- PostgreSQL zainstalowany lokalnie (np. [instalator dla Windows](https://www.postgresql.org/download/windows/)); Docker nie jest potrzebny
 - Windows do uruchomienia aplikacji WPF (pozostałe projekty budują się i działają na Linux/macOS)
 
 ## Uruchomienie lokalne
+
+Jednorazowo utwórz bazę `personet` w lokalnym PostgreSQL i zapisz connection string w User Secrets (poza repozytorium):
+
+```bash
+dotnet user-secrets set ConnectionStrings:personet "Host=localhost;Port=5432;Database=personet;Username=postgres;Password=<hasło>" --project src/Aspire/PersoNet.AppHost
+```
+
+Potem:
 
 ```bash
 dotnet run --project src/Aspire/PersoNet.AppHost
 ```
 
-AppHost uruchamia API, serwer logowania, aplikację webową, Worker i PostgreSQL oraz otwiera dashboard z logami i trace'ami.
+AppHost uruchamia API, serwer logowania, aplikację webową i Worker jako zwykłe procesy (bez kontenerów) i otwiera dashboard z adresami, logami i trace'ami.
+
+Aplikacja desktopowa (Windows):
+
+```bash
+dotnet run --project src/Clients/PersoNet.Desktop
+```
 
 ## Budowanie i testy
 

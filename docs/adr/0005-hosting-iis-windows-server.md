@@ -16,7 +16,7 @@ System działa na własnym serwerze. Aplikacja webowa i API mają działać na I
 - Klucze Data Protection trwale zapisane poza pulą aplikacji, żeby recykling nie wylogowywał użytkowników.
 - `PersoNet.Worker` jako usługa Windows (`AddWindowsService`), bo IIS usypia i recyklinguje pule.
 - Aplikacja WPF dystrybuowana instalatorem (MSIX lub Velopack) z automatyczną aktualizacją.
-- .NET Aspire (`PersoNet.AppHost`) służy tylko do lokalnego uruchamiania całości.
+- .NET Aspire (`PersoNet.AppHost`) służy tylko do lokalnego uruchamiania całości, bez kontenerów: projekty startują jako procesy, a baza to lokalnie zainstalowany PostgreSQL. Docker nie jest wymagany ani lokalnie, ani na serwerze.
 
 ## Konsekwencje
 
