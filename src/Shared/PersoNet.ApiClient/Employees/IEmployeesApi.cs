@@ -19,6 +19,14 @@ public interface IEmployeesApi
     Task<EmployeeResponse> TerminateAsync(Guid id, DateOnly lastDay, CancellationToken cancellationToken);
 
     Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    Task<ContractResponse> CreateContractAsync(Guid employeeId, SaveContractRequest request, CancellationToken cancellationToken);
+
+    Task<ContractResponse> UpdateContractAsync(Guid employeeId, Guid contractId, SaveContractRequest request, CancellationToken cancellationToken);
+
+    Task DeleteContractAsync(Guid employeeId, Guid contractId, CancellationToken cancellationToken);
 }
 
 public sealed record EmployeeListQuery(string? Search, Guid? DepartmentId, bool IncludeFormer, int Page, int PageSize);

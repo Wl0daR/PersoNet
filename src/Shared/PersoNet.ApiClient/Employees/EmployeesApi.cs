@@ -69,4 +69,28 @@ internal sealed class EmployeesApi(HttpClient http) : IEmployeesApi
         using var response = await http.PostAsync(new Uri($"{Employees}/{id}/reinstate", UriKind.Relative), content: null, cancellationToken).ConfigureAwait(false);
         return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
     }
+
+    public async Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(new Uri($"{Employees}/{employeeId}/contracts", UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<List<ContractResponse>>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<ContractResponse> CreateContractAsync(Guid employeeId, SaveContractRequest request, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync($"{Employees}/{employeeId}/contracts", request, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<ContractResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<ContractResponse> UpdateContractAsync(Guid employeeId, Guid contractId, SaveContractRequest request, CancellationToken cancellationToken)
+    {
+        using var response = await http.PutAsJsonAsync($"{Employees}/{employeeId}/contracts/{contractId}", request, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<ContractResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteContractAsync(Guid employeeId, Guid contractId, CancellationToken cancellationToken)
+    {
+        using var response = await http.DeleteAsync(new Uri($"{Employees}/{employeeId}/contracts/{contractId}", UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        await ApiResponses.EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+    }
 }

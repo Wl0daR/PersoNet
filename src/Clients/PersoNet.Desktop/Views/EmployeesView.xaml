@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
+             xmlns:local="clr-namespace:PersoNet.Desktop.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=emp:EmployeesViewModel}">
     <UserControl.InputBindings>
@@ -85,10 +86,12 @@
             </DockPanel>
         </Border>
 
-        <!-- Employee card. -->
-        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+        <!-- Employee card: personal data and contracts on separate tabs. -->
+        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="8,8,8,0">
+            <TabControl>
+                <TabItem Header="_Dane">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="16" IsEnabled="{Binding IsIdle}">
+                <StackPanel Margin="8,16,8,16" IsEnabled="{Binding IsIdle}">
                     <TextBlock Text="{Binding EditorTitle}" Style="{StaticResource SectionTitle}" />
                     <TextBlock Text="Pola oznaczone * są wymagane." Style="{StaticResource HelperText}" />
 
@@ -195,6 +198,24 @@
                     </Border>
                 </StackPanel>
             </ScrollViewer>
+                </TabItem>
+                <!-- A card that is not saved yet has no contracts. -->
+                <TabItem Header="_Umowy" ToolTip="Najpierw zapisz kartotekę pracownika.">
+                    <TabItem.Style>
+                        <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsNew}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsNew}" Value="False">
+                                    <Setter Property="ToolTip" Value="{x:Null}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TabItem.Style>
+                    <local:ContractsView DataContext="{Binding Contracts}" />
+                </TabItem>
+            </TabControl>
         </Border>
     </Grid>
 </UserControl>

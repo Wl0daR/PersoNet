@@ -15,6 +15,8 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
 
     public List<EmployeeListQuery> Queries { get; } = [];
 
+    public List<ContractResponse> Contracts { get; } = [];
+
     public Task<PagedResponse<EmployeeListItem>> ListAsync(EmployeeListQuery query, CancellationToken cancellationToken)
     {
         Queries.Add(query);
@@ -96,12 +98,48 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
         return Task.FromResult(Employees[index]);
     }
 
+    public Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ContractResponse>>(Contracts.Where(c => c.EmployeeId == employeeId).OrderByDescending(c => c.StartDate).ToList());
+
+    public Task<ContractResponse> CreateContractAsync(Guid employeeId, SaveContractRequest request, CancellationToken cancellationToken)
+    {
+        EnsureNoOverlap(employeeId, null, request);
+
+        var contract = new ContractResponse(Guid.CreateVersion7(), employeeId, request.Type, request.StartDate, request.EndDate, request.WorkingTime);
+        Contracts.Add(contract);
+        return Task.FromResult(contract);
+    }
+
+    public Task<ContractResponse> UpdateContractAsync(Guid employeeId, Guid contractId, SaveContractRequest request, CancellationToken cancellationToken)
+    {
+        EnsureNoOverlap(employeeId, contractId, request);
+
+        var index = Contracts.FindIndex(c => c.Id == contractId);
+        Contracts[index] = Contracts[index] with { Type = request.Type, StartDate = request.StartDate, EndDate = request.EndDate, WorkingTime = request.WorkingTime };
+        return Task.FromResult(Contracts[index]);
+    }
+
+    public Task DeleteContractAsync(Guid employeeId, Guid contractId, CancellationToken cancellationToken)
+    {
+        Contracts.RemoveAll(c => c.Id == contractId);
+        return Task.CompletedTask;
+    }
+
     public EmployeeResponse Add(string number, string firstName, string lastName, DateOnly? hireDate = null)
     {
         var employee = new EmployeeResponse(
             Guid.CreateVersion7(), number, firstName, lastName, null, null, hireDate ?? new DateOnly(2024, 1, 1), null, null, null, null);
         Employees.Add(employee);
         return employee;
+    }
+
+    private void EnsureNoOverlap(Guid employeeId, Guid? exceptId, SaveContractRequest request)
+    {
+        if (Contracts.Any(c => c.EmployeeId == employeeId && c.Id != exceptId
+            && c.StartDate <= (request.EndDate ?? DateOnly.MaxValue) && request.StartDate <= (c.EndDate ?? DateOnly.MaxValue)))
+        {
+            throw new ApiException(HttpStatusCode.Conflict, "W tym okresie pracownik ma już inną umowę o pracę.", "contract.overlap");
+        }
     }
 
     private void EnsureNumberFree(string number, Guid? exceptId)
