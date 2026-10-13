@@ -269,9 +269,11 @@ namespace PersoNet.Desktop.Snapshots
             {
                 var view = (FrameworkElement)layer.Content;
                 var natural = SnapshotDialogs.NaturalSize(layer);
-                layer.SizeToContent = SizeToContent.Manual;
                 view.Width = Math.Min(natural.Width, (size.Width * 0.95) - 16);
                 view.Height = Math.Min(natural.Height, (size.Height * 0.95) - TitleBarHeight - 8);
+
+                // The window shrinks with the view; a larger window would centre the view and push its footer out.
+                layer.SizeToContent = SizeToContent.WidthAndHeight;
             }
 
             await SettleAsync();
