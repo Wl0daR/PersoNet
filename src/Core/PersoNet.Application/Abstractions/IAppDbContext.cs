@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PersoNet.Domain.Employees;
 using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
 
@@ -14,6 +15,8 @@ public interface IAppDbContext
     DbSet<Department> Departments { get; }
 
     DbSet<Position> Positions { get; }
+
+    DbSet<Employee> Employees { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

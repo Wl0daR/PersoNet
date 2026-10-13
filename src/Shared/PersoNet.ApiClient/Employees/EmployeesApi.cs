@@ -1,0 +1,72 @@
+using System.Globalization;
+using System.Net.Http.Json;
+using PersoNet.Contracts.Common;
+using PersoNet.Contracts.Employees;
+
+namespace PersoNet.ApiClient.Employees;
+
+internal sealed class EmployeesApi(HttpClient http) : IEmployeesApi
+{
+    private const string Employees = "api/v1/employees";
+
+    public async Task<PagedResponse<EmployeeListItem>> ListAsync(EmployeeListQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var parameters = new List<string>
+        {
+            $"includeFormer={(query.IncludeFormer ? "true" : "false")}",
+            "page=" + query.Page.ToString(CultureInfo.InvariantCulture),
+            "pageSize=" + query.PageSize.ToString(CultureInfo.InvariantCulture),
+        };
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            parameters.Add("search=" + Uri.EscapeDataString(query.Search.Trim()));
+        }
+
+        if (query.DepartmentId is { } departmentId)
+        {
+            parameters.Add($"departmentId={departmentId}");
+        }
+
+        using var response = await http.GetAsync(new Uri($"{Employees}?{string.Join('&', parameters)}", UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<PagedResponse<EmployeeListItem>>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<EmployeeLookupItem>> LookupAsync(CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(new Uri($"{Employees}/lookup", UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<List<EmployeeLookupItem>>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeResponse> GetAsync(Guid id, CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(new Uri($"{Employees}/{id}", UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeResponse> CreateAsync(SaveEmployeeRequest request, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync(Employees, request, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeResponse> UpdateAsync(Guid id, SaveEmployeeRequest request, CancellationToken cancellationToken)
+    {
+        using var response = await http.PutAsJsonAsync($"{Employees}/{id}", request, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeResponse> TerminateAsync(Guid id, DateOnly lastDay, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync($"{Employees}/{id}/terminate", new TerminateEmployeeRequest(lastDay), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsync(new Uri($"{Employees}/{id}/reinstate", UriKind.Relative), content: null, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+}

@@ -1,8 +1,10 @@
 using System.Windows;
+using System.Windows.Markup;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PersoNet.ApiClient;
 using PersoNet.Desktop.Authentication;
+using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Shell;
 
@@ -17,6 +19,10 @@ public partial class App : Application
 
     public App()
     {
+        // Dates and numbers in bindings use Polish formats (WPF defaults to en-US regardless of Windows settings).
+        FrameworkElement.LanguageProperty.OverrideMetadata(
+            typeof(FrameworkElement), new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("pl-PL")));
+
         var builder = Host.CreateApplicationBuilder();
 
         // Sign-in also provides the access token for API calls, so it is registered before the API client.
@@ -25,6 +31,7 @@ public partial class App : Application
         var apiBaseAddress = builder.Configuration["PersoNetApi:BaseAddress"] ?? "https://localhost:7016";
         builder.Services.AddPersoNetApiClient(new Uri(apiBaseAddress));
 
+        builder.Services.AddSingleton<EmployeesViewModel>();
         builder.Services.AddSingleton<DepartmentsViewModel>();
         builder.Services.AddSingleton<PositionsViewModel>();
         builder.Services.AddSingleton<ShellViewModel>();

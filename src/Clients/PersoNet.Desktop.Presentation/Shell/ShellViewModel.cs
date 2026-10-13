@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.Desktop.Presentation.Authentication;
+using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Organization;
 
 namespace PersoNet.Desktop.Presentation.Shell;
@@ -10,6 +11,7 @@ namespace PersoNet.Desktop.Presentation.Shell;
 /// </summary>
 public sealed partial class ShellViewModel(
     ISignInService signIn,
+    EmployeesViewModel employees,
     DepartmentsViewModel departments,
     PositionsViewModel positions) : ObservableObject
 {
@@ -25,6 +27,8 @@ public sealed partial class ShellViewModel(
     public partial string? ErrorMessage { get; set; }
 
     public bool IsSignedIn => User is not null;
+
+    public EmployeesViewModel Employees { get; } = employees;
 
     public DepartmentsViewModel Departments { get; } = departments;
 
@@ -53,6 +57,7 @@ public sealed partial class ShellViewModel(
             return;
         }
 
+        await Employees.LoadAsync(cancellationToken);
         await Departments.LoadAsync(cancellationToken);
         await Positions.LoadAsync(cancellationToken);
     }

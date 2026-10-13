@@ -59,6 +59,9 @@
 
             <!-- Signed in: module screens. -->
             <TabControl Margin="24,16,24,24" Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVisibility}}">
+                <TabItem Header="Pracownicy">
+                    <views:EmployeesView DataContext="{Binding Employees}" />
+                </TabItem>
                 <TabItem Header="Działy">
                     <views:DepartmentsView DataContext="{Binding Departments}" />
                 </TabItem>
