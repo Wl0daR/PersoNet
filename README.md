@@ -41,7 +41,7 @@ Na razie działa logowanie kontami lokalnymi (Entra ID dojdzie później). W Dev
 - e-mail: `admin@demo.personet.local`
 - hasło: `Demo!Haslo123`
 
-Aplikacja webowa wymaga zalogowania i przekierowuje na stronę logowania serwera `PersoNet.Identity`. API przyjmuje tylko tokeny wystawione przez ten serwer (`GET /api/v1/me` zwraca zalogowanego użytkownika). Przy pierwszym uruchomieniu zaufaj certyfikatowi deweloperskiemu HTTPS: `dotnet dev-certs https --trust`.
+Otwórz aplikację webową pod adresem https://localhost:7226 (albo kliknij adres zasobu `web` w dashboardzie). Wymaga ona zalogowania i sama przekierowuje na stronę logowania serwera `PersoNet.Identity` (https://localhost:7057). API przyjmuje tylko tokeny wystawione przez ten serwer (`GET /api/v1/me` zwraca zalogowanego użytkownika). Przy pierwszym uruchomieniu zaufaj certyfikatowi deweloperskiemu HTTPS: `dotnet dev-certs https --trust`.
 
 ## Budowanie i testy
 
