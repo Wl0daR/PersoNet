@@ -34,7 +34,7 @@ public sealed class EmployeeImportEndpointTests(PersoNetApiFactory factory)
         first.Problems[0].Message.ShouldContain("więcej niż raz");
         first.Problems[1].Message.ShouldContain("wcześniejsza niż data zatrudnienia");
         first.Problems[2].Message.ShouldContain("od 0 do 60");
-        (second.Added, second.Existing).ShouldBe((0, 3));
+        (second.Added, second.Existing).ShouldBe((0, 2));
 
         var list = (await hr.GetFromJsonAsync<PagedResponse<EmployeeListItem>>(
             new Uri("/api/v1/employees?includeFormer=true", UriKind.Relative), Cancellation))!;
@@ -44,6 +44,56 @@ public sealed class EmployeeImportEndpointTests(PersoNetApiFactory factory)
         var lukasz = list.Items.Single(item => item.Number == "2");
         var balance = (await hr.GetFromJsonAsync<LeaveBalanceResponse>(new Uri($"/api/v1/employees/{lukasz.Id}/leave/{year}", UriKind.Relative), Cancellation))!;
         (balance.HasEntitlement, balance.EntitlementDays).ShouldBe((true, 26));
+    }
+
+    [Fact]
+    public async Task Departments_and_positions_come_first_and_employees_get_them_with_their_contracts()
+    {
+        var tenantId = await factory.CreateTenantAsync();
+        using var hr = factory.CreateSignedInClient(tenantId);
+        var organization = new ImportOrganizationRequest(
+            [new("D2", "MAGAZYN PVC", "W1"), new("W1", "PVC", null), new("D9", "Sierota", "W99")],
+            ["Magazynier", " magazynier ", "Operator"]);
+
+        var structure = await PostAsync<ImportOrganizationResponse>(hr, "/api/v1/organization/import", organization);
+        var again = await PostAsync<ImportOrganizationResponse>(hr, "/api/v1/organization/import", organization);
+
+        (structure.DepartmentsAdded, structure.PositionsAdded, structure.PositionsExisting).ShouldBe((2, 2, 1));
+        structure.Problems.Single().ShouldContain("W99");
+        (again.DepartmentsAdded, again.DepartmentsExisting, again.PositionsAdded).ShouldBe((0, 2, 0));
+
+        // First without the structure, as the first version of the import did; the second run fills it in.
+        var bare = new ImportEmployeeRow(1, "7", "Ola", "Lis", null, new DateOnly(2015, 3, 1), null, null);
+        await PostAsync<ImportEmployeesResponse>(hr, "/api/v1/employees/import", new ImportEmployeesRequest([bare]));
+        var full = bare with
+        {
+            DepartmentCode = "d2",
+            Position = "MAGAZYNIER",
+            Contracts = [new(new DateOnly(2015, 3, 1), new DateOnly(2016, 2, 29), 1m), new(new DateOnly(2016, 3, 1), null, 0.5m), new(new DateOnly(2016, 6, 1), null, 1m)],
+        };
+        var unknown = new ImportEmployeeRow(2, "8", "Jan", "Kos", null, new DateOnly(2020, 1, 1), null, null, "D404", "Pilot");
+
+        var result = await PostAsync<ImportEmployeesResponse>(hr, "/api/v1/employees/import", new ImportEmployeesRequest([full, unknown]));
+        var rerun = await PostAsync<ImportEmployeesResponse>(hr, "/api/v1/employees/import", new ImportEmployeesRequest([full, unknown]));
+
+        (result.Added, result.Updated, result.ContractsAdded).ShouldBe((1, 1, 2));
+        result.Problems.Select(problem => problem.Message).ShouldBe(
+        [
+            "Okres zatrudnienia od 01.06.2016 nakłada się na wcześniejszy; pominięto go.",
+            "Nie ma działu o kodzie D404; pracownik zostaje bez działu.",
+            "Nie ma stanowiska „Pilot”; pracownik zostaje bez stanowiska.",
+        ]);
+        (rerun.Added, rerun.Updated, rerun.Existing, rerun.ContractsAdded).ShouldBe((0, 0, 2, 0));
+
+        var list = (await hr.GetFromJsonAsync<PagedResponse<EmployeeListItem>>(new Uri("/api/v1/employees", UriKind.Relative), Cancellation))!;
+        var ola = list.Items.Single(item => item.Number == "7");
+        (ola.DepartmentName, ola.PositionName).ShouldBe(("MAGAZYN PVC", "Magazynier"));
+        var contracts = (await hr.GetFromJsonAsync<List<ContractResponse>>(new Uri($"/api/v1/employees/{ola.Id}/contracts", UriKind.Relative), Cancellation))!;
+        contracts.OrderBy(contract => contract.StartDate).Select(contract => (contract.Type, contract.StartDate, contract.WorkingTime, contract.TerminatedOn)).ShouldBe(
+        [
+            (ContractKind.Indefinite, new DateOnly(2015, 3, 1), (decimal?)1m, (DateOnly?)new DateOnly(2016, 2, 29)),
+            (ContractKind.Indefinite, new DateOnly(2016, 3, 1), 0.5m, null),
+        ]);
     }
 
     [Fact]

@@ -63,6 +63,14 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
         return Task.FromResult(employee);
     }
 
+    public List<ImportOrganizationRequest> OrganizationImports { get; } = [];
+
+    public Task<ImportOrganizationResponse> ImportOrganizationAsync(ImportOrganizationRequest request, CancellationToken cancellationToken)
+    {
+        OrganizationImports.Add(request);
+        return Task.FromResult(new ImportOrganizationResponse(request.Departments.Count, 0, request.Positions.Count, 0, []));
+    }
+
     public Task<ImportEmployeesResponse> ImportAsync(ImportEmployeesRequest request, CancellationToken cancellationToken)
     {
         Imports.Add(request);

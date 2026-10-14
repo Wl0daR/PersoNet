@@ -7,7 +7,7 @@ internal sealed class SnapshotFiles : IFileService
 {
     public string? AskWhereToSaveWorkbook(string fileName) => null;
 
-    public string? AskWhichSqlFileToOpen() => null;
+    public IReadOnlyList<string> AskWhichSqlFilesToOpen() => [];
 
     public void Open(string path)
     {

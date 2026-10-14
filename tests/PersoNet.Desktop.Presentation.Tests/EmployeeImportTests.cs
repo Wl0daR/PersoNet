@@ -70,7 +70,7 @@ public sealed class EmployeeImportTests : IDisposable
     {
         var path = Path.Combine(_folder, "kadry.sql");
         await File.WriteAllTextAsync(path, Dump, Cancellation);
-        _files.OpenPath = path;
+        _files.OpenPaths.Add(path);
         _api.ImportRejects[26] = "Numer telefonu może mieć najwyżej 30 znaków.";
         var viewModel = new EmployeeImportDialogViewModel(_api, _files);
 
@@ -81,16 +81,108 @@ public sealed class EmployeeImportTests : IDisposable
         viewModel.Rows.Count.ShouldBe(4);
         viewModel.Rows[0].Name.ShouldBe("Nowak Jacek");
         viewModel.Rows[2].HasProblem.ShouldBeTrue();
-        viewModel.Summary.ShouldBe("Znaleziono: 4 pracowników, w tym 1 z błędami. Te zostaną pominięte; resztę można zaimportować.");
+        viewModel.Summary.ShouldBe("Znaleziono: 4 pracowników, w tym 1 z błędami. Ci zostaną pominięci; resztę można zaimportować.");
 
         await viewModel.ImportAsync(Cancellation);
 
         _api.Imports.Single().Rows.Select(row => row.Number).ShouldBe(["1", "2", "4"]);
         _api.Employees.Count.ShouldBe(2);
         viewModel.Rows[3].Problem.ShouldBe("Numer telefonu może mieć najwyżej 30 znaków.");
-        viewModel.ResultText.ShouldBe("Zaimportowano: 2 pracowników, z wymiarem urlopu na ten rok: 2. Już byli w PersoNet: 0. Pominięto z powodu błędów: 2.");
+        viewModel.ResultText.ShouldBe("Zaimportowano: 2 pracowników, z wymiarem urlopu na ten rok: 2. Umowy: 0. Bez zmian: 0. Pominięto z powodu błędów: 2.");
         viewModel.HasChanges.ShouldBeTrue();
         viewModel.ImportCommand.CanExecute(null).ShouldBeFalse();
+    }
+
+    // The other tables of the earlier system, as separate files: two employers, one using an agency.
+    private const string Organization = """
+        CREATE TABLE IF NOT EXISTS `wydzialy` (`id` int(10) NOT NULL, `nazwa` varchar(100) DEFAULT NULL, `opis` varchar(250) DEFAULT NULL);
+        REPLACE INTO `wydzialy` (`id`, `nazwa`, `opis`) VALUES
+        	(1, 'PVC', NULL),
+        	(5, 'Prima', NULL);
+        REPLACE INTO `Departments` (`DepartmentID`, `DepartmentName`, `DepartmentType`) VALUES
+        	(2, 'MAGAZYN PVC', 1),
+        	(29, 'Łuki', 3),
+        	(34, 'Księgowość PKL', 5);
+        REPLACE INTO `Positions` (`PositionID`, `PositionName`, `DepartmentID`) VALUES
+        	(1, ' Magazynier', 2),
+        	(2, 'Księgowa', 34),
+        	(3, 'Operator', 0);
+        REPLACE INTO `Companies` (`CompanyID`, `CompanyName`, `IsTemporaryEmployee`) VALUES
+        	(1, 'VETREX', 0),
+        	(2, 'Toolip', 1),
+        	(6, 'Prima-KL', 0),
+        	(10, 'Prima-KL Tymczasowi', 1);
+        REPLACE INTO `EmploymentHistory` (`HistoryID`, `EmployeeID`, `DepartmentID`, `PositionID`, `StartDate`, `EndDate`, `Workload`, `IsDisability`, `JobCategoryID`, `Irregular_hours`, `IsManager`, `CompanyID`) VALUES
+        	(1, 1, 2, 1, '2010-09-06', '2011-03-31', 8, 0, 2, 0, 0, 1),
+        	(2, 1, 29, 3, '2011-04-01', '2011-09-16', 8, 0, 2, 0, 0, 1),
+        	(3, 2, 2, 1, '2007-08-07', NULL, 4, 0, 2, 0, 0, 2),
+        	(4, 4, 34, 2, '2020-02-01', NULL, 8, 0, 1, 0, 0, 10);
+        """;
+
+    [Fact]
+    public void Each_employer_gets_its_departments_positions_people_and_contracts()
+    {
+        var import = EmployeeSqlImport.Read([Dump, Organization]);
+
+        import.Employers.Select(employer => employer.Name).ShouldBe(["VETREX", "Prima-KL"]);
+        import.FoundTables.ShouldBe(["Employees", "wydzialy", "Departments", "Positions", "EmploymentHistory", "Companies"]);
+
+        var vetrex = import.Plan(import.Employers[0]);
+        vetrex.Departments.ShouldBe([new("W1", "PVC", null), new("D2", "MAGAZYN PVC", "W1"), new("D29", "Łuki", null)]);
+        vetrex.Employees.Select(entry => entry.Number).ShouldBe(["1", "2", "3"]);
+        vetrex.OtherEmployersEmployees.ShouldBe(1);
+        vetrex.Positions.ShouldBe(["Księgowa"]);
+
+        // The card's department 10 is not in the files, so the latest period's is taken; the card's position is.
+        // Two periods back to back are one employment; the agency's worker counts towards VETREX, on half time.
+        var jacek = vetrex.Employees[0];
+        (jacek.DepartmentCode, jacek.DepartmentName, jacek.Position).ShouldBe(("D29", "Łuki", "Księgowa"));
+        vetrex.Employees[2].DepartmentCode.ShouldBeNull();
+        jacek.Contracts.ShouldBe([new(new DateOnly(2010, 9, 6), new DateOnly(2011, 9, 16), 1m)]);
+        vetrex.Employees[1].Contracts.ShouldBe([new(new DateOnly(2007, 8, 7), null, 0.5m)]);
+        vetrex.Employees[2].Contracts.ShouldBeEmpty();
+
+        var prima = import.Plan(import.Employers[1]);
+        prima.Departments.ShouldBe([new("W5", "Prima", null), new("D34", "Księgowość PKL", "W5")]);
+        prima.Employees.Single().Row!.ShouldSatisfyAllConditions(
+            row => row.Number.ShouldBe("4"),
+            row => row.DepartmentCode.ShouldBe("D34"),
+            row => row.Position.ShouldBe("Księgowa"));
+    }
+
+    [Fact]
+    public async Task Hr_picks_several_files_and_the_company_and_imports_the_structure_first()
+    {
+        var employees = Path.Combine(_folder, "table-Employees.sql");
+        var other = Path.Combine(_folder, "tabele.sql");
+        var attendance = Path.Combine(_folder, "table-obecnosc.sql");
+        await File.WriteAllTextAsync(employees, Dump, Cancellation);
+        await File.WriteAllTextAsync(other, Organization, Cancellation);
+        await File.WriteAllTextAsync(attendance, "CREATE TABLE IF NOT EXISTS `obecnosc` (`id` int);\nREPLACE INTO `obecnosc` (`id`) VALUES (1);", Cancellation);
+        _files.OpenPaths.AddRange([employees, other, attendance]);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _files);
+
+        viewModel.ChooseFile();
+
+        viewModel.FileName.ShouldBe("table-Employees.sql, tabele.sql, table-obecnosc.sql");
+        viewModel.HasEmployers.ShouldBeTrue();
+        viewModel.Employer!.Name.ShouldBe("VETREX");
+        viewModel.Rows.Count.ShouldBe(3);
+        viewModel.Rows[0].Department.ShouldBe("Łuki");
+        viewModel.Details.ShouldBe(
+            "Wczytane tabele: Employees, wydzialy, Departments, Positions, EmploymentHistory, Companies. "
+            + "Do zaimportowania działy: 3, stanowiska: 1, okresy zatrudnienia (umowy): 2, pracownicy innych firm, pominięci: 1.");
+
+        viewModel.Employer = viewModel.Employers[1];
+        viewModel.Rows.Select(row => row.Name).ShouldBe(["Zielińska Ewa"]);
+
+        await viewModel.ImportAsync(Cancellation);
+
+        var organization = _api.OrganizationImports.Single();
+        organization.Departments.Select(department => department.Code).ShouldBe(["W5", "D34"]);
+        organization.Positions.ShouldBe(["Księgowa"]);
+        _api.Imports.Single().Rows.Single().DepartmentCode.ShouldBe("D34");
+        viewModel.ResultText.ShouldStartWith("Nowe działy: 2, nowe stanowiska: 1. Zaimportowano: 1 pracownik");
     }
 
     [Fact]

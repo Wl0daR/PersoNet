@@ -60,6 +60,12 @@ internal sealed class EmployeesApi(HttpClient http) : IEmployeesApi
         return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<ImportOrganizationResponse> ImportOrganizationAsync(ImportOrganizationRequest request, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync("api/v1/organization/import", request, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<ImportOrganizationResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<ImportEmployeesResponse> ImportAsync(ImportEmployeesRequest request, CancellationToken cancellationToken)
     {
         using var response = await http.PostAsJsonAsync($"{Employees}/import", request, cancellationToken).ConfigureAwait(false);

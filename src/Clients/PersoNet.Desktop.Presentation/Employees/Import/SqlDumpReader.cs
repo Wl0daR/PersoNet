@@ -7,7 +7,7 @@ namespace PersoNet.Desktop.Presentation.Employees.Import;
 public sealed record SqlRow(int Line, IReadOnlyDictionary<string, string?> Values);
 
 /// <summary>
-/// Reads the rows of one table from a MySQL dump (mysqldump, phpMyAdmin, HeidiSQL): <c>INSERT</c> and <c>REPLACE</c>
+/// Reads the rows of chosen tables from a MySQL dump (mysqldump, phpMyAdmin, HeidiSQL): <c>INSERT</c> and <c>REPLACE</c>
 /// statements, with or without a column list and with many rows each. Without a column list the columns are taken from
 /// the table's <c>CREATE TABLE</c>. Comments and other statements are skipped; nothing is executed.
 /// </summary>
@@ -21,29 +21,59 @@ public static class SqlDumpReader
     /// <summary>The rows of <paramref name="table"/> (case-insensitive); values keyed by column name, case-insensitive.</summary>
     public static IReadOnlyList<SqlRow> ReadTable(string sql, string table)
     {
-        ArgumentNullException.ThrowIfNull(sql);
+        var unreadable = new List<string>();
+        var rows = ReadTables(sql, [table], unreadable);
+        if (unreadable.Count > 0)
+        {
+            throw new FormatException(NoColumns(table));
+        }
 
+        return rows.TryGetValue(table, out var found) ? found : [];
+    }
+
+    public static string NoColumns(string table) =>
+        $"Dane tabeli {table} nie mają nazw kolumn ani polecenia CREATE TABLE, więc nie wiadomo, która wartość jest którą. Wyeksportuj tabelę razem z jej strukturą.";
+
+    /// <summary>
+    /// The rows of each of <paramref name="tables"/> found in the dump, keyed by table name (case-insensitive). Values of a
+    /// table with neither a column list nor a <c>CREATE TABLE</c> cannot be read; such tables go to <paramref name="unreadable"/>.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<SqlRow>> ReadTables(
+        string sql, IReadOnlyCollection<string> tables, ICollection<string>? unreadable = null)
+    {
+        ArgumentNullException.ThrowIfNull(sql);
+        ArgumentNullException.ThrowIfNull(tables);
+
+        var wanted = new HashSet<string>(tables, StringComparer.OrdinalIgnoreCase);
         var tokens = Tokenize(sql);
         var lines = LineStarts(sql);
-        var rows = new List<SqlRow>();
-        List<string>? declared = null;
+        var rows = new Dictionary<string, List<SqlRow>>(StringComparer.OrdinalIgnoreCase);
+        var declared = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var statement in Statements(tokens))
         {
-            if (IsCreateTable(statement, table, out var columns))
+            if (IsCreateTable(statement, wanted, out var created, out var columns))
             {
-                declared = columns;
+                declared[created] = columns;
             }
-            else if (IsInsert(statement, table, out var start))
+            else if (IsInsert(statement, wanted, out var table, out var start))
             {
-                ReadInsert(statement, start, declared, lines, rows);
+                if (!rows.TryGetValue(table, out var list))
+                {
+                    rows[table] = list = [];
+                }
+
+                if (!ReadInsert(statement, start, declared.GetValueOrDefault(table), lines, list))
+                {
+                    unreadable?.Add(table);
+                }
             }
         }
 
-        return rows;
+        return rows.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<SqlRow>)pair.Value, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static void ReadInsert(List<Token> statement, int index, List<string>? declared, List<int> lines, List<SqlRow> rows)
+    private static bool ReadInsert(List<Token> statement, int index, List<string>? declared, List<int> lines, List<SqlRow> rows)
     {
         // Optional column list, then VALUES.
         List<string>? columns = null;
@@ -66,13 +96,13 @@ public static class SqlDumpReader
 
         if (index >= statement.Count || !(statement[index].IsWord("VALUES") || statement[index].IsWord("VALUE")))
         {
-            return;
+            return true;
         }
 
         columns ??= declared;
         if (columns is null)
         {
-            throw new FormatException("Plik nie ma nazw kolumn ani polecenia CREATE TABLE, więc nie wiadomo, która wartość jest którą.");
+            return false;
         }
 
         index++;
@@ -118,12 +148,15 @@ public static class SqlDumpReader
 
             rows.Add(new SqlRow(line, row));
         }
+
+        return true;
     }
 
     // INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] [db.]table ...; returns the index after the table name.
-    private static bool IsInsert(List<Token> statement, string table, out int next)
+    private static bool IsInsert(List<Token> statement, HashSet<string> tables, out string table, out int next)
     {
         next = 0;
+        table = string.Empty;
         if (statement.Count < 3 || !(statement[0].IsWord("INSERT") || statement[0].IsWord("REPLACE")))
         {
             return false;
@@ -137,12 +170,19 @@ public static class SqlDumpReader
             index++;
         }
 
-        return TableName(statement, ref index, table) && (next = index) > 0;
+        if (!TableName(statement, ref index, tables, out table))
+        {
+            return false;
+        }
+
+        next = index;
+        return true;
     }
 
-    private static bool IsCreateTable(List<Token> statement, string table, out List<string> columns)
+    private static bool IsCreateTable(List<Token> statement, HashSet<string> tables, out string table, out List<string> columns)
     {
         columns = [];
+        table = string.Empty;
         if (statement.Count < 4 || !statement[0].IsWord("CREATE"))
         {
             return false;
@@ -165,7 +205,7 @@ public static class SqlDumpReader
             index++;
         }
 
-        if (!TableName(statement, ref index, table) || index >= statement.Count || !statement[index].IsSymbol('('))
+        if (!TableName(statement, ref index, tables, out table) || index >= statement.Count || !statement[index].IsSymbol('('))
         {
             return false;
         }
@@ -211,8 +251,9 @@ public static class SqlDumpReader
     }
 
     // [db.]table, where either part may be quoted with backticks.
-    private static bool TableName(List<Token> statement, ref int index, string table)
+    private static bool TableName(List<Token> statement, ref int index, HashSet<string> tables, out string table)
     {
+        table = string.Empty;
         if (index >= statement.Count || statement[index].Kind is not (TokenKind.Identifier or TokenKind.Word))
         {
             return false;
@@ -230,7 +271,13 @@ public static class SqlDumpReader
             name = name[(name.LastIndexOf('.') + 1)..];
         }
 
-        return name.Equals(table, StringComparison.OrdinalIgnoreCase);
+        if (!tables.TryGetValue(name, out var known))
+        {
+            return false;
+        }
+
+        table = known;
+        return true;
     }
 
     private static IEnumerable<List<Token>> Statements(List<Token> tokens)

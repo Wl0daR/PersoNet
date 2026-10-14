@@ -26,18 +26,19 @@ public sealed class FileService : IFileService
         return dialog.ShowDialog(owner) == true ? dialog.FileName : null;
     }
 
-    public string? AskWhichSqlFileToOpen()
+    public IReadOnlyList<string> AskWhichSqlFilesToOpen()
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Wybierz plik z bazy danych",
+            Title = "Wybierz pliki z bazy danych",
+            Multiselect = true,
             Filter = "Plik SQL (*.sql)|*.sql|Wszystkie pliki (*.*)|*.*",
             CheckFileExists = true,
             InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         };
 
         var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive) ?? Application.Current.MainWindow;
-        return dialog.ShowDialog(owner) == true ? dialog.FileName : null;
+        return dialog.ShowDialog(owner) == true ? dialog.FileNames : [];
     }
 
     public void Open(string path)
