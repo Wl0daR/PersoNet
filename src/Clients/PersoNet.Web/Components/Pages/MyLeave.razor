@@ -1,0 +1,257 @@
+@page "/moj-urlop"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IPortalApi Portal
+@inject MyProfile Me
+@inject TimeProvider Time
+
+<PageTitle>Mój urlop – PersoNet</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Mój urlop</h1>
+        <p class="lead-muted mb-0">Twoje wnioski urlopowe i urlop wypoczynkowy do wykorzystania.</p>
+    </div>
+    @if (_linked)
+    {
+        <button type="button" class="btn btn-primary" @onclick="OpenForm">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+            </svg>
+            Nowy wniosek
+        </button>
+    }
+</div>
+
+@if (_message is not null)
+{
+    <div class="alert-box is-success" role="status">@_message</div>
+}
+
+@if (_loading)
+{
+    <LoadingRow />
+}
+else if (_problem is not null)
+{
+    <div class="alert-box is-error" role="alert">@_problem</div>
+}
+else
+{
+    <div class="year-switch" role="group" aria-label="Rok">
+        <button type="button" class="btn btn-quiet btn-icon" aria-label="Poprzedni rok" @onclick="() => ChangeYearAsync(-1)">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
+        </button>
+        <span class="year-label" aria-live="polite">Rok @_year</span>
+        <button type="button" class="btn btn-quiet btn-icon" aria-label="Następny rok" @onclick="() => ChangeYearAsync(1)">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
+        </button>
+    </div>
+
+    <section class="surface balance" aria-labelledby="balance-title">
+        <h2 id="balance-title" class="visually-hidden">Urlop wypoczynkowy @_year</h2>
+        @if (_balance is not { HasEntitlement: true } balance)
+        {
+            <p class="mb-0 text-muted-foreground">Dział kadr nie ustawił jeszcze Twojego wymiaru urlopu wypoczynkowego na @_year rok.</p>
+        }
+        else
+        {
+            <dl class="balance-grid">
+                <div><dt>Do wykorzystania</dt><dd class="stat-value">@LeaveTexts.Amount(balance.RemainingHours)</dd></div>
+                <div><dt>Wymiar w roku</dt><dd>@LeaveTexts.Amount(balance.TotalHours)</dd></div>
+                <div><dt>Wykorzystany</dt><dd>@LeaveTexts.Amount(balance.UsedHours)</dd></div>
+                <div><dt>Czeka na decyzję</dt><dd>@LeaveTexts.Amount(balance.PendingHours)</dd></div>
+                <div><dt>Na żądanie</dt><dd>@balance.OnDemandDays z 4 dni</dd></div>
+            </dl>
+            @if (balance.CarriedOverDays > 0)
+            {
+                <p class="form-hint mb-0">W tym @LeaveTexts.Days(balance.CarriedOverDays) zaległego urlopu z poprzedniego roku.</p>
+            }
+        }
+    </section>
+
+    <section aria-labelledby="requests-title">
+        <h2 id="requests-title" class="section-title">Wnioski w @_year roku</h2>
+        @if (_requests.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="mb-0">Nie masz wniosków w @_year roku.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Rodzaj</th>
+                            <th scope="col">Termin</th>
+                            <th scope="col">Wymiar</th>
+                            <th scope="col">Stan</th>
+                            <th scope="col"><span class="visually-hidden">Akcje</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in _requests)
+                        {
+                            <tr>
+                                <td data-label="Rodzaj">
+                                    <div>
+                                        <span class="cell-strong">@LeaveTexts.KindName(request.Kind)</span>
+                                        @if (!string.IsNullOrEmpty(request.Note))
+                                        {
+                                            <span class="cell-sub">@request.Note</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td data-label="Termin" class="nowrap">@LeaveTexts.Period(request.StartDate, request.EndDate)</td>
+                                <td data-label="Wymiar" class="nowrap">@LeaveTexts.Extent(request)</td>
+                                <td data-label="Stan">
+                                    <div>
+                                        <StateBadge State="request.State" />
+                                        @if (!string.IsNullOrEmpty(request.DecisionNote))
+                                        {
+                                            <span class="cell-sub">@request.DecisionNote</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="cell-actions">
+                                    @if (request.State == LeaveState.Pending)
+                                    {
+                                        <button type="button" class="btn btn-quiet btn-sm" @onclick="() => _withdrawing = request">Wycofaj</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+<LeaveRequestDialog Open="_formOpen" Balance="_balance" Today="_today" OnCreated="OnCreatedAsync" OnCancel="() => _formOpen = false" />
+
+<Modal Open="_withdrawing is not null" Title="Wycofać wniosek?" OnClose="() => _withdrawing = null">
+    <ChildContent>
+        @if (_withdrawing is { } request)
+        {
+            <p>@LeaveTexts.KindName(request.Kind), @LeaveTexts.Period(request.StartDate, request.EndDate) (@LeaveTexts.Extent(request)).</p>
+            <p class="mb-0 text-muted-foreground">Wniosek nie będzie już czekał na decyzję @_decider. Jeśli zmienisz zdanie, złożysz nowy.</p>
+            @if (_withdrawProblem is not null)
+            {
+                <div class="alert-box is-error mt-3" role="alert">@_withdrawProblem</div>
+            }
+        }
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-quiet" @onclick="() => _withdrawing = null">Nie wycofuj</button>
+        <button type="button" class="btn btn-danger" disabled="@_busy" @onclick="WithdrawAsync">@(_busy ? "Wycofywanie…" : "Wycofaj wniosek")</button>
+    </Footer>
+</Modal>
+
+@code {
+    private List<LeaveRequestResponse> _requests = [];
+    private LeaveBalanceResponse? _balance;
+    private LeaveRequestResponse? _withdrawing;
+    private DateOnly _today;
+    private int _year;
+    private bool _linked;
+    private string _decider = "przełożonego";
+    private bool _loading = true;
+    private bool _formOpen;
+    private bool _busy;
+    private string? _problem;
+    private string? _message;
+    private string? _withdrawProblem;
+
+    /// <summary>"?nowy=1" opens the form at once (the "Złóż wniosek urlopowy" button on the home page).</summary>
+    [SupplyParameterFromQuery(Name = "nowy")]
+    public int? OpenNew { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _today = DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+        _year = _today.Year;
+
+        var profile = await Me.GetAsync(CancellationToken.None);
+        if (profile.Profile is null)
+        {
+            _problem = profile.Problem;
+            _loading = false;
+            return;
+        }
+
+        _linked = true;
+        _decider = profile.Profile.ManagerName is null ? "działu kadr" : "przełożonego";
+        await LoadAsync();
+        _formOpen = OpenNew == 1 && _problem is null;
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var balance = Portal.GetBalanceAsync(_year, CancellationToken.None);
+            var requests = Portal.ListMyRequestsAsync(_year, CancellationToken.None);
+            _balance = await balance;
+            _requests = [.. (await requests).OrderByDescending(request => request.StartDate)];
+            _problem = null;
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _problem = Messages.Of(exception);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenForm()
+    {
+        _message = null;
+        _formOpen = true;
+    }
+
+    private async Task ChangeYearAsync(int delta)
+    {
+        _year += delta;
+        _message = null;
+        await LoadAsync();
+    }
+
+    private async Task OnCreatedAsync(LeaveRequestResponse created)
+    {
+        _formOpen = false;
+        _year = created.StartDate.Year;
+        await LoadAsync();
+        _message = $"Wniosek złożony: {LeaveTexts.KindName(created.Kind)}, {LeaveTexts.Period(created.StartDate, created.EndDate)}. Czeka na decyzję {_decider}.";
+    }
+
+    private async Task WithdrawAsync()
+    {
+        if (_withdrawing is not { } request || _busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _withdrawProblem = null;
+        try
+        {
+            await Portal.WithdrawAsync(request.Id, CancellationToken.None);
+            _withdrawing = null;
+            await LoadAsync();
+            _message = $"Wniosek wycofany: {LeaveTexts.KindName(request.Kind)}, {LeaveTexts.Period(request.StartDate, request.EndDate)}.";
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _withdrawProblem = Messages.Of(exception);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

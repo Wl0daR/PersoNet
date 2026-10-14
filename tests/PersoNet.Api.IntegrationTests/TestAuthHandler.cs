@@ -9,7 +9,7 @@ namespace PersoNet.Api.IntegrationTests;
 
 /// <summary>
 /// Signs every request in, standing in for an access token from PersoNet.Identity. By default the user is in HR of the
-/// demo company; the <see cref="TenantHeader"/> and <see cref="RolesHeader"/> request headers change that.
+/// demo company; the <see cref="TenantHeader"/>, <see cref="RolesHeader"/> and <see cref="EmailHeader"/> request headers change that.
 /// </summary>
 internal sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
@@ -21,6 +21,8 @@ internal sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOption
     public const string TenantHeader = "X-Test-Tenant";
 
     public const string RolesHeader = "X-Test-Roles";
+
+    public const string EmailHeader = "X-Test-Email";
 
     /// <summary>The demo company, created by the API on startup in Development.</summary>
     public static readonly Guid TenantId = PersoNetAuth.DevelopmentSeed.TenantId;
@@ -36,7 +38,7 @@ internal sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOption
         [
             new("sub", UserId.ToString()),
             new("name", "Anna Kowalska"),
-            new("email", "anna@acme.test"),
+            new("email", Request.Headers.TryGetValue(EmailHeader, out var email) ? email.ToString() : "anna@acme.test"),
             new(PersoNetAuth.TenantIdClaim, tenantId),
         ];
         claims.AddRange(roles.Select(role => new Claim("role", role)));

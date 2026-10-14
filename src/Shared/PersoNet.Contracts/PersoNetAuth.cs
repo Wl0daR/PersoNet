@@ -55,5 +55,13 @@ public static class PersoNetAuth
         public const string UserEmail = "admin@demo.personet.local";
 
         public const string UserPassword = "Demo!Haslo123";
+
+        /// <summary>
+        /// Portal accounts without HR rights (same password). They reach their own records once HR enters these e-mails
+        /// in two employee cards, and makes the manager's card the other one's superior.
+        /// </summary>
+        public const string EmployeeEmail = "pracownik@demo.personet.local";
+
+        public const string ManagerEmail = "kierownik@demo.personet.local";
     }
 }

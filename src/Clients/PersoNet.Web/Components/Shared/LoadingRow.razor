@@ -1,0 +1,11 @@
+@* Shown while data loads; announced politely to screen readers. *@
+
+<p class="loading" role="status">
+    <span class="spinner" aria-hidden="true"></span>
+    @Text
+</p>
+
+@code {
+    [Parameter]
+    public string Text { get; set; } = "Wczytywanie…";
+}

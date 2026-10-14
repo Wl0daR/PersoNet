@@ -1,0 +1,71 @@
+@* A dialog window over the page: title bar with a close button, content and a row of buttons. Escape closes it.
+   It does not close on a click outside, so a half-filled form is never lost by accident. *@
+
+@if (Open)
+{
+    <div class="dialog-backdrop">
+        <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="@_titleId" tabindex="-1"
+             @ref="_element" @onkeydown="OnKeyDownAsync">
+            <header class="dialog-header">
+                <h2 id="@_titleId">@Title</h2>
+                <button type="button" class="dialog-close" aria-label="Zamknij okno" @onclick="CloseAsync">
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                        <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+                    </svg>
+                </button>
+            </header>
+            <div class="dialog-body">
+                @ChildContent
+            </div>
+            @if (Footer is not null)
+            {
+                <footer class="dialog-footer">@Footer</footer>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private readonly string _titleId = "dialog-" + Guid.NewGuid().ToString("N");
+    private ElementReference _element;
+    private bool _focusPending;
+
+    [Parameter, EditorRequired]
+    public bool Open { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+
+    /// <summary>The close button or Escape; the owner sets <see cref="Open"/> to false.</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private bool _wasOpen;
+
+    protected override void OnParametersSet()
+    {
+        _focusPending |= Open && !_wasOpen;
+        _wasOpen = Open;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending && Open)
+        {
+            _focusPending = false;
+
+            // Screen readers announce the dialog's title; Tab then moves into the form.
+            await _element.FocusAsync();
+        }
+    }
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    private Task OnKeyDownAsync(KeyboardEventArgs args) => args.Key == "Escape" ? CloseAsync() : Task.CompletedTask;
+}

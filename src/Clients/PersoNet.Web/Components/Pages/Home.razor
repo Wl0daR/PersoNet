@@ -1,15 +1,139 @@
 @page "/"
+@attribute [StreamRendering]
+@inject MyProfile Me
+@inject IPortalApi Portal
+@inject TimeProvider Time
 
 <PageTitle>Strona główna – PersoNet</PageTitle>
 
-<AuthorizeView>
-    <h1>Dzień dobry, @(context.User.FindFirst("given_name")?.Value ?? context.User.FindFirst("name")?.Value)</h1>
-    <p class="text-muted-foreground">Zalogowano jako @context.User.FindFirst("email")?.Value</p>
-</AuthorizeView>
+@if (_profile is null)
+{
+    <h1>Dzień dobry</h1>
+    <LoadingRow />
+}
+else if (_profile.Profile is not { } me)
+{
+    <h1>Dzień dobry</h1>
+    <div class="alert-box is-info" role="status">
+        <h2>Portal nie jest jeszcze dostępny dla Twojego konta</h2>
+        <p class="mb-0">@_profile.Problem</p>
+    </div>
+}
+else
+{
+    <h1>Dzień dobry, @me.FirstName</h1>
+    <p class="lead-muted">@string.Join(" · ", new[] { me.PositionName, me.DepartmentName }.Where(text => !string.IsNullOrEmpty(text)))</p>
 
-<section class="surface mt-4" aria-labelledby="soon-title">
-    <h2 id="soon-title">Portal pracownika jest w przygotowaniu</h2>
-    <p class="mb-0 text-muted-foreground">
-        Wkrótce znajdziesz tu swoje dane kadrowe i wnioski urlopowe, a kierownicy także akceptację wniosków zespołu.
-    </p>
-</section>
+    <div class="card-grid">
+        <section class="surface stat-card" aria-labelledby="leave-title">
+            <h2 id="leave-title">Urlop wypoczynkowy @_year</h2>
+            @if (_balance is null)
+            {
+                <p class="text-muted-foreground">@(_balanceProblem ?? "Wczytywanie…")</p>
+            }
+            else if (!_balance.HasEntitlement)
+            {
+                <p class="text-muted-foreground">Dział kadr nie ustawił jeszcze Twojego wymiaru urlopu na @_year rok.</p>
+            }
+            else
+            {
+                <p class="stat-value">@LeaveTexts.Amount(_balance.RemainingHours)</p>
+                <p class="stat-caption">do wykorzystania z @LeaveTexts.Amount(_balance.TotalHours)</p>
+                @if (_balance.PendingHours > 0)
+                {
+                    <p class="stat-note">@LeaveTexts.Amount(_balance.PendingHours) czeka na decyzję</p>
+                }
+            }
+            <div class="card-actions">
+                <a class="btn btn-primary" href="moj-urlop?nowy=1">Złóż wniosek urlopowy</a>
+                <a class="btn btn-quiet" href="moj-urlop">Moje wnioski</a>
+            </div>
+        </section>
+
+        @if (_profile.IsManager)
+        {
+            <section class="surface stat-card" aria-labelledby="team-title">
+                <h2 id="team-title">Mój zespół</h2>
+                @if (_teamPending is { } pending)
+                {
+                    <p class="stat-value">@pending</p>
+                    <p class="stat-caption">@LeaveTexts.Plural(pending, "wniosek czeka", "wnioski czekają", "wniosków czeka") na Twoją decyzję</p>
+                }
+                else
+                {
+                    <p class="text-muted-foreground">@(_teamProblem ?? "Wczytywanie…")</p>
+                }
+                <p class="stat-note">@TeamText(me.TeamSize)</p>
+                <div class="card-actions">
+                    <a class="btn btn-primary" href="zespol">Wnioski zespołu</a>
+                </div>
+            </section>
+        }
+
+        <section class="surface" aria-labelledby="me-title">
+            <h2 id="me-title">Moje dane</h2>
+            <dl class="facts">
+                <dt>Numer ewidencyjny</dt>
+                <dd>@me.Number</dd>
+                <dt>Stanowisko</dt>
+                <dd>@(me.PositionName ?? "—")</dd>
+                <dt>Dział</dt>
+                <dd>@(me.DepartmentName ?? "—")</dd>
+                <dt>Przełożony</dt>
+                <dd>@(me.ManagerName ?? "—")</dd>
+                <dt>Data zatrudnienia</dt>
+                <dd>@LeaveTexts.Date(me.HireDate)</dd>
+            </dl>
+            <p class="small text-muted-foreground mb-0">Coś się nie zgadza? Zgłoś to w dziale kadr.</p>
+        </section>
+    </div>
+}
+
+@code {
+    private MyProfileResult? _profile;
+    private LeaveBalanceResponse? _balance;
+    private string? _balanceProblem;
+    private int? _teamPending;
+    private string? _teamProblem;
+    private int _year;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _year = Time.GetLocalNow().Year;
+        _profile = await Me.GetAsync(CancellationToken.None);
+        if (_profile.Profile is null)
+        {
+            return;
+        }
+
+        var balance = LoadBalanceAsync();
+        var team = _profile.IsManager ? LoadTeamAsync() : Task.CompletedTask;
+        await Task.WhenAll(balance, team);
+    }
+
+    private async Task LoadBalanceAsync()
+    {
+        try
+        {
+            _balance = await Portal.GetBalanceAsync(_year, CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _balanceProblem = Messages.Of(exception);
+        }
+    }
+
+    private async Task LoadTeamAsync()
+    {
+        try
+        {
+            _teamPending = (await Portal.ListTeamRequestsAsync(LeaveState.Pending, null, CancellationToken.None)).Count;
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _teamProblem = Messages.Of(exception);
+        }
+    }
+
+    private static string TeamText(int size) => $"{size} " + LeaveTexts.Plural(size, "osoba podlega", "osoby podlegają", "osób podlega") + " Tobie";
+}

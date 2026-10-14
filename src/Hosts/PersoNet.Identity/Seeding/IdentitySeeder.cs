@@ -127,7 +127,7 @@ internal static class IdentitySeeder
     }
 
     /// <summary>
-    /// Development only: applies migrations and creates the demo account.
+    /// Development only: applies migrations and creates the demo accounts (HR administrator, employee and manager).
     /// </summary>
     public static async Task SeedDevelopmentAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
@@ -146,29 +146,35 @@ internal static class IdentitySeeder
         }
 
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var existing = await users.FindByEmailAsync(PersoNetAuth.DevelopmentSeed.UserEmail);
-        if (existing is not null)
-        {
-            // Accounts created before roles existed get the HR role too.
-            if (!await users.IsInRoleAsync(existing, PersoNetAuth.Roles.HrAdmin))
-            {
-                EnsureSucceeded(await users.AddToRoleAsync(existing, PersoNetAuth.Roles.HrAdmin), "demo account role");
-            }
+        await EnsureUserAsync(users, PersoNetAuth.DevelopmentSeed.UserEmail, "Administrator demo", PersoNetAuth.Roles.HrAdmin);
 
-            return;
+        // Employee and manager portal accounts, without HR rights.
+        await EnsureUserAsync(users, PersoNetAuth.DevelopmentSeed.EmployeeEmail, "Pracownik demo", role: null);
+        await EnsureUserAsync(users, PersoNetAuth.DevelopmentSeed.ManagerEmail, "Kierownik demo", role: null);
+    }
+
+    private static async Task EnsureUserAsync(UserManager<ApplicationUser> users, string email, string displayName, string? role)
+    {
+        var user = await users.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                DisplayName = displayName,
+                TenantId = PersoNetAuth.DevelopmentSeed.TenantId,
+            };
+
+            EnsureSucceeded(await users.CreateAsync(user, PersoNetAuth.DevelopmentSeed.UserPassword), "demo account " + email);
         }
 
-        var user = new ApplicationUser
+        // Accounts created before roles existed get their role too.
+        if (role is not null && !await users.IsInRoleAsync(user, role))
         {
-            UserName = PersoNetAuth.DevelopmentSeed.UserEmail,
-            Email = PersoNetAuth.DevelopmentSeed.UserEmail,
-            EmailConfirmed = true,
-            DisplayName = "Administrator demo",
-            TenantId = PersoNetAuth.DevelopmentSeed.TenantId,
-        };
-
-        EnsureSucceeded(await users.CreateAsync(user, PersoNetAuth.DevelopmentSeed.UserPassword), "demo account");
-        EnsureSucceeded(await users.AddToRoleAsync(user, PersoNetAuth.Roles.HrAdmin), "demo account role");
+            EnsureSucceeded(await users.AddToRoleAsync(user, role), "demo account role");
+        }
     }
 
     private static void EnsureSucceeded(IdentityResult result, string what)

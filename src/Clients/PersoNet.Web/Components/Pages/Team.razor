@@ -1,0 +1,287 @@
+@page "/zespol"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IPortalApi Portal
+@inject MyProfile Me
+@inject TimeProvider Time
+
+<PageTitle>Wnioski zespołu – PersoNet</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Wnioski zespołu</h1>
+        <p class="lead-muted mb-0">Wnioski urlopowe osób, którym jesteś przełożonym.</p>
+    </div>
+</div>
+
+@if (_message is not null)
+{
+    <div class="alert-box is-success" role="status">@_message</div>
+}
+
+@if (_problem is not null)
+{
+    <div class="alert-box is-error" role="alert">@_problem</div>
+}
+else if (_profile is { IsManager: false })
+{
+    <div class="empty-state">
+        <p class="mb-0">W kartotece nie podlega Ci żaden pracownik, więc nie decydujesz o wnioskach urlopowych.</p>
+    </div>
+}
+else if (_profile is not null)
+{
+    <div class="segmented" role="group" aria-label="Pokaż wnioski">
+        <button type="button" class="@(_pendingOnly ? "is-active" : null)" aria-pressed="@_pendingOnly" @onclick="() => FilterAsync(true)">
+            Czekają na decyzję
+            @if (_pendingCount > 0)
+            {
+                <span class="count-pill">@_pendingCount</span>
+            }
+        </button>
+        <button type="button" class="@(!_pendingOnly ? "is-active" : null)" aria-pressed="@(!_pendingOnly)" @onclick="() => FilterAsync(false)">
+            Wszystkie z @_year roku
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingRow />
+    }
+    else if (_requests.Count == 0)
+    {
+        <div class="empty-state">
+            <p class="mb-0">@(_pendingOnly ? "Żaden wniosek nie czeka na Twoją decyzję." : $"Brak wniosków zespołu w {_year} roku.")</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Pracownik</th>
+                        <th scope="col">Rodzaj</th>
+                        <th scope="col">Termin</th>
+                        <th scope="col">Wymiar</th>
+                        <th scope="col">Stan</th>
+                        <th scope="col"><span class="visually-hidden">Akcje</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in _requests)
+                    {
+                        <tr>
+                            <td data-label="Pracownik">
+                                <div>
+                                    <span class="cell-strong">@request.EmployeeName</span>
+                                    <span class="cell-sub">nr @request.EmployeeNumber</span>
+                                </div>
+                            </td>
+                            <td data-label="Rodzaj">
+                                <div>
+                                    @LeaveTexts.KindName(request.Kind)
+                                    @if (!string.IsNullOrEmpty(request.Note))
+                                    {
+                                        <span class="cell-sub">@request.Note</span>
+                                    }
+                                </div>
+                            </td>
+                            <td data-label="Termin" class="nowrap">@LeaveTexts.Period(request.StartDate, request.EndDate)</td>
+                            <td data-label="Wymiar" class="nowrap">@LeaveTexts.Extent(request)</td>
+                            <td data-label="Stan">
+                                <div>
+                                    <StateBadge State="request.State" />
+                                    @if (!string.IsNullOrEmpty(request.DecisionNote))
+                                    {
+                                        <span class="cell-sub">@request.DecisionNote</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="cell-actions">
+                                @if (request.State == LeaveState.Pending)
+                                {
+                                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => StartDecision(request, approve: true)">Zatwierdź</button>
+                                    <button type="button" class="btn btn-quiet btn-sm" @onclick="() => StartDecision(request, approve: false)">Odrzuć</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else
+{
+    <LoadingRow />
+}
+
+<Modal Open="_deciding is not null" Title="@(_approve ? "Zatwierdzić wniosek?" : "Odrzucić wniosek?")" OnClose="CloseDecision">
+    <ChildContent>
+        @if (_deciding is { } request)
+        {
+            <form id="decision-form" class="form-stack" novalidate @onsubmit="DecideAsync">
+                <dl class="facts">
+                    <dt>Pracownik</dt>
+                    <dd>@request.EmployeeName</dd>
+                    <dt>Rodzaj</dt>
+                    <dd>@LeaveTexts.KindName(request.Kind)</dd>
+                    <dt>Termin</dt>
+                    <dd>@LeaveTexts.Period(request.StartDate, request.EndDate) (@LeaveTexts.Extent(request))</dd>
+                    @if (!string.IsNullOrEmpty(request.Note))
+                    {
+                        <dt>Uwagi pracownika</dt>
+                        <dd>@request.Note</dd>
+                    }
+                </dl>
+                <div>
+                    @if (_approve)
+                    {
+                        <label class="form-label" for="decision-note">Uwagi <span class="text-muted-foreground">(nieobowiązkowe)</span></label>
+                    }
+                    else
+                    {
+                        <label class="form-label" for="decision-note">Powód odrzucenia</label>
+                    }
+                    <textarea id="decision-note" class="form-control @(_noteError is not null ? "invalid" : null)" rows="3" maxlength="500" @bind="_note"
+                              aria-invalid="@(_noteError is not null)" aria-describedby="@(_noteError is not null ? "decision-note-error" : (_approve ? null : "decision-note-hint"))"></textarea>
+                    <FieldError Id="decision-note-error" Message="@_noteError" />
+                    @if (!_approve && _noteError is null)
+                    {
+                        <p id="decision-note-hint" class="form-hint mb-0">Pracownik zobaczy ten powód przy swoim wniosku.</p>
+                    }
+                </div>
+                @if (_decisionProblem is not null)
+                {
+                    <div class="alert-box is-error" role="alert">@_decisionProblem</div>
+                }
+            </form>
+        }
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-quiet" @onclick="CloseDecision">Anuluj</button>
+        <button type="submit" form="decision-form" class="btn @(_approve ? "btn-primary" : "btn-danger")" disabled="@_busy">
+            @(_busy ? "Zapisywanie…" : _approve ? "Zatwierdź wniosek" : "Odrzuć wniosek")
+        </button>
+    </Footer>
+</Modal>
+
+@code {
+    private List<LeaveRequestResponse> _requests = [];
+    private MyProfileResult? _profile;
+    private LeaveRequestResponse? _deciding;
+    private bool _approve;
+    private bool _pendingOnly = true;
+    private bool _loading = true;
+    private bool _busy;
+    private int _year;
+    private int _pendingCount;
+    private string? _note;
+    private string? _noteError;
+    private string? _problem;
+    private string? _decisionProblem;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _year = Time.GetLocalNow().Year;
+        _profile = await Me.GetAsync(CancellationToken.None);
+        if (_profile.Profile is null)
+        {
+            _problem = _profile.Problem;
+            return;
+        }
+
+        if (_profile.IsManager)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var pending = await Portal.ListTeamRequestsAsync(LeaveState.Pending, null, CancellationToken.None);
+            _pendingCount = pending.Count;
+            var shown = _pendingOnly ? pending : await Portal.ListTeamRequestsAsync(null, _year, CancellationToken.None);
+            _requests = _pendingOnly
+                ? [.. shown.OrderBy(request => request.StartDate)]
+                : [.. shown.OrderByDescending(request => request.StartDate)];
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _problem = Messages.Of(exception);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task FilterAsync(bool pendingOnly)
+    {
+        if (_pendingOnly == pendingOnly)
+        {
+            return;
+        }
+
+        _pendingOnly = pendingOnly;
+        await LoadAsync();
+    }
+
+    private void StartDecision(LeaveRequestResponse request, bool approve)
+    {
+        _deciding = request;
+        _approve = approve;
+        _note = null;
+        _noteError = null;
+        _decisionProblem = null;
+        _message = null;
+    }
+
+    private void CloseDecision() => _deciding = null;
+
+    private async Task DecideAsync()
+    {
+        if (_deciding is not { } request || _busy)
+        {
+            return;
+        }
+
+        var note = string.IsNullOrWhiteSpace(_note) ? null : _note.Trim();
+        if (!_approve && note is null)
+        {
+            _noteError = "Napisz, dlaczego odrzucasz wniosek.";
+            return;
+        }
+
+        _noteError = null;
+        _decisionProblem = null;
+        _busy = true;
+        try
+        {
+            if (_approve)
+            {
+                await Portal.ApproveAsync(request.Id, note, CancellationToken.None);
+            }
+            else
+            {
+                await Portal.RejectAsync(request.Id, note!, CancellationToken.None);
+            }
+
+            _deciding = null;
+            await LoadAsync();
+            _message = $"{(_approve ? "Zatwierdzono" : "Odrzucono")} wniosek: {request.EmployeeName}, {LeaveTexts.KindName(request.Kind).ToLower(LeaveTexts.Polish)}, {LeaveTexts.Period(request.StartDate, request.EndDate)}.";
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _decisionProblem = Messages.Of(exception);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -1,6 +1,7 @@
 using PersoNet.ApiClient;
 using PersoNet.Web.Authentication;
 using PersoNet.Web.Components;
+using PersoNet.Web.Portal;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,7 @@ builder.Services.AddRazorComponents()
 // "https+http://api" is resolved by service discovery locally; on IIS the real address comes from configuration.
 var apiBaseAddress = builder.Configuration["PersoNetApi:BaseAddress"] ?? "https+http://api";
 builder.Services.AddPersoNetApiClient(new Uri(apiBaseAddress));
+builder.Services.AddScoped<MyProfile>();
 
 var app = builder.Build();
 

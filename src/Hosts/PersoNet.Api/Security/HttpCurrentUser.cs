@@ -12,6 +12,8 @@ internal sealed class HttpCurrentUser(IHttpContextAccessor httpContextAccessor) 
             ? userId
             : throw new InvalidOperationException("The request has no authenticated user.");
 
+    public string? Email => httpContextAccessor.HttpContext?.User.FindFirst(PersoNetClaims.Email)?.Value;
+
     public bool HasPermission(string permission) =>
         httpContextAccessor.HttpContext?.User is { } user && RolePermissions.HasPermission(user, permission);
 }
