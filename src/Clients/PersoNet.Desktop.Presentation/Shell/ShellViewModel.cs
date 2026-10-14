@@ -10,6 +10,7 @@ using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
+using PersoNet.Desktop.Presentation.Reports;
 
 namespace PersoNet.Desktop.Presentation.Shell;
 
@@ -29,6 +30,7 @@ public sealed partial class ShellViewModel : ObservableObject
         EmployeesViewModel employees,
         LeaveViewModel leave,
         TeamCalendarViewModel calendar,
+        ReportsViewModel reports,
         DepartmentsViewModel departments,
         PositionsViewModel positions,
         RolesViewModel roles,
@@ -45,6 +47,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Employees = employees;
         Leave = leave;
         Calendar = calendar;
+        Reports = reports;
         Departments = departments;
         Positions = positions;
         Roles = roles;
@@ -54,6 +57,7 @@ public sealed partial class ShellViewModel : ObservableObject
         EmployeesItem = new NavigationItem("Pracownicy", "\uE716", employees);
         LeaveItem = new NavigationItem("Urlopy", "\uE787", leave);
         CalendarItem = new NavigationItem("Kalendarz urlopów", "\uE8C0", calendar);
+        ReportsItem = new NavigationItem("Raporty", "\uE9F9", reports);
         DepartmentsItem = new NavigationItem("Działy", "\uE8B7", departments);
         PositionsItem = new NavigationItem("Stanowiska", "\uE821", positions);
         RolesItem = new NavigationItem("Role", "\uE8D7", roles);
@@ -120,6 +124,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public TeamCalendarViewModel Calendar { get; }
 
+    public ReportsViewModel Reports { get; }
+
     public DepartmentsViewModel Departments { get; }
 
     public PositionsViewModel Positions { get; }
@@ -135,6 +141,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public NavigationItem LeaveItem { get; }
 
     public NavigationItem CalendarItem { get; }
+
+    public NavigationItem ReportsItem { get; }
 
     public NavigationItem DepartmentsItem { get; }
 
@@ -263,6 +271,7 @@ public sealed partial class ShellViewModel : ObservableObject
             (EmployeesItem, _user.Can(UserAccess.EmployeesRead)),
             (LeaveItem, _user.Can(UserAccess.LeaveRead)),
             (CalendarItem, _user.Can(UserAccess.LeaveRead)),
+            (ReportsItem, _user.Can(UserAccess.ReportsRead)),
             (DepartmentsItem, _user.Can(UserAccess.OrganizationManage)),
             (PositionsItem, _user.Can(UserAccess.OrganizationManage)),
             (RolesItem, _user.Can(UserAccess.RolesManage)),
@@ -294,6 +303,7 @@ public sealed partial class ShellViewModel : ObservableObject
         EmployeesViewModel employees => employees.LoadAsync(cancellationToken),
         LeaveViewModel leave => leave.LoadAsync(cancellationToken),
         TeamCalendarViewModel calendar => calendar.LoadAsync(cancellationToken),
+        ReportsViewModel reports => reports.LoadAsync(cancellationToken),
         DepartmentsViewModel departments => departments.LoadAsync(cancellationToken),
         PositionsViewModel positions => positions.LoadAsync(cancellationToken),
         RolesViewModel roles => roles.LoadAsync(cancellationToken),

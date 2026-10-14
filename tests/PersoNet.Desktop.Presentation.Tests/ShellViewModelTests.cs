@@ -6,6 +6,7 @@ using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
+using PersoNet.Desktop.Presentation.Reports;
 using PersoNet.Desktop.Presentation.Shell;
 
 namespace PersoNet.Desktop.Presentation.Tests;
@@ -24,8 +25,18 @@ public sealed class ShellViewModelTests
         new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), _user, TimeProvider.System);
 
     private ShellViewModel Shell(FakeOrganizationApi api, FakeSignIn? signIn = null) => new(
-        signIn ?? new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new TeamCalendarViewModel(new FakeLeaveApi(), api, TimeProvider.System), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs),
+        signIn ?? new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new TeamCalendarViewModel(new FakeLeaveApi(), api, TimeProvider.System), Reports(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs),
         new RolesViewModel(_access, _dialogs), new CompanyViewModel(new FakeCompanyApi(), _dialogs), _access, _user, _theme);
+
+    private static ReportsViewModel Reports()
+    {
+        var reports = new FakeReportsApi();
+        var files = new FakeFileService();
+        return new ReportsViewModel(
+            new HeadcountReportViewModel(reports, files, TimeProvider.System),
+            new LeaveUsageReportViewModel(reports, files, TimeProvider.System),
+            new ContractsEndingReportViewModel(reports, files, TimeProvider.System));
+    }
 
     private LeaveViewModel LeaveScreen() =>
         new(new FakeLeaveApi(), new FakeEmployeesApi(), TimeProvider.System, _dialogs);
@@ -111,7 +122,7 @@ public sealed class ShellViewModelTests
         _access.Permissions.AddRange(UserAccessFor.Everything);
         await shell.SignInAsync(Cancellation);
 
-        shell.Navigation.ShouldBe([shell.HomeItem, shell.EmployeesItem, shell.LeaveItem, shell.CalendarItem, shell.DepartmentsItem, shell.PositionsItem, shell.RolesItem, shell.CompanyItem]);
+        shell.Navigation.ShouldBe([shell.HomeItem, shell.EmployeesItem, shell.LeaveItem, shell.CalendarItem, shell.ReportsItem, shell.DepartmentsItem, shell.PositionsItem, shell.RolesItem, shell.CompanyItem]);
     }
 
     private sealed class FakeSignIn : ISignInService

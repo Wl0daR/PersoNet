@@ -3,6 +3,7 @@ using PersoNet.ApiClient.Company;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
+using PersoNet.ApiClient.Reports;
 using PersoNet.Contracts.Access;
 using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Audit;
@@ -11,13 +12,14 @@ using PersoNet.Contracts.Company;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.Organization;
+using PersoNet.Contracts.Reports;
 using PersoNet.Desktop.Presentation.Authentication;
 using PersoNet.Desktop.Presentation.Common;
 
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ICompanyApi, ISignInService, IThemeService
+internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ICompanyApi, IReportsApi, ISignInService, IThemeService
 {
     private static readonly IReadOnlyList<PermissionResponse> Catalog =
     [
@@ -122,6 +124,21 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
         _contracts.Add(new(Guid.CreateVersion7(), kadry, ContractKind.FixedTerm, new DateOnly(2018, 9, 1), new DateOnly(2020, 8, 31), 1m));
         _contracts.Add(new(Guid.CreateVersion7(), kadry, ContractKind.Indefinite, new DateOnly(2020, 9, 1), null, 0.75m));
         _contracts.Add(new(Guid.CreateVersion7(), kadry, ContractKind.Mandate, new DateOnly(2024, 1, 1), new DateOnly(2024, 6, 30), null));
+
+        // Contracts of the others, some ending soon, so the reports have something to show whenever they are rendered.
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        _contracts.Add(new(Guid.CreateVersion7(), prezes, ContractKind.Indefinite, new DateOnly(2015, 3, 1), null, 1m));
+        _contracts.Add(new(Guid.CreateVersion7(), kier, ContractKind.Indefinite, new DateOnly(2019, 1, 15), null, 1m));
+        _contracts.Add(new(Guid.CreateVersion7(), wojcik, ContractKind.FixedTerm, new DateOnly(2021, 9, 1), today.AddDays(18), 1m));
+        _contracts.Add(new(Guid.CreateVersion7(), lewandowska, ContractKind.FixedTerm, new DateOnly(2023, 4, 3), today.AddDays(45), 1m));
+        _contracts.Add(new(Guid.CreateVersion7(), lewandowska, ContractKind.Indefinite, today.AddDays(46), null, 1m));
+        _contracts.Add(new(Guid.CreateVersion7(), wozniak, ContractKind.Indefinite, new DateOnly(2017, 5, 8), null, 1m));
+        _contracts.Add(new(Guid.CreateVersion7(), dabrowska, ContractKind.FixedTerm, new DateOnly(2020, 7, 1), today.AddDays(32), 0.5m));
+        _contracts.Add(new(Guid.CreateVersion7(), dabrowska, ContractKind.Mandate, today.AddDays(-60), today.AddDays(5), null));
+        foreach (var other in _employees.Where(employee => string.CompareOrdinal(employee.Number, "P0011") >= 0))
+        {
+            _contracts.Add(new(Guid.CreateVersion7(), other.Id, ContractKind.Indefinite, other.HireDate, null, 1m));
+        }
 
         // Leave in the current year, so the screenshots look the same whenever they are taken. Days are working days.
         var year = DateTime.Today.Year;
@@ -353,6 +370,75 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
 
     public Task<LeaveBalanceResponse> SetEntitlementAsync(Guid employeeId, int year, SaveLeaveEntitlementRequest request, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
+
+    // IReportsApi: the same rules as the server, over the demo data.
+    public Task<HeadcountReport> GetHeadcountAsync(DateOnly day, CancellationToken cancellationToken)
+    {
+        var rows = _employees
+            .Where(employee => employee.HireDate <= day && (employee.TerminationDate is null || employee.TerminationDate >= day))
+            .OrderBy(employee => employee.LastName, StringComparer.CurrentCulture).ThenBy(employee => employee.FirstName, StringComparer.CurrentCulture)
+            .Select(employee =>
+            {
+                var contract = _contracts
+                    .Where(c => c.EmployeeId == employee.Id && c.StartDate <= day && (c.EndDate is null || c.EndDate >= day))
+                    .OrderByDescending(c => c.Type is ContractKind.Probation or ContractKind.FixedTerm or ContractKind.Indefinite)
+                    .ThenByDescending(c => c.StartDate)
+                    .FirstOrDefault();
+                return new HeadcountPerson(employee.Id, employee.Number, employee.FirstName, employee.LastName, DepartmentName(employee.DepartmentId),
+                    _positions.FirstOrDefault(position => position.Id == employee.PositionId)?.Name, employee.HireDate, contract?.Type, contract?.EndDate, contract?.WorkingTime);
+            })
+            .ToList();
+
+        static decimal FullTime(HeadcountPerson person) =>
+            person.ContractKind is ContractKind.Probation or ContractKind.FixedTerm or ContractKind.Indefinite ? person.WorkingTime ?? 0m : 0m;
+
+        var departments = rows.GroupBy(row => row.DepartmentName)
+            .OrderBy(group => group.Key is null).ThenBy(group => group.Key, StringComparer.CurrentCulture)
+            .Select(group => new HeadcountDepartment(group.Key, group.Count(), group.Sum(FullTime)))
+            .ToList();
+        return Task.FromResult(new HeadcountReport(day, rows.Count, rows.Sum(FullTime), departments, rows));
+    }
+
+    public Task<LeaveUsageReport> GetLeaveUsageAsync(int year, CancellationToken cancellationToken)
+    {
+        var first = new DateOnly(year, 1, 1);
+        var last = new DateOnly(year, 12, 31);
+        var rows = _employees
+            .Where(employee => employee.HireDate <= last && (employee.TerminationDate is null || employee.TerminationDate >= first))
+            .OrderBy(employee => employee.LastName, StringComparer.CurrentCulture).ThenBy(employee => employee.FirstName, StringComparer.CurrentCulture)
+            .Select(employee =>
+            {
+                var has = _entitlements.TryGetValue((employee.Id, year), out var entitlement);
+                var annual = _leave.Where(request => request.EmployeeId == employee.Id && request.StartDate.Year == year
+                    && request.Kind is LeaveKind.Annual or LeaveKind.OnDemand && request.State is LeaveState.Approved or LeaveState.Pending).ToList();
+                var total = (entitlement.Days + entitlement.CarriedOver) * 8m;
+                var used = annual.Where(request => request.State == LeaveState.Approved).Sum(request => request.Hours);
+                var pending = annual.Where(request => request.State == LeaveState.Pending).Sum(request => request.Hours);
+                return new LeaveUsageRow(employee.Id, employee.Number, employee.FirstName, employee.LastName, DepartmentName(employee.DepartmentId),
+                    has, entitlement.Days, entitlement.CarriedOver, total, used, pending, total - used - pending,
+                    annual.Where(request => request.Kind == LeaveKind.OnDemand).Sum(request => request.Days), 8m);
+            })
+            .ToList();
+        return Task.FromResult(new LeaveUsageReport(year, rows));
+    }
+
+    public Task<ContractsEndingReport> GetContractsEndingAsync(DateOnly from, int days, CancellationToken cancellationToken)
+    {
+        var to = from.AddDays(days - 1);
+        var rows = _contracts
+            .Where(contract => contract.EndDate is { } end && end >= from && end <= to)
+            .Select(contract => (Contract: contract, Employee: _employees.Single(employee => employee.Id == contract.EmployeeId)))
+            .OrderBy(row => row.Contract.EndDate).ThenBy(row => row.Employee.LastName, StringComparer.CurrentCulture)
+            .Select(row => new ContractEndingRow(row.Contract.Id, row.Employee.Id, row.Employee.Number, row.Employee.FirstName, row.Employee.LastName,
+                DepartmentName(row.Employee.DepartmentId), _positions.FirstOrDefault(position => position.Id == row.Employee.PositionId)?.Name,
+                row.Contract.Type, row.Contract.StartDate, row.Contract.EndDate!.Value, row.Contract.WorkingTime,
+                _contracts.Any(next => next.EmployeeId == row.Contract.EmployeeId && next.Id != row.Contract.Id && next.StartDate > row.Contract.StartDate
+                    && (next.EndDate is null || next.EndDate > row.Contract.EndDate))))
+            .ToList();
+        return Task.FromResult(new ContractsEndingReport(from, to, rows));
+    }
+
+    private string? DepartmentName(Guid? id) => _departments.FirstOrDefault(department => department.Id == id)?.Name;
 
     private void AddLeave(Guid employeeId, LeaveKind kind, DateOnly start, DateOnly end, int days, LeaveState state, string? note, string? decisionNote = null, decimal? hours = null)
     {

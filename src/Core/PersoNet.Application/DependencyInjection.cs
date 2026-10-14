@@ -6,6 +6,7 @@ using PersoNet.Application.Company;
 using PersoNet.Application.Employees;
 using PersoNet.Application.Leave;
 using PersoNet.Application.Organization;
+using PersoNet.Application.Reports;
 using PersoNet.Application.SelfService;
 
 namespace PersoNet.Application;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<RoleService>();
         services.AddScoped<PermissionLookup>();
         services.AddScoped<CompanyService>();
+        services.AddScoped<ReportService>();
 
         return services;
     }
