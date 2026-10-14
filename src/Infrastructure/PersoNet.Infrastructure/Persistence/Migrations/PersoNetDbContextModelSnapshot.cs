@@ -138,6 +138,10 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
+                    b.Property<DateOnly?>("TerminatedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("terminated_on");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(20)

@@ -89,6 +89,14 @@ public sealed class EmployeeCommands(IAppDbContext db, ITenantContext tenant)
         }
 
         employee.Terminate(request.LastDay);
+
+        // The contracts end with the employment; ones that start later are left for HR to remove.
+        var contracts = await db.Contracts.Where(contract => contract.EmployeeId == id).ToListAsync(cancellationToken);
+        foreach (var contract in contracts.Where(contract => contract.StartDate <= request.LastDay))
+        {
+            contract.EndEarly(request.LastDay);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
         return EmployeeQueries.ToResponse(employee);
@@ -102,7 +110,50 @@ public sealed class EmployeeCommands(IAppDbContext db, ITenantContext tenant)
             return EmployeeErrors.NotFound;
         }
 
+        // The contracts ended together with the employment run again, unless a newer contract has taken their place.
+        if (employee.TerminationDate is { } lastDay)
+        {
+            var contracts = await db.Contracts.Where(contract => contract.EmployeeId == id).ToListAsync(cancellationToken);
+            var ended = contracts.Where(contract => contract.TerminatedOn == lastDay).ToList();
+            foreach (var contract in ended)
+            {
+                contract.CancelEarlyEnd();
+            }
+
+            var others = contracts.Except(ended).Where(contract => contract.IsEmployment).ToList();
+            if (ended.Any(contract => contract.IsEmployment && others.Any(other => other.Overlaps(contract.StartDate, contract.LastDay))))
+            {
+                return EmployeeErrors.ReinstateOverlap;
+            }
+        }
+
         employee.Reinstate();
+        await db.SaveChangesAsync(cancellationToken);
+
+        return EmployeeQueries.ToResponse(employee);
+    }
+
+    public async Task<Result<EmployeeResponse>> RehireAsync(Guid id, RehireEmployeeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var employee = await db.Employees.FirstOrDefaultAsync(employee => employee.Id == id, cancellationToken);
+        if (employee is null)
+        {
+            return EmployeeErrors.NotFound;
+        }
+
+        if (employee.TerminationDate is not { } lastDay)
+        {
+            return EmployeeErrors.NotTerminated;
+        }
+
+        if (request.HireDate <= lastDay)
+        {
+            return EmployeeErrors.RehireBeforeTermination;
+        }
+
+        employee.Rehire(request.HireDate);
         await db.SaveChangesAsync(cancellationToken);
 
         return EmployeeQueries.ToResponse(employee);

@@ -65,6 +65,22 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
         ? "Kliknij „Dodaj pracownika”, aby założyć pierwszą kartotekę."
         : "Sprawdź pisownię albo zaznacz „Pokaż byłych pracowników”.";
 
+    /// <summary>Column the list is sorted by (a click on a column header); the server sorts, so every page follows it.</summary>
+    [ObservableProperty]
+    public partial EmployeeSort Sort { get; set; }
+
+    [ObservableProperty]
+    public partial bool SortDescending { get; set; }
+
+    /// <summary>Sorts by the column; a second click on the same column reverses the order.</summary>
+    [RelayCommand]
+    public Task SortByAsync(EmployeeSort column, CancellationToken cancellationToken)
+    {
+        SortDescending = Sort == column && !SortDescending;
+        Sort = column;
+        return RunAsync(() => LoadPageAsync(1, Selected?.Id, cancellationToken));
+    }
+
     [RelayCommand]
     public Task LoadAsync(CancellationToken cancellationToken) => RunAsync(() => LoadPageAsync(Page, Selected?.Id, cancellationToken));
 
@@ -138,12 +154,12 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
 
     private async Task LoadPageAsync(int page, Guid? keepSelected, CancellationToken cancellationToken)
     {
-        var result = await employees.ListAsync(new EmployeeListQuery(Search, null, IncludeFormer, Math.Max(page, 1), PageSize), cancellationToken);
+        var result = await employees.ListAsync(new EmployeeListQuery(Search, null, IncludeFormer, Math.Max(page, 1), PageSize, Sort, SortDescending), cancellationToken);
 
         // Asking past the last page (e.g. after a filter shrank the list) falls back to the last one.
         if (result.Items.Count == 0 && result.TotalCount > 0 && page > 1)
         {
-            result = await employees.ListAsync(new EmployeeListQuery(Search, null, IncludeFormer, result.TotalPages, PageSize), cancellationToken);
+            result = await employees.ListAsync(new EmployeeListQuery(Search, null, IncludeFormer, result.TotalPages, PageSize, Sort, SortDescending), cancellationToken);
         }
 
         Items.Clear();

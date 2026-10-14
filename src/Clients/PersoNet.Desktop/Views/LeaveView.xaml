@@ -64,9 +64,9 @@
                     <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" local:OpenOnActivate.Command="{Binding OpenCommand}"
                               AutomationProperties.Name="Wnioski urlopowe" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
                               HeadersVisibility="Column" MinRowHeight="52" GridLinesVisibility="None" BorderThickness="0" Background="Transparent" Padding="8,0"
-                              HorizontalScrollBarVisibility="Disabled" CanUserSortColumns="False" CanUserReorderColumns="False">
+                              HorizontalScrollBarVisibility="Disabled" CanUserSortColumns="True" CanUserReorderColumns="False">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Pracownik" Width="1.6*" MinWidth="180">
+                            <DataGridTemplateColumn Header="Pracownik" SortMemberPath="Request.EmployeeName" Width="1.6*" MinWidth="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type leave:LeaveRow}">
                                         <DockPanel VerticalAlignment="Center" Margin="0,6">
@@ -81,28 +81,28 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Rodzaj" Width="1.4*" MinWidth="140">
+                            <DataGridTemplateColumn Header="Rodzaj" SortMemberPath="KindName" Width="1.4*" MinWidth="140">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type leave:LeaveRow}">
                                         <TextBlock Text="{Binding KindName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding KindName}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Termin" Width="1.2*" MinWidth="130">
+                            <DataGridTemplateColumn Header="Termin" SortMemberPath="Request.StartDate" Width="1.2*" MinWidth="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type leave:LeaveRow}">
                                         <TextBlock Text="{Binding Period}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Period}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Wymiar" Width="Auto" MinWidth="90">
+                            <DataGridTemplateColumn Header="Wymiar" SortMemberPath="Request.Hours" Width="Auto" MinWidth="90">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type leave:LeaveRow}">
                                         <TextBlock Text="{Binding DaysText}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Status" Width="Auto" MinWidth="112">
+                            <DataGridTemplateColumn Header="Status" SortMemberPath="StateName" Width="Auto" MinWidth="112">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type leave:LeaveRow}">
                                         <Border Style="{StaticResource StateBadge}" Margin="0,0,8,0">

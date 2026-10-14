@@ -79,11 +79,22 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
         });
     }
 
-    /// <summary>Opens the form of a new contract; a follow-up contract starts the day after the last one ends.</summary>
+    /// <summary>
+    /// Opens the form of a new contract; a follow-up contract starts the day after the last one ends, and never before the
+    /// (latest) hire date.
+    /// </summary>
     [RelayCommand]
-    public Task NewAsync(CancellationToken cancellationToken) => _employee is not { } employee
-        ? Task.CompletedTask
-        : EditInDialogAsync(new ContractDialogViewModel(api, employee, row: null, LatestEnd() ?? employee.HireDate.ToDateTime(TimeOnly.MinValue)), cancellationToken);
+    public Task NewAsync(CancellationToken cancellationToken)
+    {
+        if (_employee is not { } employee)
+        {
+            return Task.CompletedTask;
+        }
+
+        var hired = employee.HireDate.ToDateTime(TimeOnly.MinValue);
+        var start = LatestEnd() is { } next && next > hired ? next : hired;
+        return EditInDialogAsync(new ContractDialogViewModel(api, employee, row: null, start), cancellationToken);
+    }
 
     /// <summary>Opens the picked contract in the form.</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -132,7 +143,7 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
 
     // A follow-up contract usually starts the day after the last one ends.
     private DateTime? LatestEnd() =>
-        Items.Select(row => row.Contract.EndDate).Where(end => end is not null).Max() is { } end
+        Items.Select(row => LastDay(row.Contract)).Where(end => end is not null).Max() is { } end
             ? end.AddDays(1).ToDateTime(TimeOnly.MinValue)
             : null;
 
@@ -178,18 +189,28 @@ public sealed partial class ContractsViewModel(IEmployeesApi api, TimeProvider t
         _ => value.ToString("0.###", Polish),
     };
 
+    /// <summary>The day the contract actually ends: its planned end, or the earlier day the employment ended.</summary>
+    internal static DateOnly? LastDay(ContractResponse contract) =>
+        contract.TerminatedOn is { } terminated && (contract.EndDate is null || terminated < contract.EndDate) ? terminated : contract.EndDate;
+
     private static ContractRow ToRow(ContractResponse contract, DateOnly today)
     {
         var typeName = Kinds.First(kind => kind.Kind == contract.Type).Name;
         var from = contract.StartDate.ToString("d MMM yyyy", Polish);
-        var period = contract.EndDate is { } end ? $"{from} – {end.ToString("d MMM yyyy", Polish)}" : $"od {from}, bez daty końca";
+        var lastDay = LastDay(contract);
+        var period = lastDay is { } end ? $"{from} – {end.ToString("d MMM yyyy", Polish)}" : $"od {from}, bez daty końca";
+        if (lastDay != contract.EndDate)
+        {
+            period += " (rozwiązana z końcem zatrudnienia)";
+        }
+
         string? workingTime = contract.WorkingTime switch
         {
             null => null,
             1m => "pełny etat",
             { } fraction => $"{FormatFraction(fraction)} etatu",
         };
-        var isCurrent = contract.StartDate <= today && (contract.EndDate is null || today <= contract.EndDate);
+        var isCurrent = contract.StartDate <= today && (lastDay is null || today <= lastDay);
 
         return new ContractRow(contract, typeName, period, workingTime, isCurrent);
     }

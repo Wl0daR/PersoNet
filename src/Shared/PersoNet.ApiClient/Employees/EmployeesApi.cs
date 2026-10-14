@@ -20,6 +20,12 @@ internal sealed class EmployeesApi(HttpClient http) : IEmployeesApi
             "pageSize=" + query.PageSize.ToString(CultureInfo.InvariantCulture),
         };
 
+        if (query.Sort != EmployeeSort.Name || query.Descending)
+        {
+            parameters.Add("sort=" + query.Sort);
+            parameters.Add($"descending={(query.Descending ? "true" : "false")}");
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             parameters.Add("search=" + Uri.EscapeDataString(query.Search.Trim()));
@@ -61,6 +67,12 @@ internal sealed class EmployeesApi(HttpClient http) : IEmployeesApi
     public async Task<EmployeeResponse> TerminateAsync(Guid id, DateOnly lastDay, CancellationToken cancellationToken)
     {
         using var response = await http.PostAsJsonAsync($"{Employees}/{id}/terminate", new TerminateEmployeeRequest(lastDay), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeResponse> RehireAsync(Guid id, DateOnly hireDate, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync($"{Employees}/{id}/rehire", new RehireEmployeeRequest(hireDate), cancellationToken).ConfigureAwait(false);
         return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
     }
 

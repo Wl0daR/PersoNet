@@ -54,6 +54,15 @@ public sealed class EmploymentContract : Entity, ITenantOwned
     /// <summary>Last day of the contract; null only for an indefinite contract (or a civil one without an end).</summary>
     public DateOnly? EndDate { get; private set; }
 
+    /// <summary>
+    /// The day a contract ended before its planned end, because the employment ended (rozwiązanie umowy); null while it
+    /// runs to <see cref="EndDate"/>.
+    /// </summary>
+    public DateOnly? TerminatedOn { get; private set; }
+
+    /// <summary>The day the contract actually ends: the earlier of <see cref="EndDate"/> and <see cref="TerminatedOn"/>.</summary>
+    public DateOnly? LastDay => TerminatedOn is { } terminated && (EndDate is null || terminated < EndDate) ? terminated : EndDate;
+
     /// <summary>Working time as a fraction of full time ("wymiar etatu"), e.g. 1 or 0.5. Only for employment contracts.</summary>
     public decimal? WorkingTime { get; private set; }
 
@@ -113,9 +122,31 @@ public sealed class EmploymentContract : Entity, ITenantOwned
         WorkingTime = employment ? terms.WorkingTime : null;
     }
 
-    /// <summary>True when both contracts cover at least one common day.</summary>
+    /// <summary>
+    /// Ends the contract on <paramref name="lastDay"/> when the employment ends. A contract that ends by then anyway is left
+    /// as it is.
+    /// </summary>
+    public void EndEarly(DateOnly lastDay)
+    {
+        if (lastDay < StartDate)
+        {
+            throw new DomainException("A contract cannot end before it starts.");
+        }
+
+        if (LastDay is { } last && last <= lastDay)
+        {
+            return;
+        }
+
+        TerminatedOn = lastDay;
+    }
+
+    /// <summary>Lets the contract run to its planned end again (the end of employment was undone).</summary>
+    public void CancelEarlyEnd() => TerminatedOn = null;
+
+    /// <summary>True when the contract covers at least one day of the given period (up to the day it actually ends).</summary>
     public bool Overlaps(DateOnly start, DateOnly? end) =>
-        StartDate <= (end ?? DateOnly.MaxValue) && start <= (EndDate ?? DateOnly.MaxValue);
+        StartDate <= (end ?? DateOnly.MaxValue) && start <= (LastDay ?? DateOnly.MaxValue);
 }
 
 public sealed record ContractTerms(ContractType Type, DateOnly StartDate, DateOnly? EndDate, decimal? WorkingTime);

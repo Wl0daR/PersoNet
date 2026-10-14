@@ -91,6 +91,18 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
         return Task.FromResult(Employees[index]);
     }
 
+    public Task<EmployeeResponse> RehireAsync(Guid id, DateOnly hireDate, CancellationToken cancellationToken)
+    {
+        var index = Employees.FindIndex(e => e.Id == id);
+        if (Employees[index].TerminationDate is not { } lastDay || hireDate <= lastDay)
+        {
+            throw new ApiException(HttpStatusCode.BadRequest, "Nowa data zatrudnienia musi być późniejsza niż ostatni dzień poprzedniej pracy.", "employee.rehire_before_termination");
+        }
+
+        Employees[index] = Employees[index] with { HireDate = hireDate, TerminationDate = null };
+        return Task.FromResult(Employees[index]);
+    }
+
     public Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken)
     {
         var index = Employees.FindIndex(e => e.Id == id);

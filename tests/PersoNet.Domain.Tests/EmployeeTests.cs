@@ -64,4 +64,25 @@ public sealed class EmployeeTests
 
         Should.Throw<DomainException>(() => employee.Terminate(HireDate.AddDays(-1)));
     }
+
+    [Fact]
+    public void Rehire_starts_a_new_employment_after_the_last_day()
+    {
+        var employee = Employee.Create(TenantId, Details());
+        employee.Terminate(new DateOnly(2025, 6, 30));
+
+        Should.Throw<DomainException>(() => employee.Rehire(new DateOnly(2025, 6, 30)));
+        employee.Rehire(new DateOnly(2025, 8, 1));
+
+        employee.HireDate.ShouldBe(new DateOnly(2025, 8, 1));
+        employee.TerminationDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Only_a_former_employee_can_be_rehired()
+    {
+        var employee = Employee.Create(TenantId, Details());
+
+        Should.Throw<DomainException>(() => employee.Rehire(new DateOnly(2030, 1, 1)));
+    }
 }

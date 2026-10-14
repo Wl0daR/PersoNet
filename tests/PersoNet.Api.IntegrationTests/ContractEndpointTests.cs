@@ -92,6 +92,54 @@ public sealed class ContractEndpointTests(PersoNetApiFactory factory)
         remaining!.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Ending_the_employment_ends_its_contracts_and_a_rehired_employee_gets_a_new_one()
+    {
+        using var hr = factory.CreateSignedInClient();
+        var employee = await HireAsync(hr);
+        await AddAsync(hr, employee.Id, new SaveContractRequest(ContractKind.Indefinite, HireDate, null, 1m));
+        var lastDay = new DateOnly(2025, 6, 30);
+
+        using var terminate = await hr.PostAsJsonAsync($"/api/v1/employees/{employee.Id}/terminate", new TerminateEmployeeRequest(lastDay), Cancellation);
+        var ended = (await hr.GetFromJsonAsync<List<ContractResponse>>(Contracts(employee.Id), Cancellation))!.Single();
+
+        using var tooEarly = await hr.PostAsJsonAsync($"/api/v1/employees/{employee.Id}/rehire", new RehireEmployeeRequest(lastDay), Cancellation);
+        using var rehire = await hr.PostAsJsonAsync($"/api/v1/employees/{employee.Id}/rehire", new RehireEmployeeRequest(new DateOnly(2025, 8, 1)), Cancellation);
+        var rehired = await rehire.Content.ReadFromJsonAsync<EmployeeResponse>(Cancellation);
+        var next = await AddAsync(hr, employee.Id, new SaveContractRequest(ContractKind.FixedTerm, new DateOnly(2025, 8, 1), new DateOnly(2026, 7, 31), 1m));
+
+        terminate.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ended.EndDate.ShouldBeNull();
+        ended.TerminatedOn.ShouldBe(lastDay);
+        tooEarly.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await tooEarly.Content.ReadAsStringAsync(Cancellation)).ShouldContain("employee.rehire_before_termination");
+        rehired!.HireDate.ShouldBe(new DateOnly(2025, 8, 1));
+        rehired.TerminationDate.ShouldBeNull();
+        next.StartDate.ShouldBe(new DateOnly(2025, 8, 1));
+    }
+
+    [Fact]
+    public async Task Undoing_the_end_of_employment_restores_the_contracts_unless_a_new_one_took_their_place()
+    {
+        using var hr = factory.CreateSignedInClient();
+        var employee = await HireAsync(hr);
+        await AddAsync(hr, employee.Id, new SaveContractRequest(ContractKind.Indefinite, HireDate, null, 1m));
+        var lastDay = new DateOnly(2025, 6, 30);
+        using var _ = await hr.PostAsJsonAsync($"/api/v1/employees/{employee.Id}/terminate", new TerminateEmployeeRequest(lastDay), Cancellation);
+
+        using var reinstate = await hr.PostAsync(new Uri($"/api/v1/employees/{employee.Id}/reinstate", UriKind.Relative), null, Cancellation);
+        var restored = (await hr.GetFromJsonAsync<List<ContractResponse>>(Contracts(employee.Id), Cancellation))!.Single();
+
+        using var again = await hr.PostAsJsonAsync($"/api/v1/employees/{employee.Id}/terminate", new TerminateEmployeeRequest(lastDay), Cancellation);
+        await AddAsync(hr, employee.Id, new SaveContractRequest(ContractKind.FixedTerm, new DateOnly(2025, 9, 1), new DateOnly(2025, 12, 31), 1m));
+        using var blocked = await hr.PostAsync(new Uri($"/api/v1/employees/{employee.Id}/reinstate", UriKind.Relative), null, Cancellation);
+
+        reinstate.StatusCode.ShouldBe(HttpStatusCode.OK);
+        restored.TerminatedOn.ShouldBeNull();
+        blocked.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await blocked.Content.ReadAsStringAsync(Cancellation)).ShouldContain("employee.reinstate_overlap");
+    }
+
     private static string Contracts(Guid employeeId) => $"/api/v1/employees/{employeeId}/contracts";
 
     private static async Task<EmployeeResponse> HireAsync(HttpClient client)

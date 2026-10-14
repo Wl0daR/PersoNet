@@ -35,6 +35,17 @@ internal static class EmployeeErrors
     public static readonly AppError HireAfterTermination =
         AppError.Validation("employee.hire_after_termination", "Data zatrudnienia nie może być późniejsza niż data zakończenia pracy.");
 
+    public static readonly AppError NotTerminated =
+        AppError.Validation("employee.not_terminated", "Ponownie zatrudnić można tylko osobę, której zatrudnienie się zakończyło.");
+
+    public static readonly AppError RehireBeforeTermination =
+        AppError.Validation("employee.rehire_before_termination", "Nowa data zatrudnienia musi być późniejsza niż ostatni dzień poprzedniej pracy.");
+
+    public static readonly AppError ReinstateOverlap =
+        AppError.Conflict(
+            "employee.reinstate_overlap",
+            "Nie można cofnąć zakończenia zatrudnienia, bo pracownik ma już nową umowę. Jeśli wraca do pracy, użyj „Zatrudnij ponownie”.");
+
     public static AppError Invalid(DomainException exception) =>
         AppError.Validation("employee.invalid", exception.Message);
 }

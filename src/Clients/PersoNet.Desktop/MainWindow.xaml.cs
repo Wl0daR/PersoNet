@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using PersoNet.Desktop.Presentation.Shell;
 
 namespace PersoNet.Desktop;
@@ -25,6 +27,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         FitToScreen();
         SizeChanged += (_, _) => UpdateNavigationMode();
+        PreviewKeyDown += OnPreviewKeyDown;
     }
 
     public bool IsNavigationCompact
@@ -56,6 +59,40 @@ public partial class MainWindow : Window
         }
 
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
+    }
+
+    // Each screen declares its shortcuts (F5, Ctrl+N, Ctrl+F), but they reach it only while the keyboard focus is inside the
+    // screen. After a click in the side menu the focus stays in the menu, so the window passes the shortcut on.
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (FindScreen(ScreenHost) is not { IsKeyboardFocusWithin: false } screen)
+        {
+            return;
+        }
+
+        foreach (var binding in screen.InputBindings.OfType<KeyBinding>())
+        {
+            if (binding.Gesture.Matches(screen, e) && binding.Command?.CanExecute(binding.CommandParameter) == true)
+            {
+                binding.Command.Execute(binding.CommandParameter);
+                e.Handled = true;
+                return;
+            }
+        }
+    }
+
+    private static UserControl? FindScreen(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if ((child as UserControl ?? FindScreen(child)) is { } screen)
+            {
+                return screen;
+            }
+        }
+
+        return null;
     }
 
     private void UpdateNavigationMode() => IsNavigationCompact = _userChoice ?? ActualWidth < CompactNavigationBelow;

@@ -57,7 +57,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNew), nameof(Title), nameof(EditorTitle), nameof(IsTerminated), nameof(IsEmployed), nameof(StatusText), nameof(StatusBadge), nameof(CardInitials), nameof(CardSubtitle))]
-    [NotifyCanExecuteChangedFor(nameof(TerminateCommand), nameof(ReinstateCommand))]
+    [NotifyCanExecuteChangedFor(nameof(TerminateCommand), nameof(ReinstateCommand), nameof(RehireCommand))]
     public partial EmployeeResponse? Current { get; set; }
 
     [ObservableProperty]
@@ -90,6 +90,10 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
     /// <summary>Last day of work entered before "Zakończ zatrudnienie".</summary>
     [ObservableProperty]
     public partial DateTime? TerminationLastDay { get; set; }
+
+    /// <summary>First day of the new employment entered before "Zatrudnij ponownie".</summary>
+    [ObservableProperty]
+    public partial DateTime? RehireDate { get; set; }
 
     /// <summary>A message after a successful save, so the user sees it worked.</summary>
     [ObservableProperty]
@@ -202,6 +206,31 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
             });
     }
 
+    /// <summary>"Zatrudnij ponownie": a former employee returns from the given day; earlier contracts stay ended.</summary>
+    [RelayCommand(CanExecute = nameof(IsTerminated))]
+    public Task RehireAsync(CancellationToken cancellationToken)
+    {
+        SavedMessage = null;
+        if (Current is not { } current)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (RehireDate is not { } hireDate)
+        {
+            SetError(nameof(RehireDate), "Podaj pierwszy dzień nowego zatrudnienia.");
+            return Task.CompletedTask;
+        }
+
+        return RunAsync(async () =>
+        {
+            Show(await _employees.RehireAsync(current.Id, DateOnly.FromDateTime(hireDate), cancellationToken));
+            HasChanges = true;
+            await RefreshManagersAsync(cancellationToken);
+            SavedMessage = "Pracownik zatrudniony ponownie. Dodaj nową umowę w zakładce Umowy.";
+        });
+    }
+
     protected override bool TryShowOnField(ApiException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
@@ -215,6 +244,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
             "employee.manager_not_found" or "employee.manager_cycle" => nameof(EditManager),
             "employee.hire_after_termination" => nameof(EditHireDate),
             "employee.termination_before_hire" => nameof(TerminationLastDay),
+            "employee.rehire_before_termination" or "employee.not_terminated" => nameof(RehireDate),
             _ => null,
         };
 
@@ -226,10 +256,11 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         return field is not null;
     }
 
-    // The contracts and leave tabs follow the card; a new, unsaved card has neither.
+    // The contracts and leave tabs follow the card; a new, unsaved card has neither. Ending or resuming the employment
+    // changes the contracts too.
     partial void OnCurrentChanged(EmployeeResponse? oldValue, EmployeeResponse? newValue)
     {
-        if (oldValue?.Id != newValue?.Id)
+        if (oldValue?.Id != newValue?.Id || oldValue?.TerminationDate != newValue?.TerminationDate || oldValue?.HireDate != newValue?.HireDate)
         {
             _ = Contracts.ShowAsync(newValue, CancellationToken.None);
             _ = Leave.ShowAsync(newValue, CancellationToken.None);
@@ -273,6 +304,12 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         RebuildManagerChoices();
         EditManager = Find(Managers, employee?.ManagerId) ?? NoManager;
         TerminationLastDay = employee?.TerminationDate?.ToDateTime(TimeOnly.MinValue) ?? _time.GetLocalNow().Date;
+
+        // A returning employee usually starts today, and never before the day after they left.
+        var today = DateOnly.FromDateTime(_time.GetLocalNow().Date);
+        RehireDate = employee?.TerminationDate is { } left
+            ? (today > left ? today : left.AddDays(1)).ToDateTime(TimeOnly.MinValue)
+            : null;
 
         // Showing a card is not an edit, so it must not leave errors behind.
         ClearAllErrors();
