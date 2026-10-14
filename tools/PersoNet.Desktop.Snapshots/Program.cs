@@ -14,6 +14,7 @@ using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
+using PersoNet.Desktop.Presentation.Reports;
 using PersoNet.Desktop.Presentation.Shell;
 using PersoNet.Desktop.Snapshots;
 
@@ -71,7 +72,11 @@ namespace PersoNet.Desktop.Snapshots
             var positions = new PositionsViewModel(api, dialogs);
             var roles = new RolesViewModel(api, dialogs);
             var company = new CompanyViewModel(api, dialogs);
-            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, user, time), employees, leave, new TeamCalendarViewModel(api, api, time), departments, positions, roles, company, api, user, api);
+            var files = new SnapshotFiles();
+            var reports = new ReportsViewModel(
+                new HeadcountReportViewModel(api, files, time), new LeaveUsageReportViewModel(api, files, time), new ContractsEndingReportViewModel(api, files, time));
+            var shell = new ShellViewModel(
+                api, new HomeViewModel(api, api, api, user, time), employees, leave, new TeamCalendarViewModel(api, api, time), reports, departments, positions, roles, company, api, user, api);
 
             var window = new MainWindow(shell)
             {
@@ -246,6 +251,17 @@ namespace PersoNet.Desktop.Snapshots
                 dialogs.Script = async (_, dialogWindow) =>
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"25-urlopy-w-portalu-srodek-{suffix}.png"));
                 await company.EditLeaveAsync();
+
+                // The other two reports, each on its own tab.
+                shell.NavigateCommand.Execute(shell.ReportsItem);
+                foreach (var (tab, name) in new[] { (1, "26-raport-urlopy"), (2, "27-raport-umowy") })
+                {
+                    reports.SelectedIndex = tab;
+                    await RenderAsync(window, Sizes[1], Path.Combine(output, $"{name}-srodek-{suffix}.png"));
+                    await RenderAsync(window, Sizes[2], Path.Combine(output, $"{name}-laptop150-{suffix}.png"));
+                }
+
+                reports.SelectedIndex = 0;
             }
 
             window.Close();

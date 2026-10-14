@@ -3,6 +3,7 @@
   <!-- ViewModels and UI services. No WPF reference, so this code is unit-testable on any OS. -->
 
   <ItemGroup>
+    <PackageReference Include="ClosedXML" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
 

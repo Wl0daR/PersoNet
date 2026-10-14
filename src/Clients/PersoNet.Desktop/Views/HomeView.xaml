@@ -50,7 +50,7 @@
                 </Button>
                 <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding DataContext.DepartmentsItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz strukturę działów (Ctrl+5)"
+                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz strukturę działów (Ctrl+6)"
                         Visibility="{Binding CanManageOrganization, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <DockPanel>
@@ -62,7 +62,7 @@
                 </Button>
                 <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding DataContext.PositionsItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz słownik stanowisk (Ctrl+6)"
+                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz słownik stanowisk (Ctrl+7)"
                         Visibility="{Binding CanManageOrganization, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <DockPanel>
@@ -136,7 +136,7 @@
                             <RowDefinition />
                             <RowDefinition />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Ctrl+1…8" FontWeight="SemiBold" Margin="0,2,24,2" />
+                        <TextBlock Grid.Row="0" Text="Ctrl+1…9" FontWeight="SemiBold" Margin="0,2,24,2" />
                         <TextBlock Grid.Row="0" Grid.Column="1" Text="Start, Pracownicy, Urlopy, Działy, Stanowiska, Role" Style="{StaticResource SecondaryText}" Margin="0,2" />
                         <TextBlock Grid.Row="1" Text="Ctrl+N" FontWeight="SemiBold" Margin="0,2,24,2" />
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="Nowy wpis na otwartym ekranie" Style="{StaticResource SecondaryText}" Margin="0,2" />
