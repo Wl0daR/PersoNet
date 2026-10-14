@@ -8,6 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
     <ProjectReference Include="..\..\Hosts\PersoNet.Api\PersoNet.Api.csproj" />
     <ProjectReference Include="..\..\Hosts\PersoNet.Identity\PersoNet.Identity.csproj" />
     <ProjectReference Include="..\..\Hosts\PersoNet.Worker\PersoNet.Worker.csproj" />
