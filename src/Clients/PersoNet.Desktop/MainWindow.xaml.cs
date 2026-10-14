@@ -46,8 +46,8 @@ public partial class MainWindow : Window
     private static void OnCompactChanged(DependencyObject window, DependencyPropertyChangedEventArgs e) =>
         ((MainWindow)window).IsNavigationExpanded = !(bool)e.NewValue;
 
-    // On a small or highly scaled screen (e.g. 1366 x 768 at 150 % gives about 910 x 480 to work with) the default size
-    // would not fit, so the window opens maximized instead of hanging off the screen.
+    // The app opens maximized, so the lists and the calendar get the whole screen. The size it restores to still fits a small
+    // or highly scaled screen (e.g. 1366 x 768 at 150 % gives about 910 x 480 to work with).
     private void FitToScreen()
     {
         var area = SystemParameters.WorkArea;
@@ -55,10 +55,10 @@ public partial class MainWindow : Window
         {
             Width = Math.Max(MinWidth, area.Width * 0.9);
             Height = Math.Max(MinHeight, area.Height * 0.9);
-            WindowState = WindowState.Maximized;
         }
 
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        WindowState = WindowState.Maximized;
     }
 
     // Each screen declares its shortcuts (F5, Ctrl+N, Ctrl+F), but they reach it only while the keyboard focus is inside the
