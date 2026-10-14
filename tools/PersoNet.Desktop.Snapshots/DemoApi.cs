@@ -1,6 +1,8 @@
+using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
+using PersoNet.Contracts.Access;
 using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Audit;
 using PersoNet.Contracts.Common;
@@ -13,8 +15,46 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISignInService, IThemeService
+internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ISignInService, IThemeService
 {
+    private static readonly IReadOnlyList<PermissionResponse> Catalog =
+    [
+        new("employees.read", "Pracownicy", "Przeglądanie kartotek", "Lista pracowników, kartoteki i umowy.", true),
+        new("employees.manage", "Pracownicy", "Zmiany w kartotekach", "Zatrudnianie, zmiana danych i umów, koniec zatrudnienia.", true),
+        new("audit.read", "Pracownicy", "Historia zmian", "Kto i kiedy zmienił dane pracownika.", true),
+        new("leave.read", "Urlopy", "Przeglądanie urlopów", "Wnioski, wymiar i saldo urlopu wszystkich pracowników.", true),
+        new("leave.manage", "Urlopy", "Decyzje urlopowe", "Wpisywanie, zatwierdzanie, odrzucanie i anulowanie wniosków oraz ustalanie wymiaru.", true),
+        new("organization.manage", "Firma", "Struktura firmy", "Dodawanie i zmiana działów oraz stanowisk.", true),
+        new("roles.manage", "Firma", "Role i uprawnienia", "Tworzenie ról i nadawanie ich pracownikom.", true),
+        new("accounts.manage", "Firma", "Konta w portalu", "Zakładanie i blokowanie kont pracowników. Ma je tylko administrator kadr.", false),
+    ];
+
+    private static readonly IReadOnlyList<RoleResponse> DemoRoles =
+    [
+        new(Guid.NewGuid(), "Kadrowa", "Prowadzi kartoteki i urlopy, bez zmian w strukturze firmy.", ["employees.manage", "employees.read", "leave.manage", "leave.read"], 2),
+        new(Guid.NewGuid(), "Kierownik działu", "Widzi urlopy i decyduje o wnioskach.", ["leave.manage", "leave.read"], 5),
+        new(Guid.NewGuid(), "Księgowość", null, ["employees.read", "leave.read"], 1),
+    ];
+
+    public Task<CurrentUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new CurrentUserResponse(Guid.NewGuid(), Guid.NewGuid(), "Anna Kowalska", "anna.kowalska@firma.pl", [.. Catalog.Select(permission => permission.Code)]));
+
+    public Task<IReadOnlyList<PermissionResponse>> ListPermissionsAsync(CancellationToken cancellationToken) => Task.FromResult(Catalog);
+
+    public Task<IReadOnlyList<RoleResponse>> ListRolesAsync(CancellationToken cancellationToken) => Task.FromResult(DemoRoles);
+
+    public Task<RoleResponse> CreateRoleAsync(SaveRoleRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<RoleResponse> UpdateRoleAsync(Guid id, SaveRoleRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task DeleteRoleAsync(Guid id, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<RoleResponse>> GetEmployeeRolesAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<RoleResponse>>([DemoRoles[0]]);
+
+    public Task<IReadOnlyList<RoleResponse>> SetEmployeeRolesAsync(Guid employeeId, IReadOnlyList<Guid> roleIds, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
     private readonly List<DepartmentResponse> _departments = [];
     private readonly List<PositionResponse> _positions = [];
     private readonly List<EmployeeResponse> _employees = [];

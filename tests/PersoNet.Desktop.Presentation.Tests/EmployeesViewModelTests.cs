@@ -13,7 +13,7 @@ public sealed class EmployeesViewModelTests
     private readonly FakeDialogService _dialogs = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2025, 5, 20, 9, 0, 0, TimeSpan.Zero));
 
-    private EmployeesViewModel CreateViewModel() => new(_employees, _organization, new FakeLeaveApi(), _time, _dialogs);
+    private EmployeesViewModel CreateViewModel() => new(_employees, _organization, new FakeLeaveApi(), new FakeAccessApi(), UserAccessFor.Administrator(), _time, _dialogs);
 
     private async Task<EmployeeCardViewModel> OpenCardAsync(Guid? employeeId)
     {

@@ -1,5 +1,8 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PersoNet.ApiClient.Access;
+using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Authentication;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Employees;
@@ -16,6 +19,8 @@ public sealed partial class ShellViewModel : ObservableObject
 {
     private readonly ISignInService _signIn;
     private readonly IThemeService _theme;
+    private readonly IAccessApi _access;
+    private readonly UserAccess _user;
 
     public ShellViewModel(
         ISignInService signIn,
@@ -24,22 +29,29 @@ public sealed partial class ShellViewModel : ObservableObject
         LeaveViewModel leave,
         DepartmentsViewModel departments,
         PositionsViewModel positions,
+        RolesViewModel roles,
+        IAccessApi access,
+        UserAccess user,
         IThemeService theme)
     {
         _signIn = signIn;
         _theme = theme;
+        _access = access;
+        _user = user;
         Home = home;
         Employees = employees;
         Leave = leave;
         Departments = departments;
         Positions = positions;
+        Roles = roles;
 
         HomeItem = new NavigationItem("Start", "\uE80F", home);
         EmployeesItem = new NavigationItem("Pracownicy", "\uE716", employees);
         LeaveItem = new NavigationItem("Urlopy", "\uE787", leave);
         DepartmentsItem = new NavigationItem("Działy", "\uE8B7", departments);
         PositionsItem = new NavigationItem("Stanowiska", "\uE821", positions);
-        Navigation = [HomeItem, EmployeesItem, LeaveItem, DepartmentsItem, PositionsItem];
+        RolesItem = new NavigationItem("Role", "\uE8D7", roles);
+        Navigation = [HomeItem];
         CurrentItem = HomeItem;
 
         Themes =
@@ -103,6 +115,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public PositionsViewModel Positions { get; }
 
+    public RolesViewModel Roles { get; }
+
     public NavigationItem HomeItem { get; }
 
     public NavigationItem EmployeesItem { get; }
@@ -113,7 +127,10 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public NavigationItem PositionsItem { get; }
 
-    public IReadOnlyList<NavigationItem> Navigation { get; }
+    public NavigationItem RolesItem { get; }
+
+    /// <summary>Screens of the side menu the signed-in user has the permissions for.</summary>
+    public ObservableCollection<NavigationItem> Navigation { get; }
 
     /// <summary>The screen picked in the side menu.</summary>
     [ObservableProperty]
@@ -122,7 +139,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     public void Navigate(NavigationItem? item)
     {
-        if (item is not null)
+        if (item is not null && Navigation.Contains(item))
         {
             CurrentItem = item;
         }
@@ -139,22 +156,14 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
-        _ = newValue.Page switch
-        {
-            HomeViewModel home => home.LoadAsync(CancellationToken.None),
-            EmployeesViewModel employees => employees.LoadAsync(CancellationToken.None),
-            LeaveViewModel leave => leave.LoadAsync(CancellationToken.None),
-            DepartmentsViewModel departments => departments.LoadAsync(CancellationToken.None),
-            PositionsViewModel positions => positions.LoadAsync(CancellationToken.None),
-            _ => Task.CompletedTask,
-        };
+        _ = newValue == HomeItem ? Home.LoadAsync(CancellationToken.None) : LoadAsync(newValue, CancellationToken.None);
     }
 
     /// <summary>Shortcut from the start screen: the card of a new employee.</summary>
     [RelayCommand]
     public void AddEmployee()
     {
-        CurrentItem = EmployeesItem;
+        Navigate(EmployeesItem);
         Employees.NewCommand.Execute(null);
     }
 
@@ -162,7 +171,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     public void AddLeave()
     {
-        CurrentItem = LeaveItem;
+        Navigate(LeaveItem);
         Leave.NewCommand.Execute(null);
     }
 
@@ -170,7 +179,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     public void AddDepartment()
     {
-        CurrentItem = DepartmentsItem;
+        Navigate(DepartmentsItem);
         Departments.Selected = null;
         Departments.NewCommand.Execute(null);
     }
@@ -179,7 +188,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     public void AddPosition()
     {
-        CurrentItem = PositionsItem;
+        Navigate(PositionsItem);
         Positions.NewCommand.Execute(null);
     }
 
@@ -191,7 +200,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
         try
         {
-            User = await _signIn.SignInAsync(cancellationToken);
+            var user = await _signIn.SignInAsync(cancellationToken);
+            _user.Set((await _access.GetCurrentUserAsync(cancellationToken)).Permissions);
+            User = user;
         }
         catch (OperationCanceledException)
         {
@@ -206,13 +217,15 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ShowPermittedScreens();
         CurrentItem = HomeItem;
         Home.UserName = User.Name;
         await Home.LoadAsync(cancellationToken);
-        await Employees.LoadAsync(cancellationToken);
-        await Leave.LoadAsync(cancellationToken);
-        await Departments.LoadAsync(cancellationToken);
-        await Positions.LoadAsync(cancellationToken);
+        foreach (var item in Navigation.Where(item => item != HomeItem))
+        {
+            await LoadAsync(item, cancellationToken);
+        }
+
         _screensLoaded = true;
     }
 
@@ -222,7 +235,52 @@ public sealed partial class ShellViewModel : ObservableObject
         await _signIn.SignOutAsync(cancellationToken);
         _screensLoaded = false;
         User = null;
+        _user.Clear();
+        ShowPermittedScreens();
     }
+
+    // The side menu lists only the screens the user may work on; the API checks every call anyway.
+    private void ShowPermittedScreens()
+    {
+        (NavigationItem Item, bool Permitted)[] screens =
+        [
+            (HomeItem, true),
+            (EmployeesItem, _user.Can(UserAccess.EmployeesRead)),
+            (LeaveItem, _user.Can(UserAccess.LeaveRead)),
+            (DepartmentsItem, _user.Can(UserAccess.OrganizationManage)),
+            (PositionsItem, _user.Can(UserAccess.OrganizationManage)),
+            (RolesItem, _user.Can(UserAccess.RolesManage)),
+        ];
+
+        // Start stays selected while the others come and go, so the menu never loses its selection.
+        CurrentItem = HomeItem;
+        var position = 0;
+        foreach (var (item, permitted) in screens)
+        {
+            if (!permitted)
+            {
+                Navigation.Remove(item);
+                continue;
+            }
+
+            if (!Navigation.Contains(item))
+            {
+                Navigation.Insert(position, item);
+            }
+
+            position++;
+        }
+    }
+
+    private static Task LoadAsync(NavigationItem item, CancellationToken cancellationToken) => item.Page switch
+    {
+        EmployeesViewModel employees => employees.LoadAsync(cancellationToken),
+        LeaveViewModel leave => leave.LoadAsync(cancellationToken),
+        DepartmentsViewModel departments => departments.LoadAsync(cancellationToken),
+        PositionsViewModel positions => positions.LoadAsync(cancellationToken),
+        RolesViewModel roles => roles.LoadAsync(cancellationToken),
+        _ => Task.CompletedTask,
+    };
 
     private bool CanSignIn() => !IsSignedIn;
 }

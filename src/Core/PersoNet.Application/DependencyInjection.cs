@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PersoNet.Application.Access;
 using PersoNet.Application.Accounts;
 using PersoNet.Application.Audit;
 using PersoNet.Application.Employees;
@@ -27,6 +28,8 @@ public static class DependencyInjection
         services.AddScoped<PortalService>();
         services.AddScoped<AccountService>();
         services.AddScoped<AuditQueries>();
+        services.AddScoped<RoleService>();
+        services.AddScoped<PermissionLookup>();
 
         return services;
     }

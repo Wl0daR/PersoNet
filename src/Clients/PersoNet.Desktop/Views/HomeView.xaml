@@ -25,7 +25,8 @@
             <WrapPanel>
                 <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding DataContext.EmployeesItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz listę pracowników (Ctrl+2)">
+                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz listę pracowników (Ctrl+2)"
+                        Visibility="{Binding CanSeeEmployees, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <DockPanel>
                             <TextBlock Text="&#xE716;" Style="{StaticResource Icon}" DockPanel.Dock="Right" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
@@ -37,7 +38,8 @@
                 <!-- Requests waiting for HR's decision: the one number on this screen that asks for action. -->
                 <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding DataContext.LeaveItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz wnioski urlopowe (Ctrl+3)">
+                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz wnioski urlopowe (Ctrl+3)"
+                        Visibility="{Binding CanSeeLeave, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <DockPanel>
                             <TextBlock Text="&#xE787;" Style="{StaticResource Icon}" DockPanel.Dock="Right" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
@@ -48,7 +50,8 @@
                 </Button>
                 <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding DataContext.DepartmentsItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz strukturę działów (Ctrl+4)">
+                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz strukturę działów (Ctrl+4)"
+                        Visibility="{Binding CanManageOrganization, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <DockPanel>
                             <TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" DockPanel.Dock="Right" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
@@ -59,7 +62,8 @@
                 </Button>
                 <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding DataContext.PositionsItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz słownik stanowisk (Ctrl+5)">
+                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Otwórz słownik stanowisk (Ctrl+5)"
+                        Visibility="{Binding CanManageOrganization, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <DockPanel>
                             <TextBlock Text="&#xE821;" Style="{StaticResource Icon}" DockPanel.Dock="Right" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
@@ -70,7 +74,8 @@
                 </Button>
                 <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding DataContext.EmployeesItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Byłych pracowników pokażesz na liście pracowników">
+                        Width="200" Margin="0,0,12,12" Padding="16" HorizontalContentAlignment="Stretch" ToolTip="Byłych pracowników pokażesz na liście pracowników"
+                        Visibility="{Binding CanSeeEmployees, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <DockPanel>
                             <TextBlock Text="&#xE81C;" Style="{StaticResource Icon}" DockPanel.Dock="Right" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -85,25 +90,29 @@
             <TextBlock Text="Szybkie akcje" Style="{StaticResource SectionTitle}" Margin="0,16,0,8" />
             <WrapPanel>
                 <Button Command="{Binding DataContext.AddEmployeeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,8" Padding="12,8">
+                        Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,8" Padding="12,8"
+                        Visibility="{Binding CanAddEmployee, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE8FA;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
                         <TextBlock Text="Dodaj pracownika" />
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding DataContext.AddLeaveCommand, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,8,8" Padding="12,8">
+                <Button Command="{Binding DataContext.AddLeaveCommand, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,8,8" Padding="12,8"
+                        Visibility="{Binding CanAddLeave, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE787;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
                         <TextBlock Text="Nowy wniosek urlopowy" />
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding DataContext.AddDepartmentCommand, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,8,8" Padding="12,8">
+                <Button Command="{Binding DataContext.AddDepartmentCommand, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,8,8" Padding="12,8"
+                        Visibility="{Binding CanManageOrganization, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE8F4;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
                         <TextBlock Text="Dodaj dział" />
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding DataContext.AddPositionCommand, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,8,8" Padding="12,8">
+                <Button Command="{Binding DataContext.AddPositionCommand, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,8,8" Padding="12,8"
+                        Visibility="{Binding CanManageOrganization, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" Margin="0,0,8,0" />
                         <TextBlock Text="Dodaj stanowisko" />
@@ -127,8 +136,8 @@
                             <RowDefinition />
                             <RowDefinition />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Ctrl+1…5" FontWeight="SemiBold" Margin="0,2,24,2" />
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Start, Pracownicy, Urlopy, Działy, Stanowiska" Style="{StaticResource SecondaryText}" Margin="0,2" />
+                        <TextBlock Grid.Row="0" Text="Ctrl+1…6" FontWeight="SemiBold" Margin="0,2,24,2" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Start, Pracownicy, Urlopy, Działy, Stanowiska, Role" Style="{StaticResource SecondaryText}" Margin="0,2" />
                         <TextBlock Grid.Row="1" Text="Ctrl+N" FontWeight="SemiBold" Margin="0,2,24,2" />
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="Nowy wpis na otwartym ekranie" Style="{StaticResource SecondaryText}" Margin="0,2" />
                         <TextBlock Grid.Row="2" Text="Ctrl+F" FontWeight="SemiBold" Margin="0,2,24,2" />

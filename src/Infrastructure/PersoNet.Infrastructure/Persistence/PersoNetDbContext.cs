@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
 using PersoNet.Domain.Abstractions;
+using PersoNet.Domain.Access;
 using PersoNet.Domain.Audit;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
@@ -58,6 +59,10 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     public DbSet<LeaveEntitlement> LeaveEntitlements => Set<LeaveEntitlement>();
 
     public DbSet<AuditEntry> AuditLog => Set<AuditEntry>();
+
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
 
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;

@@ -16,7 +16,7 @@ public sealed class AuditQueries(IAppDbContext db)
         AppError.NotFound("employee.not_found", "Nie znaleziono pracownika.");
 
     // Fields that hold the id of another record; the history shows that record's name instead.
-    private static readonly HashSet<string> References = new(StringComparer.Ordinal) { "DepartmentId", "PositionId", "ManagerId" };
+    private static readonly HashSet<string> References = new(StringComparer.Ordinal) { "DepartmentId", "PositionId", "ManagerId", "RoleId" };
 
     /// <summary>Changes of the employee's card, contracts, leave and portal account, newest first.</summary>
     public async Task<Result<IReadOnlyList<HistoryEntryResponse>>> GetEmployeeHistoryAsync(Guid employeeId, CancellationToken cancellationToken)
@@ -40,19 +40,24 @@ public sealed class AuditQueries(IAppDbContext db)
                 State: JsonSerializer.Deserialize<Dictionary<string, string?>>(entry.State, AuditJson.Options) ?? []))
             .ToList();
 
-        var names = await NamesAsync(parsed.SelectMany(item => item.Changes), cancellationToken);
+        var roleIds = parsed
+            .Where(item => item.Entry.EntityType == "RoleAssignment")
+            .Select(item => Guid.TryParse(item.State.GetValueOrDefault("RoleId"), out var id) ? id : Guid.Empty);
+        var names = await NamesAsync(parsed.SelectMany(item => item.Changes), roleIds, cancellationToken);
 
         return parsed.Select(item => ToResponse(item.Entry, item.Changes, item.State, names)).ToList();
     }
 
     /// <summary>Names of the departments, positions and managers the changes refer to, including ones no longer in use.</summary>
-    private async Task<Dictionary<Guid, string>> NamesAsync(IEnumerable<AuditChange> changes, CancellationToken cancellationToken)
+    private async Task<Dictionary<Guid, string>> NamesAsync(IEnumerable<AuditChange> changes, IEnumerable<Guid> roleIds, CancellationToken cancellationToken)
     {
         var ids = changes
             .Where(change => References.Contains(change.Property))
             .SelectMany(change => new[] { change.Old, change.New })
             .Select(value => Guid.TryParse(value, out var id) ? id : (Guid?)null)
             .OfType<Guid>()
+            .Concat(roleIds)
+            .Where(id => id != Guid.Empty)
             .ToHashSet();
 
         if (ids.Count == 0)
@@ -73,7 +78,12 @@ public sealed class AuditQueries(IAppDbContext db)
             .Select(employee => new { employee.Id, Name = employee.FirstName + " " + employee.LastName })
             .ToListAsync(cancellationToken);
 
-        return departments.Concat(positions).Concat(managers).ToDictionary(item => item.Id, item => item.Name);
+        var roles = await db.Roles.AsNoTracking()
+            .Where(role => ids.Contains(role.Id))
+            .Select(role => new { role.Id, role.Name })
+            .ToListAsync(cancellationToken);
+
+        return departments.Concat(positions).Concat(managers).Concat(roles).ToDictionary(item => item.Id, item => item.Name);
     }
 
     private static HistoryEntryResponse ToResponse(
@@ -95,7 +105,7 @@ public sealed class AuditQueries(IAppDbContext db)
             entry.OccurredAt,
             entry.UserName,
             AuditTexts.Subject(entry.EntityType),
-            Describe(entry.EntityType, entry.Action, byProperty, state),
+            Describe(entry.EntityType, entry.Action, byProperty, state, names),
             (HistoryAction)entry.Action,
             fields);
     }
@@ -105,7 +115,8 @@ public sealed class AuditQueries(IAppDbContext db)
             ? names.GetValueOrDefault(id, "(usunięty)")
             : AuditTexts.Value(property, stored);
 
-    private static string Describe(string entityType, AuditAction action, Dictionary<string, AuditChange> changes, Dictionary<string, string?> state)
+    private static string Describe(
+        string entityType, AuditAction action, Dictionary<string, AuditChange> changes, Dictionary<string, string?> state, Dictionary<Guid, string> names)
     {
         string? Changed(string property) => changes.TryGetValue(property, out var change) ? change.New : null;
         bool Has(string property) => changes.ContainsKey(property);
@@ -155,6 +166,14 @@ public sealed class AuditQueries(IAppDbContext db)
                 AuditTexts.AccountEventUnblock => "Odblokowano konto w portalu",
                 _ when action == AuditAction.Created => "Utworzono konto w portalu i link do ustawienia hasła",
                 _ => "Wygenerowano nowy link do ustawienia hasła",
+            },
+            "RoleAssignment" => (action == AuditAction.Deleted ? "Odebrano rolę: " : "Nadano rolę: ")
+                + Readable("RoleId", state.GetValueOrDefault("RoleId"), names),
+            "Role" => action switch
+            {
+                AuditAction.Created => $"Dodano rolę: {state.GetValueOrDefault("Name")}",
+                AuditAction.Deleted => $"Usunięto rolę: {state.GetValueOrDefault("Name")}",
+                _ => $"Zmieniono rolę: {state.GetValueOrDefault("Name")}",
             },
             _ => action switch
             {

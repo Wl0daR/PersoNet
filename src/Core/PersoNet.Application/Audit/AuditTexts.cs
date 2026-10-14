@@ -36,6 +36,7 @@ internal static class AuditTexts
         ],
         ["LeaveEntitlement"] = [("Year", "Rok"), ("Days", "Wymiar (dni)"), ("CarriedOverDays", "Zaległy z poprzedniego roku (dni)")],
         [AccountEntity] = [("State", "Stan konta")],
+        ["Role"] = [("Name", "Nazwa"), ("Description", "Opis"), ("Permissions", "Uprawnienia")],
     };
 
     private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
@@ -69,6 +70,8 @@ internal static class AuditTexts
         "LeaveRequest" => "Wniosek urlopowy",
         "LeaveEntitlement" => "Wymiar urlopu",
         AccountEntity => "Konto w portalu",
+        "Role" => "Rola",
+        "RoleAssignment" => "Role i uprawnienia",
         _ => entityType,
     };
 
@@ -81,6 +84,11 @@ internal static class AuditTexts
         if (stored is null)
         {
             return null;
+        }
+
+        if (property == "Permissions")
+        {
+            return string.Join(", ", stored.Split(", ", StringSplitOptions.RemoveEmptyEntries).Select(Access.PermissionCatalog.NameOf));
         }
 
         if (Values.TryGetValue($"{property}:{stored}", out var name))
