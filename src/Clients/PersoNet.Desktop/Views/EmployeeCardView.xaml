@@ -138,6 +138,9 @@
                                                   DisplayMemberPath="Name" HorizontalAlignment="Stretch" IsTextSearchEnabled="True"
                                                   AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
                                         <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=PositionBox}" Style="{StaticResource FieldError}" />
+                                        <CheckBox Content="Pokaż _wszystkie stanowiska" IsChecked="{Binding ShowAllPositions}" Margin="0,4,0,0"
+                                                  Visibility="{Binding CanFilterPositions, Converter={StaticResource BoolToVisibility}}"
+                                                  ToolTip="Lista pokazuje stanowiska wybranego działu i te bez działu; zaznacz, aby zobaczyć wszystkie." />
 
                                         <Label Content="_Przełożony" Target="{Binding ElementName=ManagerBox}" Padding="0" Margin="0,16,0,4" />
                                         <ComboBox x:Name="ManagerBox" ItemsSource="{Binding Managers}" SelectedItem="{Binding EditManager}"

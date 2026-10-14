@@ -33,6 +33,7 @@ erDiagram
     departments |o--o{ departments : "parent_id (drzewo)"
     departments |o--o{ employees : "department_id"
     positions |o--o{ employees : "position_id"
+    departments |o..o{ positions : "department_ids (tablica, bez FK)"
     employees |o--o{ employees : "manager_id (przełożony)"
 
     employees ||--o{ contracts : "employee_id"
@@ -87,6 +88,7 @@ erDiagram
         varchar(200) name "NOT NULL"
         varchar(200) normalized_name "UK z tenant_id"
         boolean is_active
+        uuid[] department_ids "działy stanowiska; puste = każdy dział"
     }
 
     employees {

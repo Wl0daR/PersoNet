@@ -50,8 +50,13 @@ public sealed record ImportEmployeesResponse(
 /// </summary>
 public sealed record ImportDepartment(string Code, string Name, string? ParentCode);
 
+/// <summary>
+/// A position from the earlier system with the codes of the imported departments it belongs to; none means any department.
+/// </summary>
+public sealed record ImportPosition(string Name, IReadOnlyList<string>? DepartmentCodes = null);
+
 /// <summary>Departments and the dictionary of positions, imported before the employees that refer to them.</summary>
-public sealed record ImportOrganizationRequest(IReadOnlyList<ImportDepartment> Departments, IReadOnlyList<string> Positions);
+public sealed record ImportOrganizationRequest(IReadOnlyList<ImportDepartment> Departments, IReadOnlyList<ImportPosition> Positions);
 
 public sealed record ImportOrganizationResponse(
     int DepartmentsAdded,

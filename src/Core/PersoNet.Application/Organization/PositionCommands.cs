@@ -18,10 +18,15 @@ public sealed class PositionCommands(IAppDbContext db, ITenantContext tenant)
             return OrganizationErrors.NoTenant;
         }
 
+        if (!await DepartmentsExistAsync(request.DepartmentIds, cancellationToken))
+        {
+            return OrganizationErrors.PositionDepartmentNotFound;
+        }
+
         Position position;
         try
         {
-            position = Position.Create(tenantId, request.Name);
+            position = Position.Create(tenantId, request.Name, request.DepartmentIds);
         }
         catch (DomainException exception)
         {
@@ -49,9 +54,18 @@ public sealed class PositionCommands(IAppDbContext db, ITenantContext tenant)
             return OrganizationErrors.PositionNotFound;
         }
 
+        if (!await DepartmentsExistAsync(request.DepartmentIds, cancellationToken))
+        {
+            return OrganizationErrors.PositionDepartmentNotFound;
+        }
+
         try
         {
             position.Rename(request.Name);
+            if (request.DepartmentIds is { } departmentIds)
+            {
+                position.AssignDepartments(departmentIds);
+            }
         }
         catch (DomainException exception)
         {
@@ -94,6 +108,19 @@ public sealed class PositionCommands(IAppDbContext db, ITenantContext tenant)
         await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
+    }
+
+    // Inactive departments still count: a position may stay tied to a department that is being phased out.
+    private async Task<bool> DepartmentsExistAsync(IReadOnlyList<Guid>? departmentIds, CancellationToken cancellationToken)
+    {
+        if (departmentIds is not { Count: > 0 })
+        {
+            return true;
+        }
+
+        var wanted = departmentIds.Distinct().ToList();
+        var found = await db.Departments.CountAsync(department => wanted.Contains(department.Id), cancellationToken);
+        return found == wanted.Count;
     }
 
     private Task<bool> NameTakenAsync(string normalizedName, Guid? exceptId, CancellationToken cancellationToken) =>

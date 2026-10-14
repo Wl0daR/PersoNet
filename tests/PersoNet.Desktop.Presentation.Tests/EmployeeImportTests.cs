@@ -131,7 +131,8 @@ public sealed class EmployeeImportTests : IDisposable
         vetrex.Departments.ShouldBe([new("W1", "PVC", null), new("D2", "MAGAZYN PVC", "W1"), new("D29", "Łuki", null)]);
         vetrex.Employees.Select(entry => entry.Number).ShouldBe(["1", "2", "3"]);
         vetrex.OtherEmployersEmployees.ShouldBe(1);
-        vetrex.Positions.ShouldBe(["Księgowa"]);
+        // Księgowa belongs to a Prima-KL department in the files, so for VETREX it is tied to none.
+        vetrex.Positions.Select(position => (position.Name, string.Join(",", position.DepartmentCodes ?? []))).ShouldBe([("Księgowa", "")]);
 
         // The card's department 10 is not in the files, so the latest period's is taken; the card's position is.
         // Two periods back to back are one employment; the agency's worker counts towards VETREX, on half time.
@@ -180,7 +181,7 @@ public sealed class EmployeeImportTests : IDisposable
 
         var organization = _api.OrganizationImports.Single();
         organization.Departments.Select(department => department.Code).ShouldBe(["W5", "D34"]);
-        organization.Positions.ShouldBe(["Księgowa"]);
+        organization.Positions.Select(position => (position.Name, string.Join(",", position.DepartmentCodes ?? []))).ShouldBe([("Księgowa", "D34")]);
         _api.Imports.Single().Rows.Single().DepartmentCode.ShouldBe("D34");
         viewModel.ResultText.ShouldStartWith("Nowe działy: 2, nowe stanowiska: 1. Zaimportowano: 1 pracownik");
     }

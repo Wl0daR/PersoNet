@@ -9,6 +9,7 @@ using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Employees;
+using PersoNet.Contracts.Organization;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Leave;
@@ -38,6 +39,8 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
     private readonly IOrganizationApi _organization;
     private readonly TimeProvider _time;
     private List<EmployeeLookupItem> _managerCandidates = [];
+    private IReadOnlyList<PositionResponse> _allPositions = [];
+    private Dictionary<Guid, Guid?> _parentOf = [];
 
     public EmployeeCardViewModel(
         IEmployeesApi employees,
@@ -135,7 +138,18 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
     public partial DateTime? EditHireDate { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanFilterPositions))]
     public partial Choice EditDepartment { get; set; } = NoDepartment;
+
+    /// <summary>
+    /// Off: the position list has only the chosen department's positions (also those of the departments above it) and
+    /// the ones tied to no department. On: every position.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool ShowAllPositions { get; set; }
+
+    /// <summary>True when a department is chosen, so the position list can be narrowed to it.</summary>
+    public bool CanFilterPositions => EditDepartment.Id is not null;
 
     [ObservableProperty]
     public partial Choice EditPosition { get; set; } = NoPosition;
@@ -180,7 +194,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         : string.Join(" · ", new[]
         {
             employee.Number,
-            Find(Positions, employee.PositionId)?.Name,
+            _allPositions.FirstOrDefault(position => position.Id == employee.PositionId)?.Name,
             Find(Departments, employee.DepartmentId)?.Name,
         }.Where(part => !string.IsNullOrEmpty(part)));
 
@@ -383,8 +397,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         EditEmail = employee?.Email ?? string.Empty;
         EditPhone = employee?.Phone ?? string.Empty;
         EditHireDate = employee is null ? _time.GetLocalNow().Date : employee.HireDate.ToDateTime(TimeOnly.MinValue);
+        ShowAllPositions = false;
         EditDepartment = Find(Departments, employee?.DepartmentId) ?? NoDepartment;
-        EditPosition = Find(Positions, employee?.PositionId) ?? NoPosition;
+        RebuildPositionChoices(employee?.PositionId);
         RebuildManagerChoices();
         EditManager = Find(Managers, employee?.ManagerId) ?? NoManager;
         TerminationLastDay = employee?.TerminationDate?.ToDateTime(TimeOnly.MinValue) ?? _time.GetLocalNow().Date;
@@ -405,7 +420,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         var positions = await _organization.GetPositionsAsync(includeInactive: false, cancellationToken);
 
         Replace(Departments, NoDepartment, departments.Select(department => new Choice(department.Id, $"{department.Name} ({department.Code})")));
-        Replace(Positions, NoPosition, positions.Select(position => new Choice(position.Id, position.Name)));
+        _allPositions = positions;
+        _parentOf = departments.ToDictionary(department => department.Id, department => department.ParentId);
+        RebuildPositionChoices(EditPosition.Id);
 
         await RefreshManagersAsync(cancellationToken);
     }
@@ -416,6 +433,28 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         var keep = EditManager.Id;
         RebuildManagerChoices();
         EditManager = Find(Managers, keep) ?? NoManager;
+    }
+
+    partial void OnEditDepartmentChanged(Choice value) => RebuildPositionChoices(EditPosition.Id);
+
+    partial void OnShowAllPositionsChanged(bool value) => RebuildPositionChoices(EditPosition.Id);
+
+    // The chosen position always stays in the list, even when it does not belong to the department, so nothing is lost.
+    private void RebuildPositionChoices(Guid? keep)
+    {
+        // The chosen department and those above it; a position of "Produkcja" fits its "Lakiernia" too.
+        var departments = new HashSet<Guid>();
+        var id = EditDepartment.Id;
+        while (id is { } current && departments.Add(current))
+        {
+            id = _parentOf.GetValueOrDefault(current);
+        }
+
+        var filter = !ShowAllPositions && departments.Count > 0;
+        Replace(Positions, NoPosition, _allPositions
+            .Where(position => !filter || position.Id == keep || position.DepartmentIds.Count == 0 || position.DepartmentIds.Any(departments.Contains))
+            .Select(position => new Choice(position.Id, position.Name)));
+        EditPosition = Find(Positions, keep) ?? NoPosition;
     }
 
     // Nobody can be their own manager, so the open employee is left out of the list.

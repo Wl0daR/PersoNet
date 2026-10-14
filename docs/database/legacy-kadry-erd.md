@@ -287,7 +287,7 @@ erDiagram
 | `EmploymentHistory` | InnoDB | Historia zatrudnienia: dział, stanowisko, wymiar, kategoria, pracodawca w okresie. | `contracts` + przypisanie działu/stanowiska (brak historii w PersoNet) |
 | `Departments` | InnoDB | Działy (płaska lista). | `departments` (wydział → dział nadrzędny) |
 | `wydzialy` | MyISAM | Wydziały, czyli grupy działów; jeden oznacza drugą spółkę. | `departments` z `parent_id = NULL` |
-| `Positions` | InnoDB | Stanowiska przypięte do działu. | `positions` (w PersoNet niezależne od działu) |
+| `Positions` | InnoDB | Stanowiska przypięte do działu. | `positions` (`department_ids`; 0 = każdy dział) |
 | `JobCategories` | InnoDB | Kategoria pracy (biurowa, produkcyjna, …). | brak |
 | `Companies` | InnoDB | Pracodawca: spółka albo agencja pracy tymczasowej. | brak |
 | `PriorEmployments`, `EmployeeSchools`, `SchoolTypes` | InnoDB | Staż pracy: wcześniejsze zatrudnienia i szkoły (do wymiaru urlopu). | brak |

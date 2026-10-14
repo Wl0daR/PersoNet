@@ -16,7 +16,7 @@
         <!-- Page header: what this screen is. -->
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
             <TextBlock Text="Stanowiska" Style="{StaticResource PageTitle}" />
-            <TextBlock Text="Wspólny słownik stanowisk; dział i stanowisko przypisujesz w kartotece pracownika." Style="{StaticResource SecondaryText}"
+            <TextBlock Text="Słownik stanowisk i działów, w których występują; stanowisko bez działu pasuje do każdego." Style="{StaticResource SecondaryText}"
                        TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
         </StackPanel>
 
@@ -33,7 +33,7 @@
                         <TextBlock Text="Nowe stanowisko" />
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding EditCommand}" Padding="12,6" Margin="0,0,8,8" ToolTip="Zmień nazwę zaznaczonego stanowiska (Enter)">
+                <Button Command="{Binding EditCommand}" Padding="12,6" Margin="0,0,8,8" ToolTip="Zmień nazwę lub działy zaznaczonego stanowiska (Enter)">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE70F;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
                         <TextBlock Text="Zmień" />
@@ -63,11 +63,29 @@
                             <DataGridTemplateColumn Header="Nazwa" Width="*" SortMemberPath="Name">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <!-- DockPanel, not StackPanel, so a long name trims instead of running into the next column. -->
+                                        <DockPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                             <TextBlock Text="&#xE821;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,10,0"
                                                        Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
                                             <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
-                                        </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Działy" Width="2*" SortMemberPath="Departments">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Departments}" VerticalAlignment="Center" Margin="0,0,12,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Departments}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasDepartments}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

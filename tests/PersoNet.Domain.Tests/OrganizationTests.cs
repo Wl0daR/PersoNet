@@ -59,4 +59,19 @@ public sealed class OrganizationTests
     {
         Should.Throw<DomainException>(() => Position.Create(TenantId, "  "));
     }
+
+    [Fact]
+    public void Position_departments_have_no_repeats_and_no_empty_id()
+    {
+        var production = Guid.NewGuid();
+        var store = Guid.NewGuid();
+        var position = Position.Create(TenantId, "Brygadzista", [production, production]);
+
+        position.DepartmentIds.ShouldBe([production]);
+        position.AssignDepartments([store, production]);
+        position.DepartmentIds.ShouldBe([store, production]);
+        Should.Throw<DomainException>(() => position.AssignDepartments([Guid.Empty]));
+        position.AssignDepartments([]);
+        position.DepartmentIds.ShouldBeEmpty();
+    }
 }

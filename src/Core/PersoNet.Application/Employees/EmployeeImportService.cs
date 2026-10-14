@@ -80,19 +80,44 @@ public sealed class EmployeeImportService(IAppDbContext db, ITenantContext tenan
             }
         }
 
-        var known = (await db.Positions.Select(position => position.NormalizedName).ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        // A position already in the company keeps its own departments and gains the imported ones; the same name may
+        // come several times, once per department of the earlier system.
+        var known = await db.Positions.ToDictionaryAsync(position => position.NormalizedName, StringComparer.Ordinal, cancellationToken);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         int positionsAdded = 0, positionsExisting = 0;
-        foreach (var name in positions.Select(name => name?.Trim() ?? string.Empty).Where(name => name.Length > 0))
+        foreach (var imported in positions.Where(position => !string.IsNullOrWhiteSpace(position?.Name)))
         {
-            if (!known.Add(name.ToUpperInvariant()))
+            var name = imported.Name.Trim();
+            var departmentIds = new List<Guid>();
+            foreach (var code in (imported.DepartmentCodes ?? []).Select(Code).Distinct(StringComparer.Ordinal))
             {
-                positionsExisting++;
+                if (byCode.TryGetValue(code, out var departmentId))
+                {
+                    departmentIds.Add(departmentId);
+                }
+                else
+                {
+                    problems.Add($"Stanowisko {name}: nie ma działu {code}.");
+                }
+            }
+
+            if (known.TryGetValue(name.ToUpperInvariant(), out var existing))
+            {
+                existing.AssignDepartments(existing.DepartmentIds.Concat(departmentIds));
+                if (seen.Add(existing.NormalizedName))
+                {
+                    positionsExisting++;
+                }
+
                 continue;
             }
 
             try
             {
-                db.Positions.Add(Position.Create(tenantId, name));
+                var created = Position.Create(tenantId, name, departmentIds);
+                db.Positions.Add(created);
+                known[created.NormalizedName] = created;
+                seen.Add(created.NormalizedName);
                 positionsAdded++;
             }
             catch (DomainException)
