@@ -1,0 +1,183 @@
+@page "/moj-zespol"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IPortalApi Portal
+@inject MyProfile Me
+@inject TimeProvider Time
+
+<PageTitle>Mój zespół – PersoNet</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Mój zespół</h1>
+        <p class="lead-muted mb-0">Osoby, którym jesteś przełożonym, ich urlop wypoczynkowy i nieobecności.</p>
+    </div>
+    @if (_profile is { IsManager: true })
+    {
+        <a class="btn btn-quiet" href="zespol">Wnioski zespołu</a>
+    }
+</div>
+
+@if (_problem is not null)
+{
+    <div class="alert-box is-error" role="alert">@_problem</div>
+}
+else if (_profile is { IsManager: false })
+{
+    <div class="empty-state">
+        <p class="mb-0">W kartotece nie podlega Ci żaden pracownik. Jeśli to błąd, zgłoś to w dziale kadr.</p>
+    </div>
+}
+else if (_profile is not null)
+{
+    <div class="year-switch" role="group" aria-label="Rok">
+        <button type="button" class="btn btn-quiet btn-icon" aria-label="Poprzedni rok" @onclick="() => ChangeYearAsync(-1)">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
+        </button>
+        <span class="year-label" aria-live="polite">Urlop @_year</span>
+        <button type="button" class="btn btn-quiet btn-icon" aria-label="Następny rok" @onclick="() => ChangeYearAsync(1)">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingRow />
+    }
+    else
+    {
+        <p class="team-summary" role="status">
+            @TeamText(_team.Count)@(AwayCount > 0 ? $" · dziś na urlopie: {AwayCount}" : string.Empty)
+        </p>
+
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Pracownik</th>
+                        <th scope="col">Do wykorzystania</th>
+                        <th scope="col">Wykorzystany</th>
+                        <th scope="col">Czeka na decyzję</th>
+                        <th scope="col">Na żądanie</th>
+                        <th scope="col">Nieobecność</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var member in _team)
+                    {
+                        var balance = member.Balance;
+                        <tr>
+                            <td data-label="Pracownik">
+                                <div>
+                                    <span class="cell-strong">@member.LastName @member.FirstName</span>
+                                    <span class="cell-sub">@Describe(member)</span>
+                                </div>
+                            </td>
+                            @if (!balance.HasEntitlement)
+                            {
+                                <td data-label="Urlop" colspan="4" class="text-muted-foreground">Kadry nie ustawiły wymiaru na @_year rok</td>
+                            }
+                            else
+                            {
+                                <td data-label="Do wykorzystania">
+                                    <div>
+                                        <span class="cell-strong">@LeaveTexts.Amount(balance.RemainingHours)</span>
+                                        <span class="cell-sub">z @LeaveTexts.Amount(balance.TotalHours)</span>
+                                        <span class="usage-bar" aria-hidden="true"><span style="width: @UsedPercent(balance)%"></span></span>
+                                    </div>
+                                </td>
+                                <td data-label="Wykorzystany" class="nowrap">@LeaveTexts.Amount(balance.UsedHours)</td>
+                                <td data-label="Czeka na decyzję" class="nowrap">@(balance.PendingHours > 0 ? LeaveTexts.Amount(balance.PendingHours) : "—")</td>
+                                <td data-label="Na żądanie" class="nowrap">@balance.OnDemandDays z 4 dni</td>
+                            }
+                            <td data-label="Nieobecność">
+                                @if (member.CurrentLeave is { } now)
+                                {
+                                    <div>
+                                        <span class="badge-state is-away">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM4 10h16" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
+                                            Na urlopie do @now.EndDate.ToString("d MMM", LeaveTexts.Polish)
+                                        </span>
+                                        <span class="cell-sub">@LeaveTexts.KindName(now.Kind)</span>
+                                    </div>
+                                }
+                                @if (member.NextLeave is { } next)
+                                {
+                                    <div class="@(member.CurrentLeave is not null ? "mt-2" : null)">
+                                        <span>Najbliższy: @LeaveTexts.Period(next.StartDate, next.EndDate)</span>
+                                        <span class="cell-sub">@LeaveTexts.KindName(next.Kind)@(next.State == LeaveState.Pending ? " · czeka na decyzję" : string.Empty)</span>
+                                    </div>
+                                }
+                                @if (member.CurrentLeave is null && member.NextLeave is null)
+                                {
+                                    <span class="text-muted-foreground">Brak zaplanowanego urlopu</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else
+{
+    <LoadingRow />
+}
+
+@code {
+    private List<TeamMemberResponse> _team = [];
+    private MyProfileResult? _profile;
+    private bool _loading = true;
+    private int _year;
+    private string? _problem;
+
+    private int AwayCount => _team.Count(member => member.CurrentLeave is not null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _year = Time.GetLocalNow().Year;
+        _profile = await Me.GetAsync(CancellationToken.None);
+        if (_profile.Profile is null)
+        {
+            _problem = _profile.Problem;
+            return;
+        }
+
+        if (_profile.IsManager)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _team = [.. await Portal.ListTeamAsync(_year, CancellationToken.None)];
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _problem = Messages.Of(exception);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task ChangeYearAsync(int step)
+    {
+        _year += step;
+        return LoadAsync();
+    }
+
+    // "Księgowa · Finanse · nr P001": the number tells apart people with the same name.
+    private static string Describe(TeamMemberResponse member) =>
+        string.Join(" · ", new[] { member.PositionName, member.DepartmentName, $"nr {member.Number}" }.Where(text => !string.IsNullOrEmpty(text)));
+
+    private static int UsedPercent(LeaveBalanceResponse balance) =>
+        balance.TotalHours <= 0 ? 0 : (int)Math.Clamp(Math.Round((balance.UsedHours + balance.PendingHours) / balance.TotalHours * 100), 0, 100);
+
+    private static string TeamText(int count) => $"{count} {LeaveTexts.Plural(count, "osoba", "osoby", "osób")} w zespole";
+}

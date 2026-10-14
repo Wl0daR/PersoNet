@@ -42,6 +42,12 @@ internal sealed class PortalApi(HttpClient http) : IPortalApi
         return await ApiResponses.ReadAsync<LeaveRequestResponse>(response, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<TeamMemberResponse>> ListTeamAsync(int year, CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(new Uri(Me + "/team?year=" + year.ToString(CultureInfo.InvariantCulture), UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<List<TeamMemberResponse>>(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<LeaveRequestResponse>> ListTeamRequestsAsync(LeaveState? state, int? year, CancellationToken cancellationToken)
     {
         var parameters = new List<string>();

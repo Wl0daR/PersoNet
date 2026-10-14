@@ -97,16 +97,52 @@ public sealed class MeEndpointTests(PersoNetApiFactory factory)
         await ShouldFailAsync(foreign, HttpStatusCode.NotFound, "leave.not_found");
     }
 
+    [Fact]
+    public async Task Manager_sees_their_team_with_each_persons_leave_left_and_who_is_away()
+    {
+        using var hr = factory.CreateSignedInClient();
+        var bossEmail = Email("szef");
+        var boss = await HireAsync(hr, "Adam", "Kierownik", bossEmail, managerId: null);
+        var ola = await HireAsync(hr, "Ola", "Zielona", Email("ola"), boss.Id);
+        var bartek = await HireAsync(hr, "Bartek", "Antczak", Email("bartek"), boss.Id);
+        await HireAsync(hr, "Piotr", "Obcy", Email("piotr"), managerId: null);
+        await SetEntitlementAsync(hr, ola.Id, 26);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var away = await CreateForAsync(hr, ola.Id, today.AddDays(-3), today.AddDays(3));
+        var later = await CreateForAsync(hr, ola.Id, today.AddDays(10), today.AddDays(16));
+        using var manager = factory.CreatePortalClient(bossEmail);
+        using var approved = await DecideAsync(manager, away.Id, "approve", null);
+
+        var team = (await manager.GetFromJsonAsync<List<TeamMemberResponse>>(new Uri("/api/v1/me/team?year=2025", UriKind.Relative), Cancellation))!;
+        using var worker = factory.CreatePortalClient(ola.Email!);
+        var nobody = await worker.GetFromJsonAsync<List<TeamMemberResponse>>(new Uri("/api/v1/me/team", UriKind.Relative), Cancellation);
+
+        approved.StatusCode.ShouldBe(HttpStatusCode.OK);
+        team.Select(member => member.EmployeeId).ShouldBe([bartek.Id, ola.Id]);
+        var onLeave = team[1];
+        onLeave.Balance.Year.ShouldBe(2025);
+        onLeave.Balance.RemainingHours.ShouldBe(26 * 8m);
+        onLeave.CurrentLeave.ShouldNotBeNull().StartDate.ShouldBe(away.StartDate);
+        onLeave.NextLeave.ShouldNotBeNull().StartDate.ShouldBe(later.StartDate);
+        onLeave.NextLeave!.State.ShouldBe(LeaveState.Pending);
+        team[0].Balance.HasEntitlement.ShouldBeFalse();
+        team[0].CurrentLeave.ShouldBeNull();
+        nobody.ShouldBeEmpty();
+    }
+
     private static string Email(string name) => $"{name}-{Guid.NewGuid():N}@acme.test";
 
     private static Task<HttpResponseMessage> DecideAsync(HttpClient client, Guid id, string action, string? note) =>
         client.PostAsJsonAsync(new Uri($"/api/v1/me/team/leave-requests/{id}/{action}", UriKind.Relative), new LeaveDecisionRequest(note), Cancellation);
 
-    private static async Task<LeaveRequestResponse> CreateForAsync(HttpClient hr, Guid employeeId, DateOnly day)
+    private static Task<LeaveRequestResponse> CreateForAsync(HttpClient hr, Guid employeeId, DateOnly day) =>
+        CreateForAsync(hr, employeeId, day, day);
+
+    private static async Task<LeaveRequestResponse> CreateForAsync(HttpClient hr, Guid employeeId, DateOnly start, DateOnly end)
     {
         using var response = await hr.PostAsJsonAsync(
             new Uri("/api/v1/leave-requests", UriKind.Relative),
-            new CreateLeaveRequest(employeeId, LeaveKind.Unpaid, day, day, null),
+            new CreateLeaveRequest(employeeId, LeaveKind.Unpaid, start, end, null),
             Cancellation);
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Cancellation));
 

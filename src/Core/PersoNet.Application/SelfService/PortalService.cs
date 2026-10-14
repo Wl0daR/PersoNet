@@ -5,6 +5,7 @@ using PersoNet.Application.Leave;
 using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.SelfService;
 using PersoNet.Domain.Employees;
+using PersoNet.Domain.Leave;
 
 namespace PersoNet.Application.SelfService;
 
@@ -85,6 +86,67 @@ public sealed class PortalService(IAppDbContext db, ICurrentUser user, LeaveServ
         return request.Value.State != LeaveState.Pending
             ? SelfServiceErrors.OnlyPendingCanBeWithdrawn
             : await leave.CancelAsync(id, new LeaveDecisionRequest("Wycofany przez pracownika."), cancellationToken);
+    }
+
+    /// <summary>
+    /// The current employees who report to the signed-in manager, by name, with their annual leave in
+    /// <paramref name="year"/> and the leave they are on today or take next (approved or waiting for a decision).
+    /// </summary>
+    public async Task<Result<List<TeamMemberResponse>>> ListTeamAsync(int year, CancellationToken cancellationToken)
+    {
+        var me = await FindMeAsync(cancellationToken);
+        if (!me.IsSuccess)
+        {
+            return me.Error!;
+        }
+
+        var today = Today;
+        var managerId = me.Value.Id;
+        var members = await db.Employees.AsNoTracking()
+            .Where(employee => employee.ManagerId == managerId && (employee.TerminationDate == null || employee.TerminationDate >= today))
+            .OrderBy(employee => employee.LastName).ThenBy(employee => employee.FirstName)
+            .Select(employee => new
+            {
+                employee.Id,
+                employee.Number,
+                employee.FirstName,
+                employee.LastName,
+                employee.Email,
+                Position = db.Positions.Where(p => p.Id == employee.PositionId).Select(p => p.Name).FirstOrDefault(),
+                Department = db.Departments.Where(d => d.Id == employee.DepartmentId).Select(d => d.Name).FirstOrDefault(),
+                employee.HireDate,
+            })
+            .ToListAsync(cancellationToken);
+
+        var ids = members.Select(member => member.Id).ToList();
+        var upcoming = await db.LeaveRequests.AsNoTracking()
+            .Where(request => ids.Contains(request.EmployeeId) && request.EndDate >= today
+                && (request.Status == LeaveStatus.Approved || request.Status == LeaveStatus.Pending))
+            .OrderBy(request => request.StartDate)
+            .Select(request => new { request.EmployeeId, request.Type, request.StartDate, request.EndDate, request.Status })
+            .ToListAsync(cancellationToken);
+
+        var team = new List<TeamMemberResponse>(members.Count);
+        foreach (var member in members)
+        {
+            var balance = await leave.GetBalanceAsync(member.Id, year, cancellationToken);
+            if (!balance.IsSuccess)
+            {
+                return balance.Error!;
+            }
+
+            var leaves = upcoming.Where(request => request.EmployeeId == member.Id)
+                .Select(request => new TeamMemberLeave((LeaveKind)request.Type, request.StartDate, request.EndDate, (LeaveState)request.Status))
+                .ToList();
+
+            team.Add(new TeamMemberResponse(
+                member.Id, member.Number, member.FirstName, member.LastName, member.Email, member.Position, member.Department, member.HireDate,
+                balance.Value,
+                leaves.FirstOrDefault(l => l.State == LeaveState.Approved && l.StartDate <= today),
+                leaves.FirstOrDefault(l => l.StartDate > today)));
+        }
+
+        return team;
     }
 
     /// <summary>Requests of the employees who report to the signed-in manager, waiting ones first.</summary>
