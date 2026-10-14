@@ -110,11 +110,11 @@ internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveA
         AddDepartment("Archiwum", "ARCH", null, active: false);
 
         var ceo = AddPosition("Prezes Zarządu");
-        var hrSpec = AddPosition("Specjalista ds. kadr");
-        var dev1 = AddPosition("Programista .NET");
+        var hrSpec = AddPosition("Specjalista ds. kadr", true, hr);
+        var dev1 = AddPosition("Programista .NET", true, dev);
         var lead = AddPosition("Kierownik zespołu");
-        var seller = AddPosition("Przedstawiciel handlowy");
-        AddPosition("Starszy specjalista ds. wynagrodzeń i rozliczeń z ZUS");
+        var seller = AddPosition("Przedstawiciel handlowy", true, sales);
+        AddPosition("Starszy specjalista ds. wynagrodzeń i rozliczeń z ZUS", true, hr);
         AddPosition("Stażysta", active: false);
 
         var prezes = AddEmployee("P0001", "Jan", "Nowak", board, ceo, null, new DateOnly(2015, 3, 1));
@@ -472,9 +472,9 @@ internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveA
         return department.Id;
     }
 
-    private Guid AddPosition(string name, bool active = true)
+    private Guid AddPosition(string name, bool active = true, params Guid[] departmentIds)
     {
-        var position = new PositionResponse(Guid.CreateVersion7(), name, active);
+        var position = new PositionResponse(Guid.CreateVersion7(), name, active, departmentIds);
         _positions.Add(position);
         return position.Id;
     }

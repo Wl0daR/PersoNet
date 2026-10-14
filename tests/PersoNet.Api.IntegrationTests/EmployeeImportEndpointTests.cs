@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
+using PersoNet.Contracts.Organization;
 
 namespace PersoNet.Api.IntegrationTests;
 
@@ -53,14 +54,24 @@ public sealed class EmployeeImportEndpointTests(PersoNetApiFactory factory)
         using var hr = factory.CreateSignedInClient(tenantId);
         var organization = new ImportOrganizationRequest(
             [new("D2", "MAGAZYN PVC", "W1"), new("W1", "PVC", null), new("D9", "Sierota", "W99")],
-            ["Magazynier", " magazynier ", "Operator"]);
+            [new("Magazynier", ["D2"]), new(" magazynier ", ["w1"]), new("Operator")]);
 
         var structure = await PostAsync<ImportOrganizationResponse>(hr, "/api/v1/organization/import", organization);
-        var again = await PostAsync<ImportOrganizationResponse>(hr, "/api/v1/organization/import", organization);
+        var again = await PostAsync<ImportOrganizationResponse>(hr, "/api/v1/organization/import", organization with
+        {
+            Positions = [new("Operator", ["D2", "D404"])],
+        });
 
-        (structure.DepartmentsAdded, structure.PositionsAdded, structure.PositionsExisting).ShouldBe((2, 2, 1));
+        // The same name twice is one position with both departments; the second run adds a department to "Operator".
+        (structure.DepartmentsAdded, structure.PositionsAdded, structure.PositionsExisting).ShouldBe((2, 2, 0));
         structure.Problems.Single().ShouldContain("W99");
-        (again.DepartmentsAdded, again.DepartmentsExisting, again.PositionsAdded).ShouldBe((0, 2, 0));
+        (again.DepartmentsAdded, again.DepartmentsExisting, again.PositionsAdded, again.PositionsExisting).ShouldBe((0, 2, 0, 1));
+        again.Problems.ShouldContain("Stanowisko Operator: nie ma działu D404.");
+        var departments = (await hr.GetFromJsonAsync<List<DepartmentResponse>>(new Uri("/api/v1/organization/departments", UriKind.Relative), Cancellation))!
+            .ToDictionary(department => department.Code, department => department.Id);
+        var positions = (await hr.GetFromJsonAsync<List<PositionResponse>>(new Uri("/api/v1/organization/positions", UriKind.Relative), Cancellation))!;
+        positions.Single(position => position.Name == "Magazynier").DepartmentIds.ShouldBe([departments["D2"], departments["W1"]], ignoreOrder: true);
+        positions.Single(position => position.Name == "Operator").DepartmentIds.ShouldBe([departments["D2"]]);
 
         // First without the structure, as the first version of the import did; the second run fills it in.
         var bare = new ImportEmployeeRow(1, "7", "Ola", "Lis", null, new DateOnly(2015, 3, 1), null, null);

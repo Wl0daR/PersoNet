@@ -15,6 +15,7 @@ internal sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
         builder.Property(position => position.Name).HasMaxLength(Position.NameMaxLength).IsRequired();
         builder.Property(position => position.NormalizedName).HasMaxLength(Position.NameMaxLength).IsRequired();
         builder.HasIndex(position => new { position.TenantId, position.NormalizedName }).IsUnique();
+        builder.Property(position => position.DepartmentIds).IsRequired();
 
         builder.HasOne<Tenant>().WithMany().HasForeignKey(position => position.TenantId).OnDelete(DeleteBehavior.Restrict);
     }

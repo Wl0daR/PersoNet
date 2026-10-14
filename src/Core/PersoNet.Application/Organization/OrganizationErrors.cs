@@ -29,6 +29,9 @@ internal static class OrganizationErrors
     public static readonly AppError PositionNameTaken =
         AppError.Conflict("position.name_taken", "Stanowisko o tej nazwie już istnieje.");
 
+    public static readonly AppError PositionDepartmentNotFound =
+        AppError.Validation("position.department_not_found", "Nie znaleziono jednego z wybranych działów.");
+
     public static AppError Invalid(DomainException exception) =>
         AppError.Validation("organization.invalid", exception.Message);
 }

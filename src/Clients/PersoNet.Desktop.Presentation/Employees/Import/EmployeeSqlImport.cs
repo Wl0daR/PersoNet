@@ -33,7 +33,7 @@ public sealed record LegacyEmployer(string Id, string Name);
 /// <summary>What one company gets from the files: its departments, the positions its people hold, and its employees.</summary>
 public sealed record EmployeeImportPlan(
     IReadOnlyList<ImportDepartment> Departments,
-    IReadOnlyList<string> Positions,
+    IReadOnlyList<ImportPosition> Positions,
     IReadOnlyList<EmployeeFileEntry> Employees,
     int OtherEmployersEmployees);
 
@@ -159,8 +159,15 @@ public sealed class EmployeeSqlImport
             });
         }
 
+        // Each position goes with the departments of this employer it was tied to in the earlier system (0 = none).
+        var departmentsOfName = Rows("Positions")
+            .Where(row => Text(row, "PositionName") is not null && Id(Text(row, "DepartmentID")) is { } id && departmentNames.ContainsKey(id))
+            .GroupBy(row => Text(row, "PositionName")!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Select(row => "D" + Id(Text(row, "DepartmentID"))).Distinct(StringComparer.Ordinal).ToList(), StringComparer.OrdinalIgnoreCase);
         var positions = employees.Where(entry => entry.Position is not null).Select(entry => entry.Position!)
-            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCulture).ToList();
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCulture)
+            .Select(name => new ImportPosition(name, departmentsOfName.GetValueOrDefault(name) ?? []))
+            .ToList();
 
         return new EmployeeImportPlan(tree, positions, employees, others);
     }

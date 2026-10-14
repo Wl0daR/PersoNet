@@ -9,11 +9,14 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Presentation.Organization;
 
 /// <summary>
-/// "Stanowiska" screen: the list of positions across the window. A new or renamed position is filled in a dialog.
+/// "Stanowiska" screen: the list of positions across the window with their departments. A new or changed position is
+/// filled in a dialog.
 /// </summary>
 public sealed partial class PositionsViewModel(IOrganizationApi api, IDialogService dialogs) : EditorViewModel
 {
-    public ObservableCollection<PositionResponse> Positions { get; } = [];
+    private IReadOnlyList<DepartmentResponse> _departments = [];
+
+    public ObservableCollection<PositionRow> Positions { get; } = [];
 
     /// <summary>True when there is nothing to show in the list, so the view can explain what to do instead.</summary>
     [ObservableProperty]
@@ -25,7 +28,7 @@ public sealed partial class PositionsViewModel(IOrganizationApi api, IDialogServ
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ToggleActiveText))]
     [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand), nameof(EditCommand))]
-    public partial PositionResponse? Selected { get; set; }
+    public partial PositionRow? Selected { get; set; }
 
     public string ToggleActiveText => Selected?.IsActive == false ? "Aktywuj" : "Dezaktywuj";
 
@@ -33,12 +36,12 @@ public sealed partial class PositionsViewModel(IOrganizationApi api, IDialogServ
     public Task LoadAsync(CancellationToken cancellationToken) => RunAsync(() => ReloadSelectingAsync(Selected?.Id, cancellationToken));
 
     [RelayCommand]
-    public Task NewAsync(CancellationToken cancellationToken) => EditInDialogAsync(new PositionDialogViewModel(api, editing: null), cancellationToken);
+    public Task NewAsync(CancellationToken cancellationToken) => EditInDialogAsync(new PositionDialogViewModel(api, _departments, editing: null), cancellationToken);
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    public Task EditAsync(PositionResponse? position, CancellationToken cancellationToken) => (position ?? Selected) is not { } current
+    public Task EditAsync(PositionRow? position, CancellationToken cancellationToken) => (position ?? Selected) is not { } current
         ? Task.CompletedTask
-        : EditInDialogAsync(new PositionDialogViewModel(api, current), cancellationToken);
+        : EditInDialogAsync(new PositionDialogViewModel(api, _departments, current.Position), cancellationToken);
 
     [RelayCommand(CanExecute = nameof(CanToggleActive))]
     public Task ToggleActiveAsync(CancellationToken cancellationToken) => Selected is not { } current
@@ -61,21 +64,36 @@ public sealed partial class PositionsViewModel(IOrganizationApi api, IDialogServ
         }
     }
 
-    private bool CanEdit(PositionResponse? position) => (position ?? Selected) is not null;
+    private bool CanEdit(PositionRow? position) => (position ?? Selected) is not null;
 
     private bool CanToggleActive() => Selected is not null;
 
     private async Task ReloadSelectingAsync(Guid? id, CancellationToken cancellationToken)
     {
         var positions = await api.GetPositionsAsync(ShowInactive, cancellationToken);
+        _departments = await api.GetDepartmentsAsync(includeInactive: true, cancellationToken);
+        var names = _departments.ToDictionary(department => department.Id, department => department.Name);
 
         Positions.Clear();
         foreach (var position in positions)
         {
-            Positions.Add(position);
+            var departments = position.DepartmentIds.Select(id => names.GetValueOrDefault(id)).OfType<string>().Order(StringComparer.CurrentCulture).ToList();
+            Positions.Add(new PositionRow(position, departments.Count == 0 ? "każdy dział" : string.Join(", ", departments)));
         }
 
         IsEmpty = Positions.Count == 0;
         Selected = Positions.FirstOrDefault(position => position.Id == id);
     }
+}
+
+/// <summary>A position in the list, with the names of its departments ready to show.</summary>
+public sealed record PositionRow(PositionResponse Position, string Departments)
+{
+    public Guid Id => Position.Id;
+
+    public string Name => Position.Name;
+
+    public bool IsActive => Position.IsActive;
+
+    public bool HasDepartments => Position.DepartmentIds.Count > 0;
 }

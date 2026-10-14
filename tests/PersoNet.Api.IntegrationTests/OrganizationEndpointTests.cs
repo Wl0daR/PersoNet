@@ -119,6 +119,28 @@ public sealed class OrganizationEndpointTests(PersoNetApiFactory factory)
         active!.ShouldNotContain(item => item.Id == position.Id);
     }
 
+    [Fact]
+    public async Task A_position_keeps_its_departments_and_refuses_an_unknown_one()
+    {
+        using var hr = factory.CreateSignedInClient();
+        var code = UniqueCode();
+        var production = await CreateDepartmentAsync(hr, new CreateDepartmentRequest("Produkcja", code, ParentId: null));
+        var store = await CreateDepartmentAsync(hr, new CreateDepartmentRequest("Magazyn", code + "-MAG", ParentId: null));
+
+        using var created = await hr.PostAsJsonAsync(Positions, new CreatePositionRequest("Brygadzista " + code, [production.Id]), Cancellation);
+        var position = (await created.Content.ReadFromJsonAsync<PositionResponse>(Cancellation))!;
+        using var renamed = await hr.PutAsJsonAsync(new Uri($"{Positions}/{position.Id}", UriKind.Relative), new UpdatePositionRequest("Brygadzista zmiany " + code), Cancellation);
+        using var moved = await hr.PutAsJsonAsync(new Uri($"{Positions}/{position.Id}", UriKind.Relative), new UpdatePositionRequest("Brygadzista zmiany " + code, [production.Id, store.Id]), Cancellation);
+        using var unknown = await hr.PostAsJsonAsync(Positions, new CreatePositionRequest("Pilot " + code, [Guid.NewGuid()]), Cancellation);
+
+        created.StatusCode.ShouldBe(HttpStatusCode.Created);
+        position.DepartmentIds.ShouldBe([production.Id]);
+        (await renamed.Content.ReadFromJsonAsync<PositionResponse>(Cancellation))!.DepartmentIds.ShouldBe([production.Id]);
+        (await moved.Content.ReadFromJsonAsync<PositionResponse>(Cancellation))!.DepartmentIds.ShouldBe([production.Id, store.Id], ignoreOrder: true);
+        unknown.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await unknown.Content.ReadAsStringAsync(Cancellation)).ShouldContain("position.department_not_found");
+    }
+
     private static async Task<DepartmentResponse> CreateDepartmentAsync(HttpClient client, CreateDepartmentRequest request)
     {
         using var response = await client.PostAsJsonAsync(Departments, request, Cancellation);

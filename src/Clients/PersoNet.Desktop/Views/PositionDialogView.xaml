@@ -6,7 +6,7 @@
              xmlns:org="clr-namespace:PersoNet.Desktop.Presentation.Organization;assembly=PersoNet.Desktop.Presentation"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=org:PositionDialogViewModel}"
-             Width="440">
+             Width="520" MaxHeight="720">
     <DockPanel>
         <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsEnabled="{Binding IsIdle}">
@@ -16,16 +16,48 @@
         </Border>
 
         <Border Style="{StaticResource DialogBody}">
-            <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
-                <Label Content="_Nazwa stanowiska *" Target="{Binding ElementName=NameBox}" Padding="0" Margin="0,0,0,4" />
-                <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
-                         MaxLength="{x:Static org:PositionDialogViewModel.NameMaxLength}"
-                         AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
-                <TextBlock Text="Np. Specjalista ds. kadr, Kierownik zespołu." Style="{StaticResource HelperText}" />
-                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NameBox}" Style="{StaticResource FieldError}" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
+                    <Label Content="_Nazwa stanowiska *" Target="{Binding ElementName=NameBox}" Padding="0" Margin="0,0,0,4" />
+                    <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="{x:Static org:PositionDialogViewModel.NameMaxLength}"
+                             AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="Np. Specjalista ds. kadr, Kierownik zespołu." Style="{StaticResource HelperText}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NameBox}" Style="{StaticResource FieldError}" />
 
-                <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
-            </StackPanel>
+                    <!-- Departments: in the employee card, picking one of them lists this position. -->
+                    <StackPanel Visibility="{Binding HasDepartments, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="Działy" Style="{StaticResource FormSection}" Margin="0,16,0,0" />
+                        <TextBlock Text="Zaznacz działy, w których jest to stanowisko. W kartotece pracownika po wybraniu działu zobaczysz jego stanowiska."
+                                   Style="{StaticResource HelperText}" TextWrapping="Wrap" />
+
+                        <Label Content="Szukaj _działu" Target="{Binding ElementName=DepartmentFilterBox}" Padding="0" Margin="0,8,0,4" />
+                        <TextBox x:Name="DepartmentFilterBox" Text="{Binding DepartmentFilter, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Margin="0,8,0,0">
+                            <ScrollViewer Height="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                <ItemsControl ItemsSource="{Binding Departments}" Focusable="False" Margin="8,4" AutomationProperties.Name="Działy stanowiska">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type org:DepartmentOption}">
+                                            <DockPanel Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+                                                <!-- Indent under the parent department. -->
+                                                <Border Width="{Binding Indent}" />
+                                                <CheckBox IsChecked="{Binding IsChecked}" MinHeight="32"
+                                                          AutomationProperties.Name="{Binding DisplayName}" ToolTip="{Binding DisplayName}">
+                                                    <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                                </CheckBox>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                        <TextBlock Text="{Binding DepartmentsSummary}" Style="{StaticResource HelperText}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+                </StackPanel>
+            </ScrollViewer>
         </Border>
     </DockPanel>
 </UserControl>

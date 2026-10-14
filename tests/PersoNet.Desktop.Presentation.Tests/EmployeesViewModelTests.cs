@@ -52,6 +52,35 @@ public sealed class EmployeesViewModelTests
     }
 
     [Fact]
+    public async Task Picking_a_department_lists_its_positions_and_the_general_ones()
+    {
+        var production = _organization.Add("Produkcja", "PRO");
+        var paintShop = _organization.Add("Lakiernia", "LAK", production.Id);
+        var it = _organization.Add("Dział IT", "IT");
+        _organization.AddPosition("Programista", it.Id);
+        _organization.AddPosition("Lakiernik", paintShop.Id);
+        _organization.AddPosition("Kierownik produkcji", production.Id);
+        _organization.AddPosition("Praktykant");
+        var card = await OpenCardAsync(employeeId: null);
+
+        card.CanFilterPositions.ShouldBeFalse();
+        card.Positions.Count.ShouldBe(5);
+
+        // A department's positions include those of the departments above it, and the ones tied to no department.
+        card.EditDepartment = card.Departments.Single(choice => choice.Id == paintShop.Id);
+        card.CanFilterPositions.ShouldBeTrue();
+        card.Positions.Select(choice => choice.Name).ShouldBe(["(bez stanowiska)", "Lakiernik", "Kierownik produkcji", "Praktykant"]);
+
+        card.EditPosition = card.Positions.Single(choice => choice.Name == "Lakiernik");
+        card.EditDepartment = card.Departments.Single(choice => choice.Id == it.Id);
+        card.Positions.Select(choice => choice.Name).ShouldBe(["(bez stanowiska)", "Programista", "Lakiernik", "Praktykant"]);
+        card.EditPosition.Name.ShouldBe("Lakiernik");
+
+        card.ShowAllPositions = true;
+        card.Positions.Count.ShouldBe(5);
+    }
+
+    [Fact]
     public async Task Missing_required_fields_and_bad_email_are_flagged_without_calling_the_api()
     {
         var card = await OpenCardAsync(employeeId: null);

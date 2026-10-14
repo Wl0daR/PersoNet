@@ -232,16 +232,21 @@ namespace PersoNet.Desktop.Snapshots
                 await leave.NewAsync(CancellationToken.None);
                 leave.StateFilter = LeaveViewModel.States[0];
 
-                // A new department and a position, each in its window.
+                // A new department in its window.
                 shell.NavigateCommand.Execute(shell.DepartmentsItem);
                 dialogs.Script = async (_, dialogWindow) =>
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"21-nowy-dzial-laptop150-{suffix}.png"));
                 await departments.NewAsync(CancellationToken.None);
 
+                // A position with its departments ticked in the tree.
                 shell.NavigateCommand.Execute(shell.PositionsItem);
+                positions.Selected = positions.Positions.First(position => position.HasDepartments);
                 dialogs.Script = async (_, dialogWindow) =>
-                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"22-nowe-stanowisko-srodek-{suffix}.png"));
-                await positions.NewAsync(CancellationToken.None);
+                {
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"22-stanowisko-dzialy-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"22-stanowisko-dzialy-laptop150-{suffix}.png"));
+                };
+                await positions.EditAsync(null, CancellationToken.None);
 
                 // A role with its permissions, in its window over the list of roles.
                 shell.NavigateCommand.Execute(shell.RolesItem);

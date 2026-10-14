@@ -63,7 +63,7 @@ public sealed class PositionsViewModelTests
         var viewModel = new PositionsViewModel(_api, _dialogs);
         await AddAsync(viewModel, "Księgowa");
 
-        var dialog = new PositionDialogViewModel(_api, editing: null);
+        var dialog = new PositionDialogViewModel(_api, [], editing: null);
         dialog.EditName = "Księgowa";
         await dialog.SaveAsync(Cancellation);
 
@@ -74,11 +74,40 @@ public sealed class PositionsViewModelTests
     [Fact]
     public async Task Empty_name_is_flagged_without_calling_the_api()
     {
-        var dialog = new PositionDialogViewModel(_api, editing: null);
+        var dialog = new PositionDialogViewModel(_api, [], editing: null);
 
         await dialog.SaveAsync(Cancellation);
 
         _api.Positions.ShouldBeEmpty();
         dialog.GetError(nameof(dialog.EditName)).ShouldBe("Podaj nazwę stanowiska.");
+    }
+
+    [Fact]
+    public async Task Hr_ties_a_position_to_departments_and_the_list_names_them()
+    {
+        var production = _api.Add("Produkcja", "PRO");
+        _api.Add("Lakiernia", "LAK", production.Id);
+        _api.Add("Archiwum", "ARCH", active: false);
+        var viewModel = new PositionsViewModel(_api, _dialogs);
+        await viewModel.LoadAsync(Cancellation);
+
+        _dialogs.When<PositionDialogViewModel>(dialog =>
+        {
+            // The tree in order with the child indented; an inactive department is not offered.
+            dialog.Departments.Select(option => (option.Name, option.Indent)).ShouldBe([("Produkcja", 0d), ("Lakiernia", 20d)]);
+            dialog.DepartmentsSummary.ShouldBe("Nie wybrano działu: stanowisko będzie do wyboru w każdym dziale.");
+
+            dialog.DepartmentFilter = "lak";
+            dialog.Departments.Select(option => option.IsVisible).ShouldBe([false, true]);
+            dialog.Departments[1].IsChecked = true;
+            dialog.DepartmentsSummary.ShouldBe("Wybrano 1 dział.");
+
+            dialog.EditName = "Lakiernik";
+            return dialog.SaveAsync(Cancellation);
+        });
+        await viewModel.NewAsync(Cancellation);
+        await AddAsync(viewModel, "Brygadzista");
+
+        viewModel.Positions.Select(row => (row.Name, row.Departments)).ShouldBe([("Lakiernik", "Lakiernia"), ("Brygadzista", "każdy dział")]);
     }
 }

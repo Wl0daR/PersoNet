@@ -59,7 +59,7 @@ internal sealed class FakeOrganizationApi : IOrganizationApi
             throw new ApiException(HttpStatusCode.Conflict, "Stanowisko o tej nazwie już istnieje.", "position.name_taken");
         }
 
-        var position = new PositionResponse(Guid.CreateVersion7(), request.Name, IsActive: true);
+        var position = new PositionResponse(Guid.CreateVersion7(), request.Name, IsActive: true, request.DepartmentIds ?? []);
         Positions.Add(position);
         return Task.FromResult(position);
     }
@@ -67,7 +67,7 @@ internal sealed class FakeOrganizationApi : IOrganizationApi
     public Task<PositionResponse> UpdatePositionAsync(Guid id, UpdatePositionRequest request, CancellationToken cancellationToken)
     {
         var index = Positions.FindIndex(p => p.Id == id);
-        Positions[index] = Positions[index] with { Name = request.Name };
+        Positions[index] = Positions[index] with { Name = request.Name, DepartmentIds = request.DepartmentIds ?? Positions[index].DepartmentIds };
         return Task.FromResult(Positions[index]);
     }
 
@@ -76,6 +76,13 @@ internal sealed class FakeOrganizationApi : IOrganizationApi
         var index = Positions.FindIndex(p => p.Id == id);
         Positions[index] = Positions[index] with { IsActive = active };
         return Task.CompletedTask;
+    }
+
+    public PositionResponse AddPosition(string name, params Guid[] departmentIds)
+    {
+        var position = new PositionResponse(Guid.CreateVersion7(), name, IsActive: true, departmentIds);
+        Positions.Add(position);
+        return position;
     }
 
     public DepartmentResponse Add(string name, string code, Guid? parentId = null, bool active = true)

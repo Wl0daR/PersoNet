@@ -33,5 +33,5 @@ public sealed class PositionQueries(IAppDbContext db)
         return position is null ? OrganizationErrors.PositionNotFound : position;
     }
 
-    internal static PositionResponse ToResponse(Position position) => new(position.Id, position.Name, position.IsActive);
+    internal static PositionResponse ToResponse(Position position) => new(position.Id, position.Name, position.IsActive, position.DepartmentIds);
 }
