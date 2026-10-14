@@ -425,6 +425,8 @@ h1:focus { outline: none; }
 .legend-day-off { display: inline-block; width: 22px; height: 22px; border-radius: 4px; background: var(--color-neutral-surface); border: 1px solid var(--color-border); }
 
 .calendar-wrap {
+    /* Positioned, so the hidden text for screen readers in the cells is clipped with the grid instead of widening the page. */
+    position: relative;
     max-width: 100%;
     overflow-x: auto;
     border: 1px solid var(--color-border);
