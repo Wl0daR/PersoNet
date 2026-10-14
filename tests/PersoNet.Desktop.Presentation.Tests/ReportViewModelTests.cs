@@ -42,6 +42,8 @@ public sealed class ReportViewModelTests : IDisposable
         report.Departments.Select(department => $"{department.Name}: {department.People}, {department.FullTime}")
             .ShouldBe(["Sprzedaż: 2 osoby, 1,5 etatu", "Bez działu: 1 osoba, 0 etatów"]);
         report.Rows[0].ContractEnd.ShouldBe("do 31.12.2025");
+        report.Rows[0].ContractDetails.ShouldBe("do 31.12.2025 · etat 0,5");
+        report.Rows[0].Details.ShouldBe("P1 · Handlowiec");
         report.Rows[1].ContractEnd.ShouldBe("bezterminowo");
         report.Rows[2].Contract.ShouldBe("Brak umowy w tym dniu");
         _files.SuggestedName.ShouldBe("Stan zatrudnienia 2025-06-02.xlsx");

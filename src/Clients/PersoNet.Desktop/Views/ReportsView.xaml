@@ -19,6 +19,18 @@
             <Setter Property="Margin" Value="0,0,8,0" />
         </Style>
 
+        <!-- A cell of two lines: the main text over a smaller grey one, e.g. a name over the number and position. -->
+        <Style x:Key="TwoLines" TargetType="StackPanel">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,6,8,6" />
+        </Style>
+
+        <Style x:Key="SecondLine" TargetType="TextBlock" BasedOn="{StaticResource HelperText}">
+            <Setter Property="Margin" Value="0,2,0,0" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
         <Style x:Key="ReportGrid" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
             <Setter Property="AutoGenerateColumns" Value="False" />
             <Setter Property="IsReadOnly" Value="True" />
@@ -127,14 +139,28 @@
                             <Grid>
                                 <DataGrid ItemsSource="{Binding Rows}" Style="{StaticResource ReportGrid}" AutomationProperties.Name="Stan zatrudnienia">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Pracownik" Binding="{Binding Name}" ElementStyle="{StaticResource Cell}" Width="1.6*" MinWidth="170" />
-                                        <DataGridTextColumn Header="Nr" Binding="{Binding Number}" ElementStyle="{StaticResource Cell}" Width="Auto" MinWidth="70" />
-                                        <DataGridTextColumn Header="Dział" Binding="{Binding Department}" ElementStyle="{StaticResource Cell}" Width="1.2*" MinWidth="120" />
-                                        <DataGridTextColumn Header="Stanowisko" Binding="{Binding Position}" ElementStyle="{StaticResource Cell}" Width="1.2*" MinWidth="120" />
+                                        <DataGridTemplateColumn Header="Pracownik" SortMemberPath="Name" Width="1.6*" MinWidth="190">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate DataType="{x:Type reports:HeadcountRow}">
+                                                    <StackPanel Style="{StaticResource TwoLines}">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Details}" Style="{StaticResource SecondLine}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Dział" Binding="{Binding Department}" ElementStyle="{StaticResource Cell}" Width="1.1*" MinWidth="120" />
+                                        <DataGridTemplateColumn Header="Umowa" SortMemberPath="Contract" Width="1.5*" MinWidth="170">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate DataType="{x:Type reports:HeadcountRow}">
+                                                    <StackPanel Style="{StaticResource TwoLines}" ToolTip="{Binding Contract}">
+                                                        <TextBlock Text="{Binding Contract}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding ContractDetails}" Style="{StaticResource SecondLine}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Zatrudniony od" Binding="{Binding HireDate, StringFormat=dd.MM.yyyy}" ElementStyle="{StaticResource Cell}" Width="Auto" MinWidth="110" />
-                                        <DataGridTextColumn Header="Umowa" Binding="{Binding Contract}" ElementStyle="{StaticResource Cell}" Width="1.6*" MinWidth="160" />
-                                        <DataGridTextColumn Header="Do" Binding="{Binding ContractEnd}" SortMemberPath="Person.ContractEndDate" ElementStyle="{StaticResource Cell}" Width="Auto" MinWidth="110" />
-                                        <DataGridTextColumn Header="Etat" Binding="{Binding WorkingTime}" SortMemberPath="Person.WorkingTime" ElementStyle="{StaticResource Cell}" Width="Auto" MinWidth="56" />
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
@@ -176,8 +202,16 @@
                             <Grid>
                                 <DataGrid ItemsSource="{Binding Rows}" Style="{StaticResource ReportGrid}" AutomationProperties.Name="Wykorzystanie urlopów">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Pracownik" Binding="{Binding Name}" ElementStyle="{StaticResource Cell}" Width="1.6*" MinWidth="170" />
-                                        <DataGridTextColumn Header="Dział" Binding="{Binding Department}" ElementStyle="{StaticResource Cell}" Width="1.2*" MinWidth="120" />
+                                        <DataGridTemplateColumn Header="Pracownik" SortMemberPath="Name" Width="1.6*" MinWidth="190">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate DataType="{x:Type reports:LeaveUsageLine}">
+                                                    <StackPanel Style="{StaticResource TwoLines}">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Details}" Style="{StaticResource SecondLine}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Wymiar" Binding="{Binding Entitlement}" SortMemberPath="Row.TotalHours" ElementStyle="{StaticResource Cell}" Width="1.2*" MinWidth="130" />
                                         <DataGridTextColumn Header="Wykorzystany" Binding="{Binding Used}" SortMemberPath="Row.UsedHours" ElementStyle="{StaticResource Cell}" Width="Auto" MinWidth="110" />
                                         <DataGridTextColumn Header="Czeka na decyzję" Binding="{Binding Pending}" SortMemberPath="Row.PendingHours" ElementStyle="{StaticResource Cell}" Width="Auto" MinWidth="120" />
@@ -227,9 +261,9 @@
                                         <DataGridTemplateColumn Header="Pracownik" SortMemberPath="Name" Width="1.8*" MinWidth="200">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate DataType="{x:Type reports:ContractEndingLine}">
-                                                    <StackPanel VerticalAlignment="Center" Margin="0,6,8,6">
+                                                    <StackPanel Style="{StaticResource TwoLines}">
                                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{Binding Details}" Style="{StaticResource HelperText}" Margin="0,2,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Details}" Style="{StaticResource SecondLine}" />
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>

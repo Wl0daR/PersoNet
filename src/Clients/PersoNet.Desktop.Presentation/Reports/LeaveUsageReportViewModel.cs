@@ -104,6 +104,9 @@ public sealed record LeaveUsageLine(LeaveUsageRow Row)
 
     public string Department => Row.DepartmentName ?? HeadcountReportViewModel.NoDepartment;
 
+    /// <summary>The line under the name: "P0002 · Dział Kadr i Płac".</summary>
+    public string Details => $"{Row.Number} · {Department}";
+
     /// <summary>"26 dni + 2 zaległe", or a note that HR has not set it.</summary>
     public string Entitlement => !Row.HasEntitlement ? "nie ustalono"
         : Row.CarriedOverDays > 0 ? $"{LeaveTexts.Days(Row.EntitlementDays)} + {Row.CarriedOverDays} zaległe"

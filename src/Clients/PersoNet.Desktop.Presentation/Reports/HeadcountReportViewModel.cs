@@ -118,6 +118,9 @@ public sealed record HeadcountRow(HeadcountPerson Person)
 
     public string Position => Person.PositionName ?? "—";
 
+    /// <summary>The line under the name: "P0010 · Przedstawiciel handlowy".</summary>
+    public string Details => string.Join(" · ", new[] { Person.Number, Person.PositionName }.Where(text => !string.IsNullOrEmpty(text)));
+
     public DateOnly HireDate => Person.HireDate;
 
     public string Contract => HeadcountReportViewModel.ContractName(Person.ContractKind);
@@ -125,6 +128,9 @@ public sealed record HeadcountRow(HeadcountPerson Person)
     /// <summary>"do 31.12.2025", or "bezterminowo".</summary>
     public string ContractEnd => Person.ContractKind is null ? string.Empty
         : Person.ContractEndDate is { } end ? $"do {end:dd.MM.yyyy}" : "bezterminowo";
+
+    /// <summary>The line under the contract: "do 31.12.2025 · etat 0,5", "bezterminowo · etat 1".</summary>
+    public string ContractDetails => string.Join(" · ", new[] { ContractEnd, Person.WorkingTime is null ? null : $"etat {WorkingTime}" }.Where(text => !string.IsNullOrEmpty(text)));
 
     /// <summary>"1", "0,5", or a dash for a civil contract.</summary>
     public string WorkingTime => Person.WorkingTime is { } value ? value.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("pl-PL")) : "—";
