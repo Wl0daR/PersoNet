@@ -18,6 +18,9 @@ public interface IPortalApi
 
     Task<LeaveRequestResponse> WithdrawAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>The people who report to the signed-in manager, with their annual leave in <paramref name="year"/>.</summary>
+    Task<IReadOnlyList<TeamMemberResponse>> ListTeamAsync(int year, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<LeaveRequestResponse>> ListTeamRequestsAsync(LeaveState? state, int? year, CancellationToken cancellationToken);
 
     Task<LeaveRequestResponse> ApproveAsync(Guid id, string? note, CancellationToken cancellationToken);

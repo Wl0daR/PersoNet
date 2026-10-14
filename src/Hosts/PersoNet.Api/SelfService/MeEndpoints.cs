@@ -40,6 +40,10 @@ internal static class MeEndpoints
                 (await portal.WithdrawMyRequestAsync(id, cancellationToken)).ToOk())
             .WithName("WithdrawMyLeaveRequest").WithSummary("Wycofaj swój wniosek, który czeka na decyzję");
 
+        me.MapGet("/team", async (int? year, PortalService portal, TimeProvider time, CancellationToken cancellationToken) =>
+                (await portal.ListTeamAsync(year ?? time.GetLocalNow().Year, cancellationToken)).ToOk())
+            .WithName("ListMyTeam").WithSummary("Mój zespół: osoby, którym jestem przełożonym, z ich urlopem w roku");
+
         var team = me.MapGroup("/team/leave-requests");
 
         team.MapGet("/", async (LeaveState? state, int? year, PortalService portal, CancellationToken cancellationToken) =>

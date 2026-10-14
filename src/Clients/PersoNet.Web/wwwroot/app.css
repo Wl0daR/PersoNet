@@ -229,6 +229,13 @@ h1:focus { outline: none; }
 .badge-state.is-rejected { background: var(--color-danger-surface); color: var(--color-danger); }
 .badge-state.is-cancelled { background: var(--color-neutral-surface); color: var(--color-muted-foreground); }
 
+.badge-state.is-away { background: var(--color-info-surface); color: var(--color-primary); }
+
+/* Share of the year's leave already taken or asked for; the numbers next to it carry the meaning. */
+.usage-bar { display: block; width: 8rem; max-width: 100%; height: 6px; margin-top: 6px; border-radius: 999px; background: var(--color-neutral-surface); overflow: hidden; }
+.usage-bar > span { display: block; height: 100%; background: var(--color-primary); }
+.team-summary { color: var(--color-muted-foreground); margin: 16px 0 12px; }
+
 /* Two-way filter shown as joined buttons. */
 .segmented {
     display: inline-flex;
