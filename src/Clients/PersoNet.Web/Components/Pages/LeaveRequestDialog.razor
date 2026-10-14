@@ -1,0 +1,218 @@
+@* "Nowy wniosek urlopowy": the dialog in which an employee files a request for themselves. *@
+@inject IPortalApi Portal
+
+<Modal Open="Open" Title="Nowy wniosek urlopowy" OnClose="CancelAsync">
+    <ChildContent>
+        <form id="leave-form" class="form-stack" novalidate @onsubmit="SubmitAsync">
+            <div>
+                <label class="form-label" for="leave-kind">Rodzaj urlopu</label>
+                <select id="leave-kind" class="form-select" value="@_kind" @onchange="OnKindChanged">
+                    @foreach (var (kind, name) in LeaveTexts.Kinds)
+                    {
+                        <option value="@kind">@name</option>
+                    }
+                </select>
+            </div>
+
+            @if (LeaveTexts.AllowsHours(_kind))
+            {
+                <div class="form-check">
+                    <input id="leave-hourly" class="form-check-input" type="checkbox" @bind="_hourly" />
+                    <label class="form-check-label" for="leave-hourly">Na godziny, w jednym dniu</label>
+                </div>
+            }
+
+            <div class="form-row">
+                <div>
+                    <label class="form-label" for="leave-start">@(Hourly ? "Dzień" : "Od")</label>
+                    <input id="leave-start" class="form-control @(_errors.ContainsKey("start") ? "invalid" : null)" type="date"
+                           @bind="_start" @bind:after="OnStartChanged"
+                           aria-invalid="@_errors.ContainsKey("start")" aria-describedby="leave-period-hint @(_errors.ContainsKey("start") ? "leave-start-error" : null)" />
+                    <FieldError Id="leave-start-error" Message="@_errors.GetValueOrDefault("start")" />
+                </div>
+                @if (Hourly)
+                {
+                    <div>
+                        <label class="form-label" for="leave-hours">Liczba godzin</label>
+                        <input id="leave-hours" class="form-control @(_errors.ContainsKey("hours") ? "invalid" : null)" inputmode="decimal"
+                               placeholder="np. 2,5" @bind="_hours"
+                               aria-invalid="@_errors.ContainsKey("hours")" aria-describedby="leave-period-hint @(_errors.ContainsKey("hours") ? "leave-hours-error" : null)" />
+                        <FieldError Id="leave-hours-error" Message="@_errors.GetValueOrDefault("hours")" />
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <label class="form-label" for="leave-end">Do</label>
+                        <input id="leave-end" class="form-control @(_errors.ContainsKey("end") ? "invalid" : null)" type="date" min="@_start?.ToString("yyyy-MM-dd")"
+                               @bind="_end"
+                               aria-invalid="@_errors.ContainsKey("end")" aria-describedby="leave-period-hint @(_errors.ContainsKey("end") ? "leave-end-error" : null)" />
+                        <FieldError Id="leave-end-error" Message="@_errors.GetValueOrDefault("end")" />
+                    </div>
+                }
+            </div>
+            <p id="leave-period-hint" class="form-hint">@PeriodHint</p>
+
+            <div>
+                <label class="form-label" for="leave-note">Uwagi <span class="text-muted-foreground">(nieobowiązkowe)</span></label>
+                <textarea id="leave-note" class="form-control" rows="3" maxlength="500" @bind="_note"></textarea>
+            </div>
+
+            @if (Balance is { HasEntitlement: true } balance)
+            {
+                <p class="form-hint mb-0">
+                    Urlop wypoczynkowy @balance.Year: do wykorzystania @LeaveTexts.Amount(balance.RemainingHours) z @LeaveTexts.Amount(balance.TotalHours).
+                </p>
+            }
+
+            @if (_problem is not null)
+            {
+                <div class="alert-box is-error" role="alert">@_problem</div>
+            }
+        </form>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-quiet" @onclick="CancelAsync">Anuluj</button>
+        <button type="submit" form="leave-form" class="btn btn-primary" disabled="@_busy">
+            @(_busy ? "Wysyłanie…" : "Złóż wniosek")
+        </button>
+    </Footer>
+</Modal>
+
+@code {
+    private readonly Dictionary<string, string> _errors = [];
+    private LeaveKind _kind = LeaveKind.Annual;
+    private bool _hourly;
+    private DateOnly? _start;
+    private DateOnly? _end;
+    private string? _hours;
+    private string? _note;
+    private string? _problem;
+    private bool _busy;
+    private bool _wasOpen;
+
+    [Parameter, EditorRequired]
+    public bool Open { get; set; }
+
+    /// <summary>The employee's annual leave balance, shown under the form.</summary>
+    [Parameter]
+    public LeaveBalanceResponse? Balance { get; set; }
+
+    /// <summary>The first day the form starts with.</summary>
+    [Parameter]
+    public DateOnly Today { get; set; }
+
+    [Parameter]
+    public EventCallback<LeaveRequestResponse> OnCreated { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private bool Hourly => _hourly && LeaveTexts.AllowsHours(_kind);
+
+    private string PeriodHint => !Hourly
+        ? "Liczą się dni robocze: bez weekendów i świąt."
+        : _kind == LeaveKind.Annual
+            ? "Np. 2, 2,5 albo 2:30. Urlop wypoczynkowy na godziny tylko na resztę urlopu mniejszą niż dzień pracy."
+            : "Np. 2, 2,5 albo 2:30. W roku 16 godzin (przy niepełnym etacie proporcjonalnie mniej).";
+
+    protected override void OnParametersSet()
+    {
+        if (Open && !_wasOpen)
+        {
+            Reset();
+        }
+
+        _wasOpen = Open;
+    }
+
+    private void Reset()
+    {
+        _kind = LeaveKind.Annual;
+        _hourly = false;
+        _start = Today;
+        _end = Today;
+        _hours = null;
+        _note = null;
+        _problem = null;
+        _errors.Clear();
+    }
+
+    private void OnKindChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<LeaveKind>(args.Value?.ToString(), out var kind))
+        {
+            _kind = kind;
+        }
+    }
+
+    private void OnStartChanged()
+    {
+        if (_start is { } start && (_end is null || _end < start))
+        {
+            _end = start;
+        }
+    }
+
+    private bool Validate()
+    {
+        _errors.Clear();
+
+        if (_start is null)
+        {
+            _errors["start"] = Hourly ? "Podaj dzień." : "Podaj pierwszy dzień urlopu.";
+        }
+
+        if (Hourly)
+        {
+            if (LeaveTexts.ParseHours(_hours) is null)
+            {
+                _errors["hours"] = "Podaj liczbę godzin, np. 2, 2,5 albo 2:30.";
+            }
+        }
+        else if (_end is null)
+        {
+            _errors["end"] = "Podaj ostatni dzień urlopu.";
+        }
+        else if (_start is { } start && _end < start)
+        {
+            _errors["end"] = "Ostatni dzień nie może być przed pierwszym.";
+        }
+
+        return _errors.Count == 0;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _problem = null;
+        if (_busy || !Validate())
+        {
+            return;
+        }
+
+        var start = _start!.Value;
+        var request = new MyLeaveRequest(
+            _kind,
+            start,
+            Hourly ? start : _end!.Value,
+            string.IsNullOrWhiteSpace(_note) ? null : _note.Trim(),
+            Hourly ? LeaveTexts.ParseHours(_hours) : null);
+
+        _busy = true;
+        try
+        {
+            var created = await Portal.CreateMyRequestAsync(request, CancellationToken.None);
+            await OnCreated.InvokeAsync(created);
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _problem = Messages.Of(exception);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task CancelAsync() => OnCancel.InvokeAsync();
+}

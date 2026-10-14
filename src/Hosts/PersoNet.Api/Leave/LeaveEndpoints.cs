@@ -50,8 +50,8 @@ internal static class LeaveEndpoints
             .RequireAuthorization(Permissions.LeaveManage)
             .WithName("CancelLeaveRequest").WithSummary("Anuluj oczekujący lub zatwierdzony urlop");
 
+        // Public holidays are no secret: the employee portal shows them too.
         api.MapGet("/holidays/{year:int}", (int year) => LeaveService.Holidays(year).ToOk())
-            .RequireAuthorization(Permissions.LeaveRead)
             .WithTags("Urlopy")
             .WithName("ListHolidays").WithSummary("Święta państwowe w roku (dni wolne od pracy)");
 

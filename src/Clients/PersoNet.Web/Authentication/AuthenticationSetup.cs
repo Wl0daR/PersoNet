@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using PersoNet.ApiClient.Authentication;
 using PersoNet.Contracts;
 
 namespace PersoNet.Web.Authentication;
@@ -32,6 +35,7 @@ internal static class AuthenticationSetup
                 options.Cookie.Name = "personet.web";
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
                 options.SlidingExpiration = true;
+                options.Events.OnValidatePrincipal = WebSession.ValidateAsync;
             })
             .AddOpenIdConnect(options =>
             {
@@ -56,10 +60,26 @@ internal static class AuthenticationSetup
                 options.Scope.Add("profile");
                 options.Scope.Add("email");
                 options.Scope.Add(PersoNetAuth.ApiScope);
+
+                options.Events.OnTokenValidated = context =>
+                {
+                    WebSession.Start(context.Principal!);
+                    return Task.CompletedTask;
+                };
             });
 
         builder.Services.AddAuthorization();
         builder.Services.AddCascadingAuthenticationState();
+
+        // API calls carry the signed-in user's access token, refreshed on the server (see SessionTokenStore).
+        builder.Services.AddMemoryCache();
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.TryAddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<ITokenRefresher, OidcTokenRefresher>();
+        builder.Services.AddSingleton<SessionTokenStore>();
+        builder.Services.AddSingleton<CircuitServicesAccessor>();
+        builder.Services.AddScoped<CircuitHandler, CircuitServicesHandler>();
+        builder.Services.AddSingleton<IAccessTokenProvider, WebAccessTokenProvider>();
 
         return builder;
     }
@@ -72,10 +92,13 @@ internal static class AuthenticationSetup
                 TypedResults.Challenge(new AuthenticationProperties { RedirectUri = LocalOrRoot(returnUrl) }))
             .AllowAnonymous();
 
-        account.MapPost("/logout", () =>
-                TypedResults.SignOut(
+        account.MapPost("/logout", (HttpContext context) =>
+            {
+                WebSession.End(context);
+                return TypedResults.SignOut(
                     new AuthenticationProperties { RedirectUri = "/" },
-                    [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]))
+                    [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]);
+            })
             .RequireAuthorization();
 
         return app;

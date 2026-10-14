@@ -54,6 +54,16 @@ public sealed class PersoNetApiFactory : WebApplicationFactory<Program>, IAsyncL
     }
 
     /// <summary>
+    /// A client of an ordinary employee in the portal: an account with the given e-mail and no HR role.
+    /// </summary>
+    public HttpClient CreatePortalClient(string email)
+    {
+        var client = CreateSignedInClient(null, "employee");
+        client.DefaultRequestHeaders.Add(TestAuthHandler.EmailHeader, email);
+        return client;
+    }
+
+    /// <summary>
     /// Adds another company, for tests that check one company cannot see another's data.
     /// </summary>
     public async Task<Guid> CreateTenantAsync()

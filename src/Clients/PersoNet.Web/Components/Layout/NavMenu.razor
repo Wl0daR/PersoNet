@@ -20,5 +20,46 @@
                 Strona główna
             </NavLink>
         </li>
+        @if (_profile?.Profile is not null)
+        {
+            <li>
+                <NavLink class="nav-link" href="moj-urlop">
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                        <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM4 10h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    </svg>
+                    Mój urlop
+                </NavLink>
+            </li>
+        }
+        @if (_profile?.IsManager == true)
+        {
+            <li>
+                <NavLink class="nav-link" href="zespol">
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                        <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM3 21v-1a6 6 0 0 1 12 0v1M16 3.13a4 4 0 0 1 0 7.75M21 21v-1a6 6 0 0 0-4-5.65" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    </svg>
+                    Wnioski zespołu
+                </NavLink>
+            </li>
+        }
     </ul>
 </nav>
+
+@code {
+    private MyProfileResult? _profile;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [Inject]
+    private MyProfile Me { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The portal links need the employee record, which only signed-in people have.
+        if (AuthenticationState is not null && (await AuthenticationState).User.Identity?.IsAuthenticated == true)
+        {
+            _profile = await Me.GetAsync(CancellationToken.None);
+        }
+    }
+}

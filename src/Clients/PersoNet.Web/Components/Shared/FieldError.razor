@@ -1,0 +1,14 @@
+@* The error of one form field, right under it. *@
+
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div id="@Id" class="validation-message">@Message</div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Message { get; set; }
+}

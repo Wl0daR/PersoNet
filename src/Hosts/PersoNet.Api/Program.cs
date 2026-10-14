@@ -6,6 +6,7 @@ using PersoNet.Api.Leave;
 using PersoNet.Api.OpenApi;
 using PersoNet.Api.Organization;
 using PersoNet.Api.Security;
+using PersoNet.Api.SelfService;
 using PersoNet.Api.Tenancy;
 using PersoNet.Application;
 using PersoNet.Application.Abstractions;
@@ -83,6 +84,7 @@ api.MapAccountEndpoints();
 api.MapOrganizationEndpoints();
 api.MapEmployeeEndpoints();
 api.MapLeaveEndpoints();
+api.MapMeEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);
 

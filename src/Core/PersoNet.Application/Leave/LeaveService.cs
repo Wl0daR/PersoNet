@@ -20,7 +20,12 @@ public sealed class LeaveService(IAppDbContext db, ITenantContext tenant, ICurre
     public const int ReleaseDaysPerYear = 2;
     public const int ReleaseHoursPerYear = 16;
 
-    public async Task<IReadOnlyList<LeaveRequestResponse>> ListAsync(LeaveState? state, int? year, Guid? employeeId, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<LeaveRequestResponse>> ListAsync(LeaveState? state, int? year, Guid? employeeId, CancellationToken cancellationToken) =>
+        ListForEmployeesAsync(state, year, employeeId is { } id ? [id] : null, cancellationToken);
+
+    /// <summary>Requests of the given employees (all employees when <paramref name="employeeIds"/> is null), waiting ones first.</summary>
+    public async Task<IReadOnlyList<LeaveRequestResponse>> ListForEmployeesAsync(
+        LeaveState? state, int? year, IReadOnlyCollection<Guid>? employeeIds, CancellationToken cancellationToken)
     {
         var requests = db.LeaveRequests.AsNoTracking();
 
@@ -35,9 +40,9 @@ public sealed class LeaveService(IAppDbContext db, ITenantContext tenant, ICurre
             requests = requests.Where(request => request.StartDate.Year == y);
         }
 
-        if (employeeId is { } id)
+        if (employeeIds is not null)
         {
-            requests = requests.Where(request => request.EmployeeId == id);
+            requests = requests.Where(request => employeeIds.Contains(request.EmployeeId));
         }
 
         var rows = await requests
