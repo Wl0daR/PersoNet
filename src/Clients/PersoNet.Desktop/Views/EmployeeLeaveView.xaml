@@ -109,14 +109,15 @@
         <Grid Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="12" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!-- Month calendar: leave and days off at a glance. A double click opens the day's request, or a new one. -->
             <!-- Scrolls only on a screen too short for the month (e.g. a laptop at 150 %). -->
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                <StackPanel Width="340">
+                <!-- Room on the right for the scroll bar, so it never covers the "Dziś" button. -->
+                <StackPanel Width="340" Margin="0,0,12,0">
                     <DockPanel Margin="0,0,0,8">
                         <Button DockPanel.Dock="Right" Content="Dziś" Command="{Binding ThisMonthCommand}" Padding="10,4" ToolTip="Wróć do bieżącego miesiąca" />
                         <Button DockPanel.Dock="Left" Command="{Binding PreviousMonthCommand}" Padding="8" Background="Transparent" BorderThickness="0"
@@ -155,7 +156,7 @@
                         </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type leave:CalendarDay}">
-                                <Grid Height="40" MinWidth="36">
+                                <Grid Height="36" MinWidth="36">
                                     <Border Style="{StaticResource LeaveFill}" />
                                     <TextBlock Text="{Binding Day}" Style="{StaticResource DayNumber}" />
                                     <TextBlock Text="h" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,5,2"
@@ -196,7 +197,7 @@
             <DockPanel Grid.Column="2">
                 <StackPanel DockPanel.Dock="Top">
                     <!-- The picked day in words, with what can be done on it. -->
-                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
+                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="16,10" Margin="0,0,0,12">
                         <StackPanel>
                             <TextBlock Text="{Binding SelectedDay.LongDate, FallbackValue='Wybierz dzień w kalendarzu'}" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding SelectedDay.Description}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0" />
@@ -252,7 +253,7 @@
                     <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
 
                     <!-- The employee's requests in the year; a double click or Enter opens one with its decision. -->
-                    <TextBlock Text="Wnioski w tym roku" Style="{StaticResource FormSection}" Margin="0,16,0,8" />
+                    <TextBlock Text="Wnioski w tym roku" Style="{StaticResource FormSection}" Margin="0,12,0,4" />
                     <TextBlock Text="Brak wniosków urlopowych w tym roku." Style="{StaticResource SecondaryText}"
                                Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
