@@ -19,6 +19,11 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
 
     public List<ContractResponse> Contracts { get; } = [];
 
+    public List<ImportEmployeesRequest> Imports { get; } = [];
+
+    /// <summary>Lines the server turns down on import, with the reason.</summary>
+    public Dictionary<int, string> ImportRejects { get; } = [];
+
     public Task<PagedResponse<EmployeeListItem>> ListAsync(EmployeeListQuery query, CancellationToken cancellationToken)
     {
         Queries.Add(query);
@@ -56,6 +61,33 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
             request.HireDate, null, request.DepartmentId, request.PositionId, request.ManagerId);
         Employees.Add(employee);
         return Task.FromResult(employee);
+    }
+
+    public Task<ImportEmployeesResponse> ImportAsync(ImportEmployeesRequest request, CancellationToken cancellationToken)
+    {
+        Imports.Add(request);
+
+        int added = 0, existing = 0;
+        var problems = new List<ImportRowProblem>();
+        foreach (var row in request.Rows)
+        {
+            if (ImportRejects.TryGetValue(row.Line, out var reason))
+            {
+                problems.Add(new ImportRowProblem(row.Line, row.Number, reason));
+            }
+            else if (Employees.Any(e => e.Number.Equals(row.Number, StringComparison.OrdinalIgnoreCase)))
+            {
+                existing++;
+            }
+            else
+            {
+                Employees.Add(new EmployeeResponse(
+                    Guid.CreateVersion7(), row.Number.ToUpperInvariant(), row.FirstName, row.LastName, null, row.Phone, row.HireDate, row.TerminationDate, null, null, null));
+                added++;
+            }
+        }
+
+        return Task.FromResult(new ImportEmployeesResponse(request.Rows.Count, added, existing, request.Rows.Count(row => row.AnnualLeaveDays is not null && !ImportRejects.ContainsKey(row.Line)), problems));
     }
 
     public Task<EmployeeResponse> UpdateAsync(Guid id, SaveEmployeeRequest request, CancellationToken cancellationToken)

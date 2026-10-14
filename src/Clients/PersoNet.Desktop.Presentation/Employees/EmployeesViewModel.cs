@@ -10,6 +10,7 @@ using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Employees;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
+using PersoNet.Desktop.Presentation.Employees.Import;
 
 namespace PersoNet.Desktop.Presentation.Employees;
 
@@ -114,6 +115,21 @@ public sealed partial class EmployeesViewModel(
     /// <summary>Opens an empty card for a new employee.</summary>
     [RelayCommand]
     public Task NewAsync(CancellationToken cancellationToken) => ShowCardAsync(employeeId: null, cancellationToken);
+
+    /// <summary>Opens the import of employees from the earlier system's SQL file; the list shows them afterwards.</summary>
+    [RelayCommand]
+    public async Task ImportAsync(CancellationToken cancellationToken)
+    {
+        var dialog = CreateImport();
+        await dialogs.ShowAsync(dialog);
+
+        if (dialog.HasChanges)
+        {
+            await RunAsync(() => LoadPageAsync(1, Selected?.Id, cancellationToken));
+        }
+    }
+
+    public EmployeeImportDialogViewModel CreateImport() => new(employees, files);
 
     /// <summary>Creates the card window's view model; the tests and the screenshot tool open it the same way.</summary>
     public EmployeeCardViewModel CreateCard() => new(employees, organization, leave, access, workTime, files, user, time, dialogs);

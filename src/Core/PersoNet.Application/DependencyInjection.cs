@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<PositionCommands>();
         services.AddScoped<EmployeeQueries>();
         services.AddScoped<EmployeeCommands>();
+        services.AddScoped<EmployeeImportService>();
         services.AddScoped<ContractService>();
         services.AddScoped<LeaveService>();
         services.AddScoped<LeaveCalendarService>();

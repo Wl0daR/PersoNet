@@ -11,6 +11,7 @@ using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Company;
 using PersoNet.Desktop.Presentation.Employees;
+using PersoNet.Desktop.Presentation.Employees.Import;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
@@ -266,6 +267,18 @@ namespace PersoNet.Desktop.Snapshots
                 dialogs.Script = async (_, dialogWindow) =>
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"30-zrodlo-czasu-pracy-srodek-{suffix}.png"));
                 await company.EditWorkTimeAsync();
+
+                // Import of employees from the earlier system's SQL file, with the preview of what is in it.
+                shell.NavigateCommand.Execute(shell.EmployeesItem);
+                var sqlFile = Path.Combine(Path.GetTempPath(), "personet-kadry.sql");
+                await File.WriteAllTextAsync(sqlFile, DemoSql.Employees);
+                dialogs.Script = async (dialog, dialogWindow) =>
+                {
+                    ((EmployeeImportDialogViewModel)dialog).LoadFile(sqlFile);
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"31-import-pracownikow-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"31-import-pracownikow-laptop150-{suffix}.png"));
+                };
+                await employees.ImportAsync(CancellationToken.None);
 
                 // The other two reports, each on its own tab.
                 shell.NavigateCommand.Execute(shell.ReportsItem);
