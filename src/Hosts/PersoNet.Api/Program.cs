@@ -12,6 +12,7 @@ using PersoNet.Api.Reports;
 using PersoNet.Api.Security;
 using PersoNet.Api.SelfService;
 using PersoNet.Api.Tenancy;
+using PersoNet.Api.WorkTime;
 using PersoNet.Application;
 using PersoNet.Application.Abstractions;
 using PersoNet.Application.Accounts;
@@ -99,6 +100,7 @@ api.MapAuditEndpoints();
 api.MapAccessEndpoints();
 api.MapCompanyEndpoints();
 api.MapReportEndpoints();
+api.MapWorkTimeEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);
 

@@ -19,7 +19,7 @@
             </Button>
             <StackPanel>
                 <TextBlock Text="Ustawienia firmy" Style="{StaticResource PageTitle}" />
-                <TextBlock Text="Dane firmy i to, o które urlopy pracownicy proszą sami w portalu." Style="{StaticResource SecondaryText}" />
+                <TextBlock Text="Dane firmy, urlopy, o które pracownicy proszą sami w portalu, i źródło czasu pracy." Style="{StaticResource SecondaryText}" />
             </StackPanel>
         </DockPanel>
 
@@ -129,6 +129,30 @@
                         <TextBlock Text="Dział kadr może wpisać każdy rodzaj urlopu na ekranie Urlopy, niezależnie od tego ustawienia."
                                    Style="{StaticResource HelperText}" Margin="0,12,0,0" />
                     </StackPanel>
+                </Border>
+
+                <!-- Where working time comes from: typed by HR, imported, or sent by the time clock system. -->
+                <Border Style="{StaticResource Card}" Padding="20,16" Margin="0,16,0,0">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Command="{Binding EditWorkTimeCommand}" Padding="12,6" VerticalAlignment="Top" Margin="16,0,0,0"
+                                ToolTip="Wybierz, skąd pochodzi czas pracy">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE70F;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+                                <TextBlock Text="Zmień" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Text="&#xE823;" Style="{StaticResource Icon}" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Top"
+                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        <StackPanel>
+                            <TextBlock Text="Czas pracy" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Style="{StaticResource SecondaryText}">
+                                <Run Text="Źródło: " /><Run Text="{Binding WorkTimeSource, Mode=OneWay}" FontWeight="SemiBold" />
+                            </TextBlock>
+                            <TextBlock Text="{Binding WorkTimeHint}" Style="{StaticResource HelperText}" Margin="0,4,0,0" />
+                            <TextBlock Text="Każdy dzień można wpisać i poprawić ręcznie w karcie pracownika, w zakładce Czas pracy."
+                                       Style="{StaticResource HelperText}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </DockPanel>
                 </Border>
             </StackPanel>
         </ScrollViewer>

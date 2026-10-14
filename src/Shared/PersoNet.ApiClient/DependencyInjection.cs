@@ -9,6 +9,7 @@ using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.ApiClient.Portal;
 using PersoNet.ApiClient.Reports;
+using PersoNet.ApiClient.WorkTime;
 
 namespace PersoNet.ApiClient;
 
@@ -50,6 +51,10 @@ public static class DependencyInjection
             .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
 
         services.AddHttpClient<IReportsApi, ReportsApi>(client => client.BaseAddress = root)
+            .AddHttpMessageHandler<AccessTokenHandler>()
+            .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
+
+        services.AddHttpClient<IWorkTimeApi, WorkTimeApi>(client => client.BaseAddress = root)
             .AddHttpMessageHandler<AccessTokenHandler>()
             .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
 

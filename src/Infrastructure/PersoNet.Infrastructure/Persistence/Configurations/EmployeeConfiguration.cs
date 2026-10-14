@@ -18,11 +18,13 @@ internal sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(employee => employee.LastName).HasMaxLength(Employee.NameMaxLength).IsRequired();
         builder.Property(employee => employee.Email).HasMaxLength(Employee.EmailMaxLength);
         builder.Property(employee => employee.Phone).HasMaxLength(Employee.PhoneMaxLength);
+        builder.Property(employee => employee.ClockId).HasMaxLength(Employee.ClockIdMaxLength);
         builder.Property(employee => employee.SearchText).HasMaxLength(512).IsRequired();
         builder.Ignore(employee => employee.FullName);
 
         builder.HasIndex(employee => new { employee.TenantId, employee.Number }).IsUnique();
         builder.HasIndex(employee => new { employee.TenantId, employee.Email }).IsUnique().HasFilter("email IS NOT NULL");
+        builder.HasIndex(employee => new { employee.TenantId, employee.ClockId }).IsUnique().HasFilter("clock_id IS NOT NULL");
         builder.HasIndex(employee => new { employee.TenantId, employee.LastName, employee.FirstName });
 
         builder.HasOne<Tenant>().WithMany().HasForeignKey(employee => employee.TenantId).OnDelete(DeleteBehavior.Restrict);

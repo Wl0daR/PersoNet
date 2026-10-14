@@ -22,7 +22,7 @@ internal static class AuditTexts
         [
             ("Number", "Numer ewidencyjny"), ("FirstName", "Imię"), ("LastName", "Nazwisko"), ("Email", "E-mail służbowy"),
             ("Phone", "Telefon"), ("HireDate", "Data zatrudnienia"), ("TerminationDate", "Ostatni dzień pracy"),
-            ("DepartmentId", "Dział"), ("PositionId", "Stanowisko"), ("ManagerId", "Przełożony"),
+            ("DepartmentId", "Dział"), ("PositionId", "Stanowisko"), ("ManagerId", "Przełożony"), ("ClockId", "Identyfikator RCP"),
         ],
         ["EmploymentContract"] =
         [
@@ -37,11 +37,16 @@ internal static class AuditTexts
         ["LeaveEntitlement"] = [("Year", "Rok"), ("Days", "Wymiar (dni)"), ("CarriedOverDays", "Zaległy z poprzedniego roku (dni)")],
         [AccountEntity] = [("State", "Stan konta")],
         ["Role"] = [("Name", "Nazwa"), ("Description", "Opis"), ("Permissions", "Uprawnienia")],
+        ["WorkDay"] =
+        [
+            ("Date", "Dzień"), ("StartTime", "Od"), ("EndTime", "Do"), ("BreakMinutes", "Przerwa (min)"), ("Absence", "Nieobecność"),
+            ("Note", "Uwagi"), ("Origin", "Źródło"), ("Problem", "Problem z odbiciami"),
+        ],
         ["CompanySettings"] =
         [
             ("Name", "Nazwa"), ("LegalName", "Pełna nazwa"), ("TaxId", "NIP"), ("Regon", "REGON"), ("Street", "Ulica i numer"),
             ("PostalCode", "Kod pocztowy"), ("City", "Miejscowość"), ("Email", "E-mail"), ("Phone", "Telefon"),
-            ("PortalLeaveTypes", "Urlopy zgłaszane w portalu"),
+            ("PortalLeaveTypes", "Urlopy zgłaszane w portalu"), ("WorkTimeSource", "Źródło czasu pracy"),
         ],
     };
 
@@ -63,6 +68,20 @@ internal static class AuditTexts
         ["Status:Approved"] = "zatwierdzony",
         ["Status:Rejected"] = "odrzucony",
         ["Status:Cancelled"] = "anulowany",
+        ["Absence:Sickness"] = "choroba (L4)",
+        ["Absence:CareAllowance"] = "opieka (zasiłek opiekuńczy)",
+        ["Absence:Excused"] = "nieobecność usprawiedliwiona",
+        ["Absence:Unexcused"] = "nieobecność nieusprawiedliwiona",
+        ["Origin:Manual"] = "wpis ręczny",
+        ["Origin:Clock"] = "odbicia z czytnika",
+        ["Problem:None"] = "brak",
+        ["Problem:MissingOut"] = "brak wyjścia",
+        ["Problem:MissingIn"] = "brak wejścia",
+        ["Problem:TooLong"] = "ponad dobę między wejściem a wyjściem",
+        ["WorkTimeSource:Manual"] = "wpis ręczny",
+        ["WorkTimeSource:FileImport"] = "import plików",
+        ["WorkTimeSource:RogerPrMaster"] = "Roger PR Master",
+        ["WorkTimeSource:Api"] = "inny system przez API",
         ["State:None"] = "brak konta",
         ["State:Invited"] = "czeka na ustawienie hasła",
         ["State:Active"] = "aktywne",
@@ -79,6 +98,7 @@ internal static class AuditTexts
         "Role" => "Rola",
         "RoleAssignment" => "Role i uprawnienia",
         "CompanySettings" => "Ustawienia firmy",
+        "WorkDay" => "Czas pracy",
         _ => entityType,
     };
 

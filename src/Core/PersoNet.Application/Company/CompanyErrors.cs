@@ -33,6 +33,9 @@ internal static class CompanyErrors
     public static readonly AppError LeaveKindNotInPortal =
         AppError.Validation("leave.kind_not_in_portal", "O ten rodzaj urlopu prosi się w dziale kadr, nie w portalu.");
 
+    public static readonly AppError UnknownWorkTimeSource =
+        AppError.Validation("company.work_time_source_unknown", "Wybrano nieznane źródło czasu pracy.");
+
     public static AppError Invalid(DomainException exception) =>
         AppError.Validation("company.invalid", exception.Message);
 }

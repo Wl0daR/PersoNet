@@ -6,7 +6,7 @@ using PersoNet.Contracts.Company;
 namespace PersoNet.Api.Company;
 
 /// <summary>
-/// The company's data and leave settings. Everyone in the company may read them (the portal shows only the kinds of
+/// The company's data, leave and working time settings. Everyone in the company may read them (the portal shows only the kinds of
 /// leave it allows); changing them needs <see cref="Permissions.SettingsManage"/>.
 /// </summary>
 internal static class CompanyEndpoints
@@ -28,6 +28,11 @@ internal static class CompanyEndpoints
                 (await company.SaveLeaveSettingsAsync(request, cancellationToken)).ToOk())
             .RequireAuthorization(Permissions.SettingsManage)
             .WithName("SaveLeaveSettings").WithSummary("Ustal, o które rodzaje urlopów pracownicy proszą w portalu");
+
+        company.MapPut("/work-time", async (SaveWorkTimeSettingsRequest request, CompanyService company, CancellationToken cancellationToken) =>
+                (await company.SaveWorkTimeSettingsAsync(request, cancellationToken)).ToOk())
+            .RequireAuthorization(Permissions.SettingsManage)
+            .WithName("SaveWorkTimeSettings").WithSummary("Wybierz, skąd pochodzi czas pracy (ręcznie, import plików, Roger PR Master, API)");
 
         return api;
     }

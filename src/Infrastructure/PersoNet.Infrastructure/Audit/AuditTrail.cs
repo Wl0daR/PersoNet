@@ -7,6 +7,7 @@ using PersoNet.Application.Audit;
 using PersoNet.Domain.Abstractions;
 using PersoNet.Domain.Audit;
 using PersoNet.Domain.Employees;
+using PersoNet.Domain.WorkTime;
 
 namespace PersoNet.Infrastructure.Audit;
 
@@ -25,7 +26,8 @@ internal static class AuditTrail
 
         foreach (var entry in changes.Entries<ITenantOwned>())
         {
-            if (entry.Entity is AuditEntry || entry.Entity is not Entity entity
+            // Clock events are a record in themselves and never change; logging each of them again would only double them.
+            if (entry.Entity is AuditEntry or ClockEvent || entry.Entity is not Entity entity
                 || entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
             {
                 continue;

@@ -98,7 +98,7 @@ internal static class UserAccessFor
     [
         UserAccess.EmployeesRead, UserAccess.EmployeesManage, UserAccess.LeaveRead, UserAccess.LeaveManage,
         UserAccess.OrganizationManage, UserAccess.AccountsManage, UserAccess.AuditRead, UserAccess.RolesManage, UserAccess.SettingsManage,
-        UserAccess.ReportsRead,
+        UserAccess.ReportsRead, UserAccess.WorkTimeRead, UserAccess.WorkTimeManage,
     ];
 
     public static UserAccess Administrator() => With(Everything);
