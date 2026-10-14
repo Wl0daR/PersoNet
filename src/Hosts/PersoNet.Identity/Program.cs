@@ -41,6 +41,10 @@ builder.Services
     .AddEntityFrameworkStores<IdentityDbContext>()
     .AddDefaultTokenProviders();
 
+// Links to set a password (new accounts and resets alike) work for a week, so HR can pass them on.
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromDays(7));
+builder.Services.AddSingleton(TimeProvider.System);
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "personet.identity";
@@ -146,6 +150,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapConnectEndpoints();
+app.MapAccountAdminEndpoints();
 app.MapDefaultEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);

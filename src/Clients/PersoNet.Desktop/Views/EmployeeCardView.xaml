@@ -9,7 +9,7 @@
              d:DataContext="{d:DesignInstance Type=emp:EmployeeCardViewModel}"
              Width="820" Height="680">
     <UserControl.Resources>
-        <!-- Contracts and leave belong to a saved card, so their tabs wait until then. -->
+        <!-- Contracts, leave and the account belong to a saved card, so their tabs wait until then. -->
         <Style x:Key="SavedCardTab" TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsNew}" Value="True">
@@ -192,6 +192,9 @@
                     </TabItem>
                     <TabItem Header="Ur_lop" Style="{StaticResource SavedCardTab}">
                         <local:EmployeeLeaveView DataContext="{Binding Leave}" />
+                    </TabItem>
+                    <TabItem Header="_Konto" Style="{StaticResource SavedCardTab}">
+                        <local:EmployeeAccountView DataContext="{Binding Account}" />
                     </TabItem>
                 </TabControl>
             </DockPanel>

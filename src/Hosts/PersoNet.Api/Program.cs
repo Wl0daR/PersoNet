@@ -10,6 +10,7 @@ using PersoNet.Api.SelfService;
 using PersoNet.Api.Tenancy;
 using PersoNet.Application;
 using PersoNet.Application.Abstractions;
+using PersoNet.Application.Accounts;
 using PersoNet.Contracts;
 using PersoNet.Infrastructure;
 using Scalar.AspNetCore;
@@ -44,6 +45,9 @@ builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.Authen
 var authorityUri = new Uri(authority.EndsWith('/') ? authority : authority + "/");
 builder.Services.AddOpenApi("v1", options => options.AddDocumentTransformer(new OAuthSecuritySchemeTransformer(authorityUri)));
 builder.Services.AddAuthorizationBuilder().AddPermissionPolicies();
+
+// HR manages portal accounts through the login server, which keeps them.
+builder.Services.AddHttpClient<IAccountDirectory, IdentityAccountDirectory>(client => client.BaseAddress = authorityUri);
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -83,6 +87,7 @@ var api = app.MapGroup("/api/v1").RequireAuthorization();
 api.MapAccountEndpoints();
 api.MapOrganizationEndpoints();
 api.MapEmployeeEndpoints();
+api.MapEmployeeAccountEndpoints();
 api.MapLeaveEndpoints();
 api.MapMeEndpoints();
 

@@ -1,6 +1,7 @@
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
+using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
@@ -137,6 +138,13 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
     public Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<EmployeeResponse> RehireAsync(Guid id, DateOnly hireDate, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<EmployeeAccountResponse> GetAccountAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult(new EmployeeAccountResponse(employeeId, _employees.Single(employee => employee.Id == employeeId).Email, AccountState.Active));
+
+    public Task<AccountLinkResponse> CreateAccountLinkAsync(Guid employeeId, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<EmployeeAccountResponse> SetAccountBlockedAsync(Guid employeeId, bool blocked, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<ContractResponse>>(_contracts.Where(contract => contract.EmployeeId == employeeId).OrderByDescending(contract => contract.StartDate).ToList());

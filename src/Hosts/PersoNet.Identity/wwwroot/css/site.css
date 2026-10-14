@@ -74,6 +74,7 @@ body {
 h1, h2 { margin: 0 0 8px; font-size: 1.5rem; font-weight: 600; line-height: 1.25; }
 
 .lead { margin: 0 0 24px; color: var(--color-muted-foreground); }
+.lead strong { overflow-wrap: anywhere; }
 
 .field { margin-bottom: 16px; }
 
@@ -145,6 +146,24 @@ button:disabled { opacity: .7; cursor: progress; }
 /* Error directly under its field. */
 .field-error { display: block; margin-top: 4px; color: var(--color-danger); font-size: .875rem; }
 .field-error:empty { display: none; }
+
+.field-hint { display: block; margin-top: 4px; color: var(--color-muted-foreground); font-size: .875rem; }
+
+/* A link that leads on, styled like the main button. */
+.button-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 150ms ease-out;
+}
+.button-link:hover { background: var(--color-primary-hover); }
 
 .hint { margin: 16px 0 0; color: var(--color-muted-foreground); font-size: .875rem; }
 

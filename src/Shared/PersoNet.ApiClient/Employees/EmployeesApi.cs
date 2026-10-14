@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net.Http.Json;
+using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 
@@ -74,6 +75,25 @@ internal sealed class EmployeesApi(HttpClient http) : IEmployeesApi
     {
         using var response = await http.PostAsJsonAsync($"{Employees}/{id}/rehire", new RehireEmployeeRequest(hireDate), cancellationToken).ConfigureAwait(false);
         return await ApiResponses.ReadAsync<EmployeeResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeAccountResponse> GetAccountAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(new Uri($"{Employees}/{employeeId}/account", UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeAccountResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<AccountLinkResponse> CreateAccountLinkAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsync(new Uri($"{Employees}/{employeeId}/account/link", UriKind.Relative), content: null, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<AccountLinkResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<EmployeeAccountResponse> SetAccountBlockedAsync(Guid employeeId, bool blocked, CancellationToken cancellationToken)
+    {
+        var action = blocked ? "block" : "unblock";
+        using var response = await http.PostAsync(new Uri($"{Employees}/{employeeId}/account/{action}", UriKind.Relative), content: null, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<EmployeeAccountResponse>(response, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken)

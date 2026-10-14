@@ -1,6 +1,7 @@
 using System.Net;
 using PersoNet.ApiClient;
 using PersoNet.ApiClient.Employees;
+using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 
@@ -102,6 +103,37 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
         Employees[index] = Employees[index] with { HireDate = hireDate, TerminationDate = null };
         return Task.FromResult(Employees[index]);
     }
+
+    /// <summary>Portal accounts by employee id; employees missing here have none.</summary>
+    public Dictionary<Guid, AccountState> Accounts { get; } = [];
+
+    public Task<EmployeeAccountResponse> GetAccountAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult(AccountOf(employeeId));
+
+    public Task<AccountLinkResponse> CreateAccountLinkAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        if (Employees.Single(e => e.Id == employeeId).Email is null)
+        {
+            throw new ApiException(HttpStatusCode.BadRequest, "Wpisz w kartotece służbowy e-mail pracownika.", "account.email_required");
+        }
+
+        if (!Accounts.ContainsKey(employeeId))
+        {
+            Accounts[employeeId] = AccountState.Invited;
+        }
+
+        return Task.FromResult(new AccountLinkResponse(
+            AccountOf(employeeId), new Uri($"https://login.test/account/activate?user={employeeId}&code=abc"), new DateTimeOffset(2025, 5, 27, 9, 0, 0, TimeSpan.Zero)));
+    }
+
+    public Task<EmployeeAccountResponse> SetAccountBlockedAsync(Guid employeeId, bool blocked, CancellationToken cancellationToken)
+    {
+        Accounts[employeeId] = blocked ? AccountState.Blocked : AccountState.Active;
+        return Task.FromResult(AccountOf(employeeId));
+    }
+
+    private EmployeeAccountResponse AccountOf(Guid employeeId) =>
+        new(employeeId, Employees.Single(e => e.Id == employeeId).Email, Accounts.GetValueOrDefault(employeeId, AccountState.None));
 
     public Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken)
     {

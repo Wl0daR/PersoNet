@@ -20,5 +20,8 @@ public static class Permissions
     /// <summary>Register leave requests, approve, reject or cancel them, and set annual leave entitlements.</summary>
     public const string LeaveManage = "leave.manage";
 
-    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage];
+    /// <summary>Give employees access to the portal (accounts, links to set the password) and block it.</summary>
+    public const string AccountsManage = "accounts.manage";
+
+    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage, AccountsManage];
 }
