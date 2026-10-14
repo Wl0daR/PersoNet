@@ -26,7 +26,8 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" IsEnabled="{Binding IsIdle}">
                     <Button Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}"
-                            MinWidth="110" Margin="0,0,8,0" ToolTip="Zapisz dane z zakładki Dane (Enter)" />
+                            MinWidth="110" Margin="0,0,8,0" ToolTip="Zapisz dane z zakładki Dane (Enter)"
+                            Visibility="{Binding CanEdit, Converter={StaticResource BoolToVisibility}}" />
                     <Button Content="Zamknij" IsCancel="True" MinWidth="110" ToolTip="Zamknij okno (Esc)" />
                 </StackPanel>
                 <!-- Confirmation of a save, so the user knows it worked. -->
@@ -73,6 +74,8 @@
                 <TabControl x:Name="Tabs" Margin="16,0,16,0" Padding="0" BorderThickness="0" Background="Transparent">
                     <TabItem Header="_Dane">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <!-- Read-only for someone who may see the cards but not change them. -->
+                            <Border IsEnabled="{Binding CanEdit}">
                             <StackPanel Margin="8,4,8,20" IsEnabled="{Binding IsIdle}">
                                 <TextBlock Text="Pola oznaczone * są wymagane." Style="{StaticResource HelperText}" Margin="0,8,0,0" />
 
@@ -185,18 +188,30 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
+                            </Border>
                         </ScrollViewer>
                     </TabItem>
                     <TabItem Header="_Umowy" Style="{StaticResource SavedCardTab}">
                         <local:ContractsView DataContext="{Binding Contracts}" />
                     </TabItem>
-                    <TabItem Header="Ur_lop" Style="{StaticResource SavedCardTab}">
+                    <TabItem Header="Ur_lop" Style="{StaticResource SavedCardTab}"
+                             Visibility="{Binding CanSeeLeave, Converter={StaticResource BoolToVisibility}}">
                         <local:EmployeeLeaveView DataContext="{Binding Leave}" />
                     </TabItem>
-                    <TabItem Header="_Konto" Style="{StaticResource SavedCardTab}">
-                        <local:EmployeeAccountView DataContext="{Binding Account}" />
+                    <TabItem Header="_Konto" Style="{StaticResource SavedCardTab}"
+                             Visibility="{Binding CanSeeAccessTab, Converter={StaticResource BoolToVisibility}}">
+                        <!-- The portal account and the roles: what the person may sign in to, and what they may do there. -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="0,0,0,20">
+                                <local:EmployeeAccountView DataContext="{Binding Account}"
+                                                           Visibility="{Binding DataContext.CanManageAccount, RelativeSource={RelativeSource AncestorType=UserControl, AncestorLevel=1}, Converter={StaticResource BoolToVisibility}}" />
+                                <local:EmployeeRolesView DataContext="{Binding Roles}"
+                                                         Visibility="{Binding DataContext.CanManageRoles, RelativeSource={RelativeSource AncestorType=UserControl, AncestorLevel=1}, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </ScrollViewer>
                     </TabItem>
-                    <TabItem Header="_Historia" Style="{StaticResource SavedCardTab}" IsSelected="{Binding History.IsActive}">
+                    <TabItem Header="_Historia" Style="{StaticResource SavedCardTab}" IsSelected="{Binding History.IsActive}"
+                             Visibility="{Binding CanSeeHistory, Converter={StaticResource BoolToVisibility}}">
                         <local:EmployeeHistoryView DataContext="{Binding History}" />
                     </TabItem>
                 </TabControl>

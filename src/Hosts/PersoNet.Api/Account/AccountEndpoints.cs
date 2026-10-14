@@ -12,17 +12,19 @@ internal static class AccountEndpoints
         api.MapGet("/me", GetCurrentUser)
             .WithName("GetCurrentUser")
             .WithTags("Konto")
-            .WithSummary("Zalogowany użytkownik");
+            .WithSummary("Zalogowany użytkownik i jego uprawnienia");
 
         return api;
     }
 
-    private static IResult GetCurrentUser(ClaimsPrincipal principal, ICurrentUser currentUser, ITenantContext tenant) =>
+    private static async Task<IResult> GetCurrentUser(
+        ClaimsPrincipal principal, ICurrentUser currentUser, ITenantContext tenant, CallerPermissions permissions, CancellationToken cancellationToken) =>
         tenant.TenantId is { } tenantId
             ? TypedResults.Ok(new CurrentUserResponse(
                 currentUser.UserId,
                 tenantId,
                 principal.FindFirst(PersoNetClaims.Name)?.Value,
-                principal.FindFirst(PersoNetClaims.Email)?.Value))
+                principal.FindFirst(PersoNetClaims.Email)?.Value,
+                [.. (await permissions.GetAsync(cancellationToken)).Order(StringComparer.Ordinal)]))
             : TypedResults.Forbid();
 }

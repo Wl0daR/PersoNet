@@ -9,6 +9,4 @@ public interface ICurrentUser
 
     /// <summary>E-mail of the account; the portal finds the person's employee record by it.</summary>
     string? Email { get; }
-
-    bool HasPermission(string permission);
 }

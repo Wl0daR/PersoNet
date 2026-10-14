@@ -6,8 +6,7 @@
              xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=emp:EmployeeAccountViewModel}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="8,4,8,20" IsEnabled="{Binding IsIdle}">
+    <StackPanel Margin="8,4,8,0" IsEnabled="{Binding IsIdle}">
             <WrapPanel Margin="0,12,0,0">
                 <TextBlock Text="Dostęp do portalu pracownika" Style="{StaticResource FormSection}" Margin="0,0,10,0" />
                 <Border VerticalAlignment="Center">
@@ -86,6 +85,5 @@
             </Border>
 
             <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
-        </StackPanel>
-    </ScrollViewer>
+    </StackPanel>
 </UserControl>

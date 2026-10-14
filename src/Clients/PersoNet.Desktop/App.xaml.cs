@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using PersoNet.ApiClient;
 using PersoNet.Desktop.Authentication;
 using PersoNet.Desktop.Dialogs;
+using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
@@ -50,6 +51,8 @@ public partial class App : Application
         builder.Services.AddSingleton<LeaveViewModel>();
         builder.Services.AddSingleton<DepartmentsViewModel>();
         builder.Services.AddSingleton<PositionsViewModel>();
+        builder.Services.AddSingleton<RolesViewModel>();
+        builder.Services.AddSingleton<UserAccess>();
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 

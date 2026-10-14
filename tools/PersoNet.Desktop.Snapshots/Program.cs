@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PersoNet.Desktop;
+using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
@@ -62,11 +63,13 @@ namespace PersoNet.Desktop.Snapshots
             var api = new DemoApi();
             var time = TimeProvider.System;
             var dialogs = new SnapshotDialogs();
-            var employees = new EmployeesViewModel(api, api, api, time, dialogs);
+            var user = new UserAccess();
+            var employees = new EmployeesViewModel(api, api, api, api, user, time, dialogs);
             var leave = new LeaveViewModel(api, api, time, dialogs);
             var departments = new DepartmentsViewModel(api, dialogs);
             var positions = new PositionsViewModel(api, dialogs);
-            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, time), employees, leave, departments, positions, api);
+            var roles = new RolesViewModel(api, dialogs);
+            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, user, time), employees, leave, departments, positions, roles, api, user, api);
 
             var window = new MainWindow(shell)
             {
@@ -219,6 +222,16 @@ namespace PersoNet.Desktop.Snapshots
                 dialogs.Script = async (_, dialogWindow) =>
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"22-nowe-stanowisko-srodek-{suffix}.png"));
                 await positions.NewAsync(CancellationToken.None);
+
+                // A role with its permissions, in its window over the list of roles.
+                shell.NavigateCommand.Execute(shell.RolesItem);
+                roles.Selected = roles.Items.First();
+                dialogs.Script = async (_, dialogWindow) =>
+                {
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"23-rola-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"23-rola-laptop150-{suffix}.png"));
+                };
+                await roles.EditAsync(null, CancellationToken.None);
             }
 
             window.Close();

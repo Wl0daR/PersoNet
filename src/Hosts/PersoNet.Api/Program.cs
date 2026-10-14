@@ -1,4 +1,5 @@
 using OpenIddict.Validation.AspNetCore;
+using PersoNet.Api.Access;
 using PersoNet.Api.Account;
 using PersoNet.Api.Audit;
 using PersoNet.Api.Development;
@@ -46,7 +47,7 @@ builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.Authen
 
 var authorityUri = new Uri(authority.EndsWith('/') ? authority : authority + "/");
 builder.Services.AddOpenApi("v1", options => options.AddDocumentTransformer(new OAuthSecuritySchemeTransformer(authorityUri)));
-builder.Services.AddAuthorizationBuilder().AddPermissionPolicies();
+builder.Services.AddPermissionPolicies();
 
 // HR manages portal accounts through the login server, which keeps them.
 builder.Services.AddHttpClient<IAccountDirectory, IdentityAccountDirectory>(client => client.BaseAddress = authorityUri);
@@ -93,6 +94,7 @@ api.MapEmployeeAccountEndpoints();
 api.MapLeaveEndpoints();
 api.MapMeEndpoints();
 api.MapAuditEndpoints();
+api.MapAccessEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);
 

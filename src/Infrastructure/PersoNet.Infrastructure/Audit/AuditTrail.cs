@@ -102,6 +102,7 @@ internal static class AuditTrail
         DateTime time => time.ToString("O", CultureInfo.InvariantCulture),
         DateTimeOffset time => time.ToString("O", CultureInfo.InvariantCulture),
         bool flag => flag ? "true" : "false",
+        IEnumerable<string> items => string.Join(", ", items),
         IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
         _ => value.ToString(),
     };

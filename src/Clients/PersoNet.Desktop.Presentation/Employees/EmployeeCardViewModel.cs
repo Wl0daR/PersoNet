@@ -3,10 +3,12 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
+using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.Contracts.Employees;
+using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Leave;
 
@@ -34,16 +36,44 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
     private readonly TimeProvider _time;
     private List<EmployeeLookupItem> _managerCandidates = [];
 
-    public EmployeeCardViewModel(IEmployeesApi employees, IOrganizationApi organization, ILeaveApi leave, TimeProvider time, IDialogService dialogs)
+    public EmployeeCardViewModel(
+        IEmployeesApi employees, IOrganizationApi organization, ILeaveApi leave, IAccessApi access, UserAccess user, TimeProvider time, IDialogService dialogs)
     {
+        ArgumentNullException.ThrowIfNull(user);
+
         _employees = employees;
         _organization = organization;
         _time = time;
+        CanEdit = user.Can(UserAccess.EmployeesManage);
+        CanManageAccount = user.Can(UserAccess.AccountsManage);
+        CanManageRoles = user.Can(UserAccess.RolesManage);
+        CanSeeHistory = user.Can(UserAccess.AuditRead);
+        CanSeeLeave = user.Can(UserAccess.LeaveRead);
         Contracts = new ContractsViewModel(employees, time, dialogs);
         Leave = new EmployeeLeaveViewModel(leave, time, dialogs);
         Account = new EmployeeAccountViewModel(employees);
+        Roles = new EmployeeRolesViewModel(access);
         History = new EmployeeHistoryViewModel(employees);
     }
+
+    /// <summary>False for someone who may only look at the card: the "Dane" tab is read-only and there is no "Zapisz".</summary>
+    public bool CanEdit { get; }
+
+    /// <summary>The "Konto" tab shows the portal account to someone who manages accounts.</summary>
+    public bool CanManageAccount { get; }
+
+    /// <summary>The "Konto" tab shows the roles to someone who manages roles.</summary>
+    public bool CanManageRoles { get; }
+
+    /// <summary>The "Konto" tab is there when it has something the user may manage.</summary>
+    public bool CanSeeAccessTab => CanManageAccount || CanManageRoles;
+
+    public bool CanSeeHistory { get; }
+
+    public bool CanSeeLeave { get; }
+
+    /// <summary>Roles of the employee, in the "Konto" tab.</summary>
+    public EmployeeRolesViewModel Roles { get; }
 
     /// <summary>"Umowy" tab.</summary>
     public ContractsViewModel Contracts { get; }
@@ -271,17 +301,31 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         if (oldValue?.Id != newValue?.Id || oldValue?.TerminationDate != newValue?.TerminationDate || oldValue?.HireDate != newValue?.HireDate)
         {
             _ = Contracts.ShowAsync(newValue, CancellationToken.None);
-            _ = Leave.ShowAsync(newValue, CancellationToken.None);
+            if (CanSeeLeave)
+            {
+                _ = Leave.ShowAsync(newValue, CancellationToken.None);
+            }
         }
 
         // The account is found by the e-mail, so a changed e-mail may mean another account.
         if (oldValue?.Id != newValue?.Id || oldValue?.Email != newValue?.Email)
         {
-            _ = Account.ShowAsync(newValue, CancellationToken.None);
+            if (CanManageAccount)
+            {
+                _ = Account.ShowAsync(newValue, CancellationToken.None);
+            }
+        }
+
+        if (CanManageRoles && oldValue?.Id != newValue?.Id)
+        {
+            _ = Roles.ShowAsync(newValue, CancellationToken.None);
         }
 
         // Any saved change adds to the history.
-        _ = History.ShowAsync(newValue, CancellationToken.None);
+        if (CanSeeHistory)
+        {
+            _ = History.ShowAsync(newValue, CancellationToken.None);
+        }
     }
 
     private bool Validate()

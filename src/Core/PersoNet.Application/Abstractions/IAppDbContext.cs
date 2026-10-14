@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PersoNet.Domain.Access;
 using PersoNet.Domain.Audit;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
@@ -28,6 +29,12 @@ public interface IAppDbContext
 
     /// <summary>Who changed what and when. Filled automatically on save; add entries only for changes kept elsewhere (accounts).</summary>
     DbSet<AuditEntry> AuditLog { get; }
+
+    /// <summary>Roles the company defines, with the permissions each grants.</summary>
+    DbSet<Role> Roles { get; }
+
+    /// <summary>Which employee has which role.</summary>
+    DbSet<RoleAssignment> RoleAssignments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

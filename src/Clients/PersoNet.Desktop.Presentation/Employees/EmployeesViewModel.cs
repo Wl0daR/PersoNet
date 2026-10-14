@@ -2,10 +2,12 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
+using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.Contracts.Employees;
+using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 
 namespace PersoNet.Desktop.Presentation.Employees;
@@ -14,7 +16,8 @@ namespace PersoNet.Desktop.Presentation.Employees;
 /// "Pracownicy" screen: a searchable, paged list across the whole window. An employee's card opens in its own window
 /// (double click, Enter or "Otwórz kartotekę"), as does the card of a new employee.
 /// </summary>
-public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganizationApi organization, ILeaveApi leave, TimeProvider time, IDialogService dialogs)
+public sealed partial class EmployeesViewModel(
+    IEmployeesApi employees, IOrganizationApi organization, ILeaveApi leave, IAccessApi access, UserAccess user, TimeProvider time, IDialogService dialogs)
     : EditorViewModel
 {
     public const int PageSize = 50;
@@ -104,7 +107,7 @@ public sealed partial class EmployeesViewModel(IEmployeesApi employees, IOrganiz
     public Task NewAsync(CancellationToken cancellationToken) => ShowCardAsync(employeeId: null, cancellationToken);
 
     /// <summary>Creates the card window's view model; the tests and the screenshot tool open it the same way.</summary>
-    public EmployeeCardViewModel CreateCard() => new(employees, organization, leave, time, dialogs);
+    public EmployeeCardViewModel CreateCard() => new(employees, organization, leave, access, user, time, dialogs);
 
     private async Task ShowCardAsync(Guid? employeeId, CancellationToken cancellationToken)
     {
