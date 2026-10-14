@@ -1,4 +1,5 @@
 using PersoNet.ApiClient.Access;
+using PersoNet.ApiClient.Company;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
@@ -6,6 +7,7 @@ using PersoNet.Contracts.Access;
 using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Audit;
 using PersoNet.Contracts.Common;
+using PersoNet.Contracts.Company;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.Organization;
@@ -15,7 +17,7 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ISignInService, IThemeService
+internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ICompanyApi, ISignInService, IThemeService
 {
     private static readonly IReadOnlyList<PermissionResponse> Catalog =
     [
@@ -25,6 +27,7 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
         new("leave.read", "Urlopy", "Przeglądanie urlopów", "Wnioski, wymiar i saldo urlopu wszystkich pracowników.", true),
         new("leave.manage", "Urlopy", "Decyzje urlopowe", "Wpisywanie, zatwierdzanie, odrzucanie i anulowanie wniosków oraz ustalanie wymiaru.", true),
         new("organization.manage", "Firma", "Struktura firmy", "Dodawanie i zmiana działów oraz stanowisk.", true),
+        new("settings.manage", "Firma", "Ustawienia firmy", "Dane firmy oraz rodzaje urlopów, o które pracownicy proszą w portalu.", true),
         new("roles.manage", "Firma", "Role i uprawnienia", "Tworzenie ról i nadawanie ich pracownikom.", true),
         new("accounts.manage", "Firma", "Konta w portalu", "Zakładanie i blokowanie kont pracowników. Ma je tylko administrator kadr.", false),
     ];
@@ -38,6 +41,21 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
 
     public Task<CurrentUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken) =>
         Task.FromResult(new CurrentUserResponse(Guid.NewGuid(), Guid.NewGuid(), "Anna Kowalska", "anna.kowalska@firma.pl", [.. Catalog.Select(permission => permission.Code)]));
+
+    private CompanyResponse _company = new(
+        "Hurtownia Mazowsze", "Hurtownia Mazowsze Spółka z ograniczoną odpowiedzialnością", "5261043838", "142130400",
+        "ul. Marszałkowska 142 lok. 7", "00-061", "Warszawa", "kadry@hurtownia-mazowsze.pl", null,
+        [LeaveKind.Annual, LeaveKind.OnDemand, LeaveKind.ChildCare, LeaveKind.ForceMajeure]);
+
+    public Task<CompanyResponse> GetAsync(CancellationToken cancellationToken) => Task.FromResult(_company);
+
+    public Task<CompanyResponse> SaveDetailsAsync(SaveCompanyDetailsRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<CompanyResponse> SaveLeaveSettingsAsync(SaveLeaveSettingsRequest request, CancellationToken cancellationToken)
+    {
+        _company = _company with { PortalLeaveKinds = request.PortalLeaveKinds };
+        return Task.FromResult(_company);
+    }
 
     public Task<IReadOnlyList<PermissionResponse>> ListPermissionsAsync(CancellationToken cancellationToken) => Task.FromResult(Catalog);
 

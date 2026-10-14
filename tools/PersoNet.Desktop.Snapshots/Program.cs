@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using PersoNet.Desktop;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
+using PersoNet.Desktop.Presentation.Company;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
@@ -69,7 +70,8 @@ namespace PersoNet.Desktop.Snapshots
             var departments = new DepartmentsViewModel(api, dialogs);
             var positions = new PositionsViewModel(api, dialogs);
             var roles = new RolesViewModel(api, dialogs);
-            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, user, time), employees, leave, departments, positions, roles, api, user, api);
+            var company = new CompanyViewModel(api, dialogs);
+            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, user, time), employees, leave, departments, positions, roles, company, api, user, api);
 
             var window = new MainWindow(shell)
             {
@@ -232,6 +234,18 @@ namespace PersoNet.Desktop.Snapshots
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"23-rola-laptop150-{suffix}.png"));
                 };
                 await roles.EditAsync(null, CancellationToken.None);
+
+                // The company's data and the kinds of leave in the portal, each in its window over the settings.
+                shell.NavigateCommand.Execute(shell.CompanyItem);
+                dialogs.Script = async (_, dialogWindow) =>
+                {
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"24-dane-firmy-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"24-dane-firmy-laptop150-{suffix}.png"));
+                };
+                await company.EditDetailsAsync();
+                dialogs.Script = async (_, dialogWindow) =>
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"25-urlopy-w-portalu-srodek-{suffix}.png"));
+                await company.EditLeaveAsync();
             }
 
             window.Close();

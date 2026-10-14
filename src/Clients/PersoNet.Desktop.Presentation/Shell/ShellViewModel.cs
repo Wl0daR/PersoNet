@@ -5,6 +5,7 @@ using PersoNet.ApiClient.Access;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Authentication;
 using PersoNet.Desktop.Presentation.Common;
+using PersoNet.Desktop.Presentation.Company;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
@@ -30,6 +31,7 @@ public sealed partial class ShellViewModel : ObservableObject
         DepartmentsViewModel departments,
         PositionsViewModel positions,
         RolesViewModel roles,
+        CompanyViewModel company,
         IAccessApi access,
         UserAccess user,
         IThemeService theme)
@@ -44,6 +46,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Departments = departments;
         Positions = positions;
         Roles = roles;
+        Company = company;
 
         HomeItem = new NavigationItem("Start", "\uE80F", home);
         EmployeesItem = new NavigationItem("Pracownicy", "\uE716", employees);
@@ -51,6 +54,7 @@ public sealed partial class ShellViewModel : ObservableObject
         DepartmentsItem = new NavigationItem("Działy", "\uE8B7", departments);
         PositionsItem = new NavigationItem("Stanowiska", "\uE821", positions);
         RolesItem = new NavigationItem("Role", "\uE8D7", roles);
+        CompanyItem = new NavigationItem("Ustawienia firmy", "\uE713", company);
         Navigation = [HomeItem];
         CurrentItem = HomeItem;
 
@@ -117,6 +121,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public RolesViewModel Roles { get; }
 
+    public CompanyViewModel Company { get; }
+
     public NavigationItem HomeItem { get; }
 
     public NavigationItem EmployeesItem { get; }
@@ -128,6 +134,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public NavigationItem PositionsItem { get; }
 
     public NavigationItem RolesItem { get; }
+
+    public NavigationItem CompanyItem { get; }
 
     /// <summary>Screens of the side menu the signed-in user has the permissions for.</summary>
     public ObservableCollection<NavigationItem> Navigation { get; }
@@ -250,6 +258,7 @@ public sealed partial class ShellViewModel : ObservableObject
             (DepartmentsItem, _user.Can(UserAccess.OrganizationManage)),
             (PositionsItem, _user.Can(UserAccess.OrganizationManage)),
             (RolesItem, _user.Can(UserAccess.RolesManage)),
+            (CompanyItem, _user.Can(UserAccess.SettingsManage)),
         ];
 
         // Start stays selected while the others come and go, so the menu never loses its selection.
@@ -279,6 +288,7 @@ public sealed partial class ShellViewModel : ObservableObject
         DepartmentsViewModel departments => departments.LoadAsync(cancellationToken),
         PositionsViewModel positions => positions.LoadAsync(cancellationToken),
         RolesViewModel roles => roles.LoadAsync(cancellationToken),
+        CompanyViewModel company => company.LoadAsync(cancellationToken),
         _ => Task.CompletedTask,
     };
 

@@ -136,7 +136,7 @@
                             <RowDefinition />
                             <RowDefinition />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Ctrl+1…6" FontWeight="SemiBold" Margin="0,2,24,2" />
+                        <TextBlock Grid.Row="0" Text="Ctrl+1…7" FontWeight="SemiBold" Margin="0,2,24,2" />
                         <TextBlock Grid.Row="0" Grid.Column="1" Text="Start, Pracownicy, Urlopy, Działy, Stanowiska, Role" Style="{StaticResource SecondaryText}" Margin="0,2" />
                         <TextBlock Grid.Row="1" Text="Ctrl+N" FontWeight="SemiBold" Margin="0,2,24,2" />
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="Nowy wpis na otwartym ekranie" Style="{StaticResource SecondaryText}" Margin="0,2" />

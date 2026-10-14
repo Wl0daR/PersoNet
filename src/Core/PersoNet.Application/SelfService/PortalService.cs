@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
 using PersoNet.Application.Common;
+using PersoNet.Application.Company;
 using PersoNet.Application.Leave;
 using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.SelfService;
@@ -14,7 +15,7 @@ namespace PersoNet.Application.SelfService;
 /// who report to them. The person is the current employee whose work e-mail is the account's e-mail; every rule of
 /// leave itself stays in <see cref="LeaveService"/>.
 /// </summary>
-public sealed class PortalService(IAppDbContext db, ICurrentUser user, LeaveService leave, TimeProvider time)
+public sealed class PortalService(IAppDbContext db, ICurrentUser user, LeaveService leave, CompanyService company, TimeProvider time)
 {
     public async Task<Result<MyProfileResponse>> GetProfileAsync(CancellationToken cancellationToken)
     {
@@ -63,9 +64,16 @@ public sealed class PortalService(IAppDbContext db, ICurrentUser user, LeaveServ
         ArgumentNullException.ThrowIfNull(request);
 
         var me = await FindMeAsync(cancellationToken);
-        return me.IsSuccess
+        if (!me.IsSuccess)
+        {
+            return me.Error!;
+        }
+
+        // The company decides which kinds of leave go through the portal; the others are registered by HR.
+        var allowed = await company.CheckPortalLeaveKindAsync(request.Kind, cancellationToken);
+        return allowed.IsSuccess
             ? await leave.CreateAsync(new CreateLeaveRequest(me.Value.Id, request.Kind, request.StartDate, request.EndDate, request.Note, request.Hours), cancellationToken)
-            : me.Error!;
+            : allowed.Error!;
     }
 
     /// <summary>The employee withdraws their own request while it still waits for a decision.</summary>

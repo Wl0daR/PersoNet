@@ -98,11 +98,13 @@ internal static class AuditTrail
     private static string? Format(object? value) => value switch
     {
         null => null,
+        string text => text,
         DateOnly date => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
         DateTime time => time.ToString("O", CultureInfo.InvariantCulture),
         DateTimeOffset time => time.ToString("O", CultureInfo.InvariantCulture),
         bool flag => flag ? "true" : "false",
         IEnumerable<string> items => string.Join(", ", items),
+        System.Collections.IEnumerable items => string.Join(", ", items.Cast<object>().Select(Format)),
         IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
         _ => value.ToString(),
     };

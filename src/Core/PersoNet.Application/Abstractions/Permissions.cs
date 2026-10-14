@@ -30,7 +30,10 @@ public static class Permissions
     /// <summary>Define roles and give them to people.</summary>
     public const string RolesManage = "roles.manage";
 
-    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage, AccountsManage, AuditRead, RolesManage];
+    /// <summary>Change the company's data and how it runs leave.</summary>
+    public const string SettingsManage = "settings.manage";
+
+    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage, AccountsManage, AuditRead, RolesManage, SettingsManage];
 
     /// <summary>
     /// Permissions a company role can grant. Managing portal accounts stays with the HR administrator, because the login

@@ -37,6 +37,12 @@ internal static class AuditTexts
         ["LeaveEntitlement"] = [("Year", "Rok"), ("Days", "Wymiar (dni)"), ("CarriedOverDays", "Zaległy z poprzedniego roku (dni)")],
         [AccountEntity] = [("State", "Stan konta")],
         ["Role"] = [("Name", "Nazwa"), ("Description", "Opis"), ("Permissions", "Uprawnienia")],
+        ["CompanySettings"] =
+        [
+            ("Name", "Nazwa"), ("LegalName", "Pełna nazwa"), ("TaxId", "NIP"), ("Regon", "REGON"), ("Street", "Ulica i numer"),
+            ("PostalCode", "Kod pocztowy"), ("City", "Miejscowość"), ("Email", "E-mail"), ("Phone", "Telefon"),
+            ("PortalLeaveTypes", "Urlopy zgłaszane w portalu"),
+        ],
     };
 
     private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
@@ -72,6 +78,7 @@ internal static class AuditTexts
         AccountEntity => "Konto w portalu",
         "Role" => "Rola",
         "RoleAssignment" => "Role i uprawnienia",
+        "CompanySettings" => "Ustawienia firmy",
         _ => entityType,
     };
 
@@ -89,6 +96,11 @@ internal static class AuditTexts
         if (property == "Permissions")
         {
             return string.Join(", ", stored.Split(", ", StringSplitOptions.RemoveEmptyEntries).Select(Access.PermissionCatalog.NameOf));
+        }
+
+        if (property == "PortalLeaveTypes")
+        {
+            return string.Join(", ", stored.Split(", ", StringSplitOptions.RemoveEmptyEntries).Select(type => Values.GetValueOrDefault($"Type:{type}", type)));
         }
 
         if (Values.TryGetValue($"{property}:{stored}", out var name))

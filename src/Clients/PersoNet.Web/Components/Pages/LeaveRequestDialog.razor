@@ -1,79 +1,87 @@
 @* "Nowy wniosek urlopowy": the dialog in which an employee files a request for themselves. *@
 @inject IPortalApi Portal
+@inject PersoNet.ApiClient.Company.ICompanyApi Company
 
 <Modal Open="Open" Title="Nowy wniosek urlopowy" OnClose="CancelAsync">
     <ChildContent>
-        <form id="leave-form" class="form-stack" novalidate @onsubmit="SubmitAsync">
-            <div>
-                <label class="form-label" for="leave-kind">Rodzaj urlopu</label>
-                <select id="leave-kind" class="form-select" value="@_kind" @onchange="OnKindChanged">
-                    @foreach (var (kind, name) in LeaveTexts.Kinds)
-                    {
-                        <option value="@kind">@name</option>
-                    }
-                </select>
-            </div>
-
-            @if (LeaveTexts.AllowsHours(_kind))
-            {
-                <div class="form-check">
-                    <input id="leave-hourly" class="form-check-input" type="checkbox" @bind="_hourly" />
-                    <label class="form-check-label" for="leave-hourly">Na godziny, w jednym dniu</label>
-                </div>
-            }
-
-            <div class="form-row">
+        @if (_kinds.Count == 0)
+        {
+            <div class="alert-box is-info" role="status">Twoja firma przyjmuje wnioski urlopowe w dziale kadr. Zgłoś się tam, aby zaplanować urlop.</div>
+        }
+        else
+        {
+            <form id="leave-form" class="form-stack" novalidate @onsubmit="SubmitAsync">
                 <div>
-                    <label class="form-label" for="leave-start">@(Hourly ? "Dzień" : "Od")</label>
-                    <input id="leave-start" class="form-control @(_errors.ContainsKey("start") ? "invalid" : null)" type="date"
-                           @bind="_start" @bind:after="OnStartChanged"
-                           aria-invalid="@_errors.ContainsKey("start")" aria-describedby="leave-period-hint @(_errors.ContainsKey("start") ? "leave-start-error" : null)" />
-                    <FieldError Id="leave-start-error" Message="@_errors.GetValueOrDefault("start")" />
+                    <label class="form-label" for="leave-kind">Rodzaj urlopu</label>
+                    <select id="leave-kind" class="form-select" value="@_kind" @onchange="OnKindChanged">
+                        @foreach (var (kind, name) in _kinds)
+                        {
+                            <option value="@kind">@name</option>
+                        }
+                    </select>
                 </div>
-                @if (Hourly)
+
+                @if (LeaveTexts.AllowsHours(_kind))
                 {
-                    <div>
-                        <label class="form-label" for="leave-hours">Liczba godzin</label>
-                        <input id="leave-hours" class="form-control @(_errors.ContainsKey("hours") ? "invalid" : null)" inputmode="decimal"
-                               placeholder="np. 2,5" @bind="_hours"
-                               aria-invalid="@_errors.ContainsKey("hours")" aria-describedby="leave-period-hint @(_errors.ContainsKey("hours") ? "leave-hours-error" : null)" />
-                        <FieldError Id="leave-hours-error" Message="@_errors.GetValueOrDefault("hours")" />
+                    <div class="form-check">
+                        <input id="leave-hourly" class="form-check-input" type="checkbox" @bind="_hourly" />
+                        <label class="form-check-label" for="leave-hourly">Na godziny, w jednym dniu</label>
                     </div>
                 }
-                else
-                {
+
+                <div class="form-row">
                     <div>
-                        <label class="form-label" for="leave-end">Do</label>
-                        <input id="leave-end" class="form-control @(_errors.ContainsKey("end") ? "invalid" : null)" type="date" min="@_start?.ToString("yyyy-MM-dd")"
-                               @bind="_end"
-                               aria-invalid="@_errors.ContainsKey("end")" aria-describedby="leave-period-hint @(_errors.ContainsKey("end") ? "leave-end-error" : null)" />
-                        <FieldError Id="leave-end-error" Message="@_errors.GetValueOrDefault("end")" />
+                        <label class="form-label" for="leave-start">@(Hourly ? "Dzień" : "Od")</label>
+                        <input id="leave-start" class="form-control @(_errors.ContainsKey("start") ? "invalid" : null)" type="date"
+                               @bind="_start" @bind:after="OnStartChanged"
+                               aria-invalid="@_errors.ContainsKey("start")" aria-describedby="leave-period-hint @(_errors.ContainsKey("start") ? "leave-start-error" : null)" />
+                        <FieldError Id="leave-start-error" Message="@_errors.GetValueOrDefault("start")" />
                     </div>
+                    @if (Hourly)
+                    {
+                        <div>
+                            <label class="form-label" for="leave-hours">Liczba godzin</label>
+                            <input id="leave-hours" class="form-control @(_errors.ContainsKey("hours") ? "invalid" : null)" inputmode="decimal"
+                                   placeholder="np. 2,5" @bind="_hours"
+                                   aria-invalid="@_errors.ContainsKey("hours")" aria-describedby="leave-period-hint @(_errors.ContainsKey("hours") ? "leave-hours-error" : null)" />
+                            <FieldError Id="leave-hours-error" Message="@_errors.GetValueOrDefault("hours")" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div>
+                            <label class="form-label" for="leave-end">Do</label>
+                            <input id="leave-end" class="form-control @(_errors.ContainsKey("end") ? "invalid" : null)" type="date" min="@_start?.ToString("yyyy-MM-dd")"
+                                   @bind="_end"
+                                   aria-invalid="@_errors.ContainsKey("end")" aria-describedby="leave-period-hint @(_errors.ContainsKey("end") ? "leave-end-error" : null)" />
+                            <FieldError Id="leave-end-error" Message="@_errors.GetValueOrDefault("end")" />
+                        </div>
+                    }
+                </div>
+                <p id="leave-period-hint" class="form-hint">@PeriodHint</p>
+
+                <div>
+                    <label class="form-label" for="leave-note">Uwagi <span class="text-muted-foreground">(nieobowiązkowe)</span></label>
+                    <textarea id="leave-note" class="form-control" rows="3" maxlength="500" @bind="_note"></textarea>
+                </div>
+
+                @if (Balance is { HasEntitlement: true } balance)
+                {
+                    <p class="form-hint mb-0">
+                        Urlop wypoczynkowy @balance.Year: do wykorzystania @LeaveTexts.Amount(balance.RemainingHours) z @LeaveTexts.Amount(balance.TotalHours).
+                    </p>
                 }
-            </div>
-            <p id="leave-period-hint" class="form-hint">@PeriodHint</p>
 
-            <div>
-                <label class="form-label" for="leave-note">Uwagi <span class="text-muted-foreground">(nieobowiązkowe)</span></label>
-                <textarea id="leave-note" class="form-control" rows="3" maxlength="500" @bind="_note"></textarea>
-            </div>
-
-            @if (Balance is { HasEntitlement: true } balance)
-            {
-                <p class="form-hint mb-0">
-                    Urlop wypoczynkowy @balance.Year: do wykorzystania @LeaveTexts.Amount(balance.RemainingHours) z @LeaveTexts.Amount(balance.TotalHours).
-                </p>
-            }
-
-            @if (_problem is not null)
-            {
-                <div class="alert-box is-error" role="alert">@_problem</div>
-            }
-        </form>
+                @if (_problem is not null)
+                {
+                    <div class="alert-box is-error" role="alert">@_problem</div>
+                }
+            </form>
+        }
     </ChildContent>
     <Footer>
         <button type="button" class="btn btn-quiet" @onclick="CancelAsync">Anuluj</button>
-        <button type="submit" form="leave-form" class="btn btn-primary" disabled="@_busy">
+        <button type="submit" form="leave-form" class="btn btn-primary" disabled="@(_busy || _kinds.Count == 0)">
             @(_busy ? "Wysyłanie…" : "Złóż wniosek")
         </button>
     </Footer>
@@ -81,6 +89,7 @@
 
 @code {
     private readonly Dictionary<string, string> _errors = [];
+    private IReadOnlyList<(LeaveKind Kind, string Name)> _kinds = LeaveTexts.Kinds;
     private LeaveKind _kind = LeaveKind.Annual;
     private bool _hourly;
     private DateOnly? _start;
@@ -116,19 +125,36 @@
             ? "Np. 2, 2,5 albo 2:30. Urlop wypoczynkowy na godziny tylko na resztę urlopu mniejszą niż dzień pracy."
             : "Np. 2, 2,5 albo 2:30. W roku 16 godzin (przy niepełnym etacie proporcjonalnie mniej).";
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if (Open && !_wasOpen)
+        var opened = Open && !_wasOpen;
+        _wasOpen = Open;
+
+        if (opened)
         {
+            await LoadKindsAsync();
             Reset();
         }
+    }
 
-        _wasOpen = Open;
+    /// <summary>Only the kinds of leave the company accepts in the portal; HR registers the others.</summary>
+    private async Task LoadKindsAsync()
+    {
+        try
+        {
+            var allowed = (await Company.GetAsync(CancellationToken.None)).PortalLeaveKinds;
+            _kinds = LeaveTexts.Kinds.Where(choice => allowed.Contains(choice.Kind)).ToList();
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            // The server checks the kind anyway; without the settings the form offers every kind.
+            _kinds = LeaveTexts.Kinds;
+        }
     }
 
     private void Reset()
     {
-        _kind = LeaveKind.Annual;
+        _kind = _kinds.Count > 0 ? _kinds[0].Kind : LeaveKind.Annual;
         _hourly = false;
         _start = Today;
         _end = Today;
