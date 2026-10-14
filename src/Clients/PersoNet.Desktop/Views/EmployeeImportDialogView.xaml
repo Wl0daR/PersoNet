@@ -6,7 +6,7 @@
              xmlns:import="clr-namespace:PersoNet.Desktop.Presentation.Employees.Import;assembly=PersoNet.Desktop.Presentation"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=import:EmployeeImportDialogViewModel}"
-             Width="860" Height="620">
+             Width="900" Height="640">
     <UserControl.Resources>
         <Style x:Key="Cell" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -31,21 +31,30 @@
         <Border Style="{StaticResource DialogBody}">
             <DockPanel Margin="24,20,24,12">
                 <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Style="{StaticResource SecondaryText}"
-                           Text="Wskaż plik .sql z tabelą Employees z poprzedniego systemu (eksport MySQL, np. z HeidiSQL lub phpMyAdmin). Plik jest czytany na tym komputerze; zanim cokolwiek zapiszesz, zobaczysz listę pracowników." />
+                           Text="Zaznacz pliki .sql z poprzedniego systemu (eksport MySQL, np. z HeidiSQL): Employees oraz, jeśli masz, wydzialy, Departments, Positions, EmploymentHistory i Companies. Pliki są czytane na tym komputerze; zanim cokolwiek zapiszesz, zobaczysz listę pracowników." />
 
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,12,0,8" IsEnabled="{Binding IsIdle}">
-                    <Button Command="{Binding ChooseFileCommand}" Padding="12,6" ToolTip="Wybierz plik .sql">
+                    <Button Command="{Binding ChooseFileCommand}" Padding="12,6" ToolTip="Wybierz jeden lub kilka plików .sql (Ctrl lub Shift zaznacza kilka)">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8E5;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-                            <TextBlock Text="Wybierz plik…" />
+                            <TextBlock Text="Wybierz pliki…" />
                         </StackPanel>
                     </Button>
-                    <TextBlock Text="{Binding FileName}" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="SemiBold"
-                               Visibility="{Binding HasFile, Converter={StaticResource BoolToVisibility}}" />
+                    <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center"
+                                Visibility="{Binding HasEmployers, Converter={StaticResource BoolToVisibility}}">
+                        <Label Content="_Firma:" Target="{Binding ElementName=EmployerBox}" VerticalAlignment="Center" Margin="0,0,8,0" Padding="0" />
+                        <ComboBox x:Name="EmployerBox" ItemsSource="{Binding Employers}" SelectedItem="{Binding Employer}" DisplayMemberPath="Name" MinWidth="180"
+                                  ToolTip="Pracownicy, działy i umowy której firmy mają trafić do tej firmy w PersoNet" AutomationProperties.Name="Firma" />
+                    </StackPanel>
                 </StackPanel>
 
-                <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,0,0,8"
+                <TextBlock DockPanel.Dock="Top" Text="{Binding FileName}" Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis" Margin="0,0,0,4"
+                           ToolTip="{Binding FileName}" Visibility="{Binding HasFile, Converter={StaticResource BoolToVisibility}}" />
+
+                <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,0,0,4" FontWeight="SemiBold"
                            Visibility="{Binding Summary, Converter={StaticResource CollapsedWhenEmpty}}" AutomationProperties.LiveSetting="Polite" />
+                <TextBlock DockPanel.Dock="Top" Text="{Binding Details}" TextWrapping="Wrap" Margin="0,0,0,8" Style="{StaticResource SecondaryText}"
+                           Visibility="{Binding Details, Converter={StaticResource CollapsedWhenEmpty}}" />
 
                 <!-- What the import did, in words; the colour only reinforces it. -->
                 <Border DockPanel.Dock="Top" CornerRadius="6" Padding="10,8" Margin="0,0,0,8" Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}"
@@ -63,18 +72,11 @@
                     <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa importowanie" />
                 </Border>
 
-                <DataGrid ItemsSource="{Binding Rows}" AutomationProperties.Name="Pracownicy w pliku" AutoGenerateColumns="False" IsReadOnly="True"
+                <DataGrid ItemsSource="{Binding Rows}" AutomationProperties.Name="Pracownicy w plikach" AutoGenerateColumns="False" IsReadOnly="True"
                           SelectionMode="Single" HeadersVisibility="Column" GridLinesVisibility="None" MinRowHeight="32" BorderThickness="0"
                           Background="Transparent" CanUserReorderColumns="False" HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding HasFile, Converter={StaticResource BoolToVisibility}}">
                     <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="Wiersz" Width="64" SortMemberPath="Line">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
-                                    <TextBlock Text="{Binding Line}" Style="{StaticResource Cell}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="Numer" Width="72" SortMemberPath="Number">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
@@ -82,35 +84,49 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Nazwisko i imię" Width="2*" MinWidth="160" SortMemberPath="Name">
+                        <DataGridTemplateColumn Header="Nazwisko i imię" Width="2*" MinWidth="140" SortMemberPath="Name">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
                                     <TextBlock Text="{Binding Name}" Style="{StaticResource Cell}" ToolTip="{Binding Name}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Zatrudniony" Width="96">
+                        <DataGridTemplateColumn Header="Dział" Width="1.5*" MinWidth="100" SortMemberPath="Department">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
+                                    <TextBlock Text="{Binding Department}" Style="{StaticResource Cell}" ToolTip="{Binding Department}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Stanowisko" Width="1.5*" MinWidth="100" SortMemberPath="Position">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
+                                    <TextBlock Text="{Binding Position}" Style="{StaticResource Cell}" ToolTip="{Binding Position}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Zatrudniony" Width="88">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
                                     <TextBlock Text="{Binding HireText}" Style="{StaticResource Cell}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Zwolniony" Width="96">
+                        <DataGridTemplateColumn Header="Zwolniony" Width="88">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
                                     <TextBlock Text="{Binding TerminationText}" Style="{StaticResource Cell}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Urlop (dni)" Width="88">
+                        <DataGridTemplateColumn Header="Urlop" Width="56">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
                                     <TextBlock Text="{Binding LeaveText}" Style="{StaticResource Cell}" HorizontalAlignment="Right" Margin="0,0,16,0" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Uwagi" Width="2*" MinWidth="140">
+                        <DataGridTemplateColumn Header="Uwagi" Width="1.5*" MinWidth="110">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="{x:Type import:EmployeeImportRow}">
                                     <Border HorizontalAlignment="Left" ToolTip="{Binding Problem}"

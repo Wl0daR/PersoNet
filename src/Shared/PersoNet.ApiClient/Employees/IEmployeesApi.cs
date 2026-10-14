@@ -17,6 +17,8 @@ public interface IEmployeesApi
     Task<EmployeeResponse> CreateAsync(SaveEmployeeRequest request, CancellationToken cancellationToken);
 
     /// <summary>Creates the cards of employees from an earlier system; numbers already in PersoNet are skipped.</summary>
+    Task<ImportOrganizationResponse> ImportOrganizationAsync(ImportOrganizationRequest request, CancellationToken cancellationToken);
+
     Task<ImportEmployeesResponse> ImportAsync(ImportEmployeesRequest request, CancellationToken cancellationToken);
 
     Task<EmployeeResponse> UpdateAsync(Guid id, SaveEmployeeRequest request, CancellationToken cancellationToken);

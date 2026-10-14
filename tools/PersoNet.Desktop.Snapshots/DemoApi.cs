@@ -228,6 +228,8 @@ internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveA
 
     public Task<ImportEmployeesResponse> ImportAsync(ImportEmployeesRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
 
+    public Task<ImportOrganizationResponse> ImportOrganizationAsync(ImportOrganizationRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
+
     public Task<EmployeeResponse> TerminateAsync(Guid id, DateOnly lastDay, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken) => throw new NotSupportedException();
