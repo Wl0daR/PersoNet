@@ -87,7 +87,7 @@
                             <DataGridTemplateColumn Header="Uprawnienia" Width="3*" MinWidth="200">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type acc:RoleRow}">
-                                        <TextBlock Text="{Binding PermissionsText}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,4" />
+                                        <TextBlock Text="{Binding PermissionsText}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,4,16,4" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

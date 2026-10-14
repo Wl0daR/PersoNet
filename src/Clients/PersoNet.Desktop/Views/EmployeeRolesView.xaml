@@ -6,7 +6,7 @@
              xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=emp:EmployeeRolesViewModel}">
-    <StackPanel Margin="8,20,8,0" IsEnabled="{Binding IsIdle}">
+    <StackPanel Margin="8,4,8,0" IsEnabled="{Binding IsIdle}">
         <TextBlock Text="Role w PersoNet" Style="{StaticResource FormSection}" />
         <TextBlock Text="Pracownik ma uprawnienia zaznaczonych ról, gdy loguje się swoim służbowym e-mailem." Style="{StaticResource HelperText}" TextWrapping="Wrap" />
 
