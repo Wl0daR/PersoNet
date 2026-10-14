@@ -66,13 +66,13 @@ namespace PersoNet.Desktop.Snapshots
             var time = TimeProvider.System;
             var dialogs = new SnapshotDialogs();
             var user = new UserAccess();
-            var employees = new EmployeesViewModel(api, api, api, api, user, time, dialogs);
+            var files = new SnapshotFiles();
+            var employees = new EmployeesViewModel(api, api, api, api, api, files, user, time, dialogs);
             var leave = new LeaveViewModel(api, api, time, dialogs);
             var departments = new DepartmentsViewModel(api, dialogs);
             var positions = new PositionsViewModel(api, dialogs);
             var roles = new RolesViewModel(api, dialogs);
             var company = new CompanyViewModel(api, dialogs);
-            var files = new SnapshotFiles();
             var reports = new ReportsViewModel(
                 new HeadcountReportViewModel(api, files, time), new LeaveUsageReportViewModel(api, files, time), new ContractsEndingReportViewModel(api, files, time));
             var shell = new ShellViewModel(
@@ -141,12 +141,24 @@ namespace PersoNet.Desktop.Snapshots
                     };
                     await card.Contracts.NewAsync(CancellationToken.None);
 
-                    // The portal account tab.
+                    // The working time tab, with the whole of last month, and a day with a missing clock-out in its window.
                     Tabs(dialogWindow).SelectedIndex = 3;
+                    await card.WorkTime.PreviousMonthAsync(CancellationToken.None);
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"28-karta-czas-pracy-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"28-karta-czas-pracy-laptop150-{suffix}.png"));
+                    dialogs.Script = async (_, dayWindow) =>
+                    {
+                        await RenderDialogAsync(window, dayWindow, Sizes[1], Path.Combine(output, $"29-dzien-pracy-srodek-{suffix}.png"), dialogWindow);
+                        await RenderDialogAsync(window, dayWindow, Sizes[2], Path.Combine(output, $"29-dzien-pracy-laptop150-{suffix}.png"), dialogWindow);
+                    };
+                    await card.WorkTime.OpenDayAsync(card.WorkTime.Rows.First(row => row.HasIssue));
+
+                    // The portal account tab.
+                    Tabs(dialogWindow).SelectedIndex = 4;
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"21-karta-konto-laptop150-{suffix}.png"));
 
                     // The history of changes.
-                    Tabs(dialogWindow).SelectedIndex = 4;
+                    Tabs(dialogWindow).SelectedIndex = 5;
                     await card.History.RefreshAsync(CancellationToken.None);
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"22-karta-historia-srodek-{suffix}.png"));
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"22-karta-historia-laptop150-{suffix}.png"));
@@ -251,6 +263,9 @@ namespace PersoNet.Desktop.Snapshots
                 dialogs.Script = async (_, dialogWindow) =>
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"25-urlopy-w-portalu-srodek-{suffix}.png"));
                 await company.EditLeaveAsync();
+                dialogs.Script = async (_, dialogWindow) =>
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"30-zrodlo-czasu-pracy-srodek-{suffix}.png"));
+                await company.EditWorkTimeAsync();
 
                 // The other two reports, each on its own tab.
                 shell.NavigateCommand.Execute(shell.ReportsItem);
@@ -267,7 +282,7 @@ namespace PersoNet.Desktop.Snapshots
             window.Close();
         }
 
-        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 5);
+        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 6);
 
         internal static IntPtr AllowLargerThanScreen(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {

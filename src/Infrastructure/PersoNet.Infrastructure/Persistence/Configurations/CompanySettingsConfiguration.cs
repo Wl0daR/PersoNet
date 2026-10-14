@@ -26,6 +26,8 @@ internal sealed class CompanySettingsConfiguration : IEntityTypeConfiguration<Co
         // Stored as names, like the leave requests themselves, so reordering the enum cannot change the settings.
         builder.PrimitiveCollection(settings => settings.PortalLeaveTypes).IsRequired().ElementType().HasConversion<string>();
 
+        builder.Property(settings => settings.WorkTimeSource).HasConversion<string>().HasMaxLength(20).IsRequired();
+
         // One record per company.
         builder.HasIndex(settings => settings.TenantId).IsUnique();
         builder.HasOne<Tenant>().WithMany().HasForeignKey(settings => settings.TenantId).OnDelete(DeleteBehavior.Restrict);

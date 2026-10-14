@@ -6,12 +6,13 @@ using PersoNet.ApiClient.Company;
 using PersoNet.Contracts.Company;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Leave;
+using PersoNet.Desktop.Presentation.WorkTime;
 
 namespace PersoNet.Desktop.Presentation.Company;
 
 /// <summary>
-/// "Ustawienia firmy" screen: the company's data and which kinds of leave employees request in the portal. Both are
-/// shown read-only and changed in dialogs.
+/// "Ustawienia firmy" screen: the company's data, which kinds of leave employees request in the portal, and where working
+/// time comes from. All are shown read-only and changed in dialogs.
 /// </summary>
 public sealed partial class CompanyViewModel(ICompanyApi api, IDialogService dialogs) : EditorViewModel
 {
@@ -24,7 +25,7 @@ public sealed partial class CompanyViewModel(ICompanyApi api, IDialogService dia
     public ObservableCollection<PortalLeaveRow> LeaveKinds { get; } = [];
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(EditDetailsCommand), nameof(EditLeaveCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EditDetailsCommand), nameof(EditLeaveCommand), nameof(EditWorkTimeCommand))]
     public partial CompanyResponse? Company { get; set; }
 
     [ObservableProperty]
@@ -32,6 +33,13 @@ public sealed partial class CompanyViewModel(ICompanyApi api, IDialogService dia
 
     [ObservableProperty]
     public partial string PortalSummary { get; set; } = string.Empty;
+
+    /// <summary>How working time is recorded, e.g. "Roger PR Master".</summary>
+    [ObservableProperty]
+    public partial string WorkTimeSource { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string WorkTimeHint { get; set; } = string.Empty;
 
     [RelayCommand]
     public Task LoadAsync(CancellationToken cancellationToken) => RunAsync(async () => Show(await api.GetAsync(cancellationToken)));
@@ -66,6 +74,21 @@ public sealed partial class CompanyViewModel(ICompanyApi api, IDialogService dia
         }
     }
 
+    [RelayCommand(CanExecute = nameof(IsLoaded))]
+    public async Task EditWorkTimeAsync()
+    {
+        if (Company is not { } company)
+        {
+            return;
+        }
+
+        var dialog = new WorkTimeSettingsDialogViewModel(api, company);
+        if (await dialogs.ShowAsync(dialog) && dialog.Saved is { } saved)
+        {
+            Show(saved);
+        }
+    }
+
     protected override bool TryShowOnField(ApiException exception) => false;
 
     private bool IsLoaded() => Company is not null;
@@ -94,6 +117,10 @@ public sealed partial class CompanyViewModel(ICompanyApi api, IDialogService dia
         PortalSummary = inPortal == LeaveKinds.Count ? "Pracownicy proszą w portalu o każdy rodzaj urlopu."
             : inPortal == 0 ? "Portal nie przyjmuje wniosków. Wszystkie urlopy wpisuje dział kadr."
             : $"W portalu: {inPortal} z {LeaveKinds.Count} rodzajów. Pozostałe wpisuje dział kadr.";
+
+        var source = WorkTimeTexts.Sources.FirstOrDefault(choice => choice.Kind == company.WorkTimeSource) ?? WorkTimeTexts.Sources[0];
+        WorkTimeSource = source.Name;
+        WorkTimeHint = source.Hint;
     }
 
     /// <summary>NIP as people write it: 526-104-38-38.</summary>

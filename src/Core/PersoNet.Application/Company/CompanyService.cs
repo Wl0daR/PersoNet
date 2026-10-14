@@ -3,6 +3,7 @@ using PersoNet.Application.Abstractions;
 using PersoNet.Application.Common;
 using PersoNet.Contracts.Company;
 using PersoNet.Contracts.Leave;
+using PersoNet.Contracts.WorkTime;
 using PersoNet.Domain.Abstractions;
 using PersoNet.Domain.Company;
 using PersoNet.Domain.Leave;
@@ -87,6 +88,32 @@ public sealed class CompanyService(IAppDbContext db, ITenantContext tenant)
         return ToResponse(settings.Value);
     }
 
+    public async Task<Result<CompanyResponse>> SaveWorkTimeSettingsAsync(SaveWorkTimeSettingsRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!Enum.IsDefined((WorkTimeSource)request.Source))
+        {
+            return CompanyErrors.UnknownWorkTimeSource;
+        }
+
+        var settings = await CurrentAsync(tracked: true, cancellationToken);
+        if (!settings.IsSuccess)
+        {
+            return settings.Error!;
+        }
+
+        settings.Value.ChangeWorkTimeSource((WorkTimeSource)request.Source);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ToResponse(settings.Value);
+    }
+
+    /// <summary>How the company records working time (manual until HR chooses otherwise).</summary>
+    public async Task<WorkTimeSourceKind> GetWorkTimeSourceAsync(CancellationToken cancellationToken) =>
+        (WorkTimeSourceKind)(await db.CompanySettings.AsNoTracking().Select(settings => (WorkTimeSource?)settings.WorkTimeSource).FirstOrDefaultAsync(cancellationToken)
+            ?? WorkTimeSource.Manual);
+
     /// <summary>The saved settings, or new defaults (added to the context when they will be saved).</summary>
     private async Task<Result<CompanySettings>> CurrentAsync(bool tracked, CancellationToken cancellationToken)
     {
@@ -158,5 +185,6 @@ public sealed class CompanyService(IAppDbContext db, ITenantContext tenant)
         settings.City,
         settings.Email,
         settings.Phone,
-        settings.PortalLeaveTypes.Select(type => (LeaveKind)type).ToList());
+        settings.PortalLeaveTypes.Select(type => (LeaveKind)type).ToList(),
+        (WorkTimeSourceKind)settings.WorkTimeSource);
 }

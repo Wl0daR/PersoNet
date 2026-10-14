@@ -6,6 +6,7 @@ using PersoNet.Contracts.Company;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.SelfService;
+using PersoNet.Contracts.WorkTime;
 using PersoNet.Infrastructure.Persistence;
 
 namespace PersoNet.Api.IntegrationTests;
@@ -40,7 +41,7 @@ public sealed class CompanyEndpointTests(PersoNetApiFactory factory)
         defaults.PortalLeaveKinds.ShouldBe(Enum.GetValues<LeaveKind>());
         saved.StatusCode.ShouldBe(HttpStatusCode.OK, await saved.Content.ReadAsStringAsync(Cancellation));
         read.ShouldBe(new CompanyResponse(
-            "Acme", "Acme Polska sp. z o.o.", "5261043838", "142130400", "ul. Prosta 1", "00-850", "Warszawa", "kadry@acme.test", "22 100 20 30", read!.PortalLeaveKinds));
+            "Acme", "Acme Polska sp. z o.o.", "5261043838", "142130400", "ul. Prosta 1", "00-850", "Warszawa", "kadry@acme.test", "22 100 20 30", read!.PortalLeaveKinds, WorkTimeSourceKind.Manual));
         await ShouldFailAsync(badTaxId, "company.tax_id_invalid");
         await ShouldFailAsync(badRegon, "company.regon_invalid");
         await ShouldFailAsync(badPostalCode, "company.postal_code_invalid");

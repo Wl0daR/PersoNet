@@ -12,6 +12,7 @@ public sealed class Employee : Entity, ITenantOwned
     public const int NameMaxLength = 100;
     public const int EmailMaxLength = 254;
     public const int PhoneMaxLength = 30;
+    public const int ClockIdMaxLength = 50;
 
     // Used by EF Core.
     private Employee()
@@ -59,6 +60,12 @@ public sealed class Employee : Entity, ITenantOwned
 
     /// <summary>Last day of work; null while employed.</summary>
     public DateOnly? TerminationDate { get; private set; }
+
+    /// <summary>
+    /// The employee's identifier in the company's time clock system (RCP), such as the card number or user id in Roger
+    /// PR Master, so clock-in and clock-out events from that system find their employee. Unique within the company.
+    /// </summary>
+    public string? ClockId { get; private set; }
 
     /// <summary>Upper-case "last first number email" used for case-insensitive search.</summary>
     public string SearchText { get; private set; }
@@ -116,6 +123,18 @@ public sealed class Employee : Entity, ITenantOwned
         }
 
         TerminationDate = lastDay;
+    }
+
+    /// <summary>Sets or clears the identifier in the time clock system; uniqueness is checked by the caller.</summary>
+    public void ChangeClockId(string? clockId)
+    {
+        var trimmed = Optional(clockId, ClockIdMaxLength, "Time clock id");
+        if (trimmed?.Any(char.IsWhiteSpace) == true)
+        {
+            throw new DomainException("Time clock id cannot contain spaces.");
+        }
+
+        ClockId = trimmed;
     }
 
     /// <summary>Undoes a termination, for example one entered by mistake.</summary>

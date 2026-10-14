@@ -4,6 +4,7 @@ using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.ApiClient.Reports;
+using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Access;
 using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Audit;
@@ -13,13 +14,14 @@ using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
 using PersoNet.Contracts.Organization;
 using PersoNet.Contracts.Reports;
+using PersoNet.Contracts.WorkTime;
 using PersoNet.Desktop.Presentation.Authentication;
 using PersoNet.Desktop.Presentation.Common;
 
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ICompanyApi, IReportsApi, ISignInService, IThemeService
+internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ICompanyApi, IReportsApi, IWorkTimeApi, ISignInService, IThemeService
 {
     private static readonly IReadOnlyList<PermissionResponse> Catalog =
     [
@@ -28,6 +30,8 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
         new("audit.read", "Pracownicy", "Historia zmian", "Kto i kiedy zmienił dane pracownika.", true),
         new("leave.read", "Urlopy", "Przeglądanie urlopów", "Wnioski, wymiar i saldo urlopu wszystkich pracowników.", true),
         new("leave.manage", "Urlopy", "Decyzje urlopowe", "Wpisywanie, zatwierdzanie, odrzucanie i anulowanie wniosków oraz ustalanie wymiaru.", true),
+        new("worktime.read", "Czas pracy", "Przeglądanie czasu pracy", "Karty ewidencji czasu pracy: godziny, nadgodziny, nieobecności i odbicia z czytników.", true),
+        new("worktime.manage", "Czas pracy", "Ewidencja czasu pracy", "Wpisywanie i poprawianie dni pracy, import odbić z systemu RCP i identyfikatory pracowników w tym systemie.", true),
         new("reports.read", "Raporty", "Raporty kadrowe", "Stan zatrudnienia, wykorzystanie urlopów i kończące się umowy w całej firmie, z eksportem do Excela.", true),
         new("organization.manage", "Firma", "Struktura firmy", "Dodawanie i zmiana działów oraz stanowisk.", true),
         new("settings.manage", "Firma", "Ustawienia firmy", "Dane firmy oraz rodzaje urlopów, o które pracownicy proszą w portalu.", true),
@@ -48,7 +52,8 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
     private CompanyResponse _company = new(
         "Hurtownia Mazowsze", "Hurtownia Mazowsze Spółka z ograniczoną odpowiedzialnością", "5261043838", "142130400",
         "ul. Marszałkowska 142 lok. 7", "00-061", "Warszawa", "kadry@hurtownia-mazowsze.pl", null,
-        [LeaveKind.Annual, LeaveKind.OnDemand, LeaveKind.ChildCare, LeaveKind.ForceMajeure]);
+        [LeaveKind.Annual, LeaveKind.OnDemand, LeaveKind.ChildCare, LeaveKind.ForceMajeure],
+        WorkTimeSourceKind.RogerPrMaster);
 
     public Task<CompanyResponse> GetAsync(CancellationToken cancellationToken) => Task.FromResult(_company);
 
@@ -57,6 +62,12 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
     public Task<CompanyResponse> SaveLeaveSettingsAsync(SaveLeaveSettingsRequest request, CancellationToken cancellationToken)
     {
         _company = _company with { PortalLeaveKinds = request.PortalLeaveKinds };
+        return Task.FromResult(_company);
+    }
+
+    public Task<CompanyResponse> SaveWorkTimeSettingsAsync(SaveWorkTimeSettingsRequest request, CancellationToken cancellationToken)
+    {
+        _company = _company with { WorkTimeSource = request.Source };
         return Task.FromResult(_company);
     }
 

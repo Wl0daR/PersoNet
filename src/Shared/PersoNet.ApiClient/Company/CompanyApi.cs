@@ -24,4 +24,10 @@ internal sealed class CompanyApi(HttpClient http) : ICompanyApi
         using var response = await http.PutAsJsonAsync(Company + "/leave", request, cancellationToken).ConfigureAwait(false);
         return await ApiResponses.ReadAsync<CompanyResponse>(response, cancellationToken).ConfigureAwait(false);
     }
+
+    public async Task<CompanyResponse> SaveWorkTimeSettingsAsync(SaveWorkTimeSettingsRequest request, CancellationToken cancellationToken)
+    {
+        using var response = await http.PutAsJsonAsync(Company + "/work-time", request, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<CompanyResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
 }

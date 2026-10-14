@@ -1,0 +1,43 @@
+<UserControl x:Class="PersoNet.Desktop.Views.WorkTimeSettingsDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:company="clr-namespace:PersoNet.Desktop.Presentation.Company;assembly=PersoNet.Desktop.Presentation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=company:WorkTimeSettingsDialogViewModel}"
+             Width="540" MaxHeight="720">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsEnabled="{Binding IsIdle}">
+                <Button Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}" MinWidth="110" Margin="0,0,8,0" />
+                <Button Content="Anuluj" IsCancel="True" MinWidth="110" ToolTip="Zamknij bez zapisywania (Esc)" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource DialogBody}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
+                    <TextBlock Text="Wybierz, skąd pochodzi czas pracy pracowników. Niezależnie od wyboru kadry mogą wpisać i poprawić każdy dzień w karcie pracownika."
+                               Style="{StaticResource SecondaryText}" />
+
+                    <ItemsControl ItemsSource="{Binding Options}" Focusable="False" Margin="0,12,0,0" AutomationProperties.Name="Źródła czasu pracy">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type company:WorkTimeSourceOption}">
+                                <RadioButton IsChecked="{Binding IsChecked}" GroupName="WorkTimeSource" Margin="0,4" MinHeight="32"
+                                             AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Hint}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" />
+                                        <TextBlock Text="{Binding Hint}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</UserControl>

@@ -6,6 +6,7 @@ using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
+using PersoNet.Domain.WorkTime;
 
 namespace PersoNet.Application.Abstractions;
 
@@ -39,6 +40,12 @@ public interface IAppDbContext
 
     /// <summary>The company's data and leave settings; at most one record, missing until HR first saves them.</summary>
     DbSet<CompanySettings> CompanySettings { get; }
+
+    /// <summary>Days of employees' timesheets: hours worked or absences.</summary>
+    DbSet<WorkDay> WorkDays { get; }
+
+    /// <summary>Clock-in and clock-out events from time clock systems, kept as they came.</summary>
+    DbSet<ClockEvent> ClockEvents { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

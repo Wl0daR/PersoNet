@@ -58,6 +58,9 @@ public sealed partial class CompanySettings : Entity, ITenantOwned
     /// <summary>Kinds of leave employees may request in the portal themselves; HR registers the others.</summary>
     public List<LeaveType> PortalLeaveTypes { get; private set; }
 
+    /// <summary>Where the company's working time comes from; HR can correct any day whatever the source.</summary>
+    public WorkTimeSource WorkTimeSource { get; private set; } = WorkTimeSource.Manual;
+
     /// <summary>The settings a company has before HR changes them: its name, no details, every kind of leave in the portal.</summary>
     public static CompanySettings CreateDefault(Guid tenantId, string name)
     {
@@ -112,6 +115,16 @@ public sealed partial class CompanySettings : Entity, ITenantOwned
     }
 
     public bool AllowsInPortal(LeaveType type) => PortalLeaveTypes.Contains(type);
+
+    public void ChangeWorkTimeSource(WorkTimeSource source)
+    {
+        if (!Enum.IsDefined(source))
+        {
+            throw new DomainException("Unknown source of working time.");
+        }
+
+        WorkTimeSource = source;
+    }
 
     /// <summary>NIP: ten digits whose last one is the checksum of the first nine (weights 6, 5, 7, 2, 3, 4, 5, 6, 7).</summary>
     public static bool IsValidTaxId(string digits) =>
@@ -186,3 +199,19 @@ public sealed record CompanyDetails(
     string? City,
     string? Email,
     string? Phone);
+
+/// <summary>How the company records working time.</summary>
+public enum WorkTimeSource
+{
+    /// <summary>HR types the hours, or fills the month from the planned hours and corrects it.</summary>
+    Manual = 1,
+
+    /// <summary>HR imports files exported from a time clock system.</summary>
+    FileImport = 2,
+
+    /// <summary>Events come from Roger PR Master on their own.</summary>
+    RogerPrMaster = 3,
+
+    /// <summary>Another time clock system sends events through the PersoNet API.</summary>
+    Api = 4,
+}

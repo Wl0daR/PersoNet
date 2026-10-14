@@ -8,6 +8,7 @@ using PersoNet.Application.Leave;
 using PersoNet.Application.Organization;
 using PersoNet.Application.Reports;
 using PersoNet.Application.SelfService;
+using PersoNet.Application.WorkTime;
 
 namespace PersoNet.Application;
 
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<PermissionLookup>();
         services.AddScoped<CompanyService>();
         services.AddScoped<ReportService>();
+        services.AddScoped<WorkTimeService>();
 
         return services;
     }

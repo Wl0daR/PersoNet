@@ -3,6 +3,7 @@ using PersoNet.ApiClient;
 using PersoNet.ApiClient.Company;
 using PersoNet.Contracts.Company;
 using PersoNet.Contracts.Leave;
+using PersoNet.Contracts.WorkTime;
 
 namespace PersoNet.Desktop.Presentation.Tests;
 
@@ -10,7 +11,7 @@ namespace PersoNet.Desktop.Presentation.Tests;
 internal sealed class FakeCompanyApi : ICompanyApi
 {
     public CompanyResponse Company { get; private set; } =
-        new("Acme", null, null, null, null, null, null, null, null, Enum.GetValues<LeaveKind>());
+        new("Acme", null, null, null, null, null, null, null, null, Enum.GetValues<LeaveKind>(), WorkTimeSourceKind.Manual);
 
     public Task<CompanyResponse> GetAsync(CancellationToken cancellationToken) => Task.FromResult(Company);
 
@@ -40,6 +41,12 @@ internal sealed class FakeCompanyApi : ICompanyApi
     public Task<CompanyResponse> SaveLeaveSettingsAsync(SaveLeaveSettingsRequest request, CancellationToken cancellationToken)
     {
         Company = Company with { PortalLeaveKinds = [.. request.PortalLeaveKinds.Distinct().Order()] };
+        return Task.FromResult(Company);
+    }
+
+    public Task<CompanyResponse> SaveWorkTimeSettingsAsync(SaveWorkTimeSettingsRequest request, CancellationToken cancellationToken)
+    {
+        Company = Company with { WorkTimeSource = request.Source };
         return Task.FromResult(Company);
     }
 

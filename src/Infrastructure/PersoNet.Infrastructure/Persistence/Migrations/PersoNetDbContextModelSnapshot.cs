@@ -232,6 +232,12 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
+                    b.Property<string>("WorkTimeSource")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("work_time_source");
+
                     b.HasKey("Id")
                         .HasName("pk_company_settings");
 
@@ -247,6 +253,11 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<string>("ClockId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("clock_id");
 
                     b.Property<Guid?>("DepartmentId")
                         .HasColumnType("uuid")
@@ -320,6 +331,11 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_employees_tenant_id");
+
+                    b.HasIndex("TenantId", "ClockId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_employees_tenant_id_clock_id")
+                        .HasFilter("clock_id IS NOT NULL");
 
                     b.HasIndex("TenantId", "Email")
                         .IsUnique()
@@ -628,6 +644,129 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                     b.ToTable("tenants", (string)null);
                 });
 
+            modelBuilder.Entity("PersoNet.Domain.WorkTime.ClockEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Device")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("device");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("direction");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_clock_events");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_clock_events_employee_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_clock_events_tenant_id");
+
+                    b.HasIndex("TenantId", "EmployeeId", "OccurredAt", "Direction")
+                        .IsUnique()
+                        .HasDatabaseName("ix_clock_events_tenant_id_employee_id_occurred_at_direction");
+
+                    b.ToTable("clock_events", (string)null);
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.WorkTime.WorkDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Absence")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("absence");
+
+                    b.Property<int>("BreakMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("break_minutes");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<TimeOnly?>("EndTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("origin");
+
+                    b.Property<string>("Problem")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("problem");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_work_days");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_work_days_employee_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_work_days_tenant_id");
+
+                    b.HasIndex("TenantId", "EmployeeId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("ix_work_days_tenant_id_employee_id_date");
+
+                    b.ToTable("work_days", (string)null);
+                });
+
             modelBuilder.Entity("PersoNet.Domain.Access.Role", b =>
                 {
                     b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
@@ -785,6 +924,40 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_positions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.WorkTime.ClockEvent", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_clock_events_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_clock_events_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.WorkTime.WorkDay", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_work_days_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_work_days_tenants_tenant_id");
                 });
 #pragma warning restore 612, 618
         }

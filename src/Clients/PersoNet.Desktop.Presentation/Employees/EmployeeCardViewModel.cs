@@ -7,15 +7,18 @@ using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
+using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Employees;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Leave;
+using PersoNet.Desktop.Presentation.WorkTime;
 
 namespace PersoNet.Desktop.Presentation.Employees;
 
 /// <summary>
-/// Employee card, in a window of its own: the personal and employment data ("Dane"), the contracts and the leave.
+/// Employee card, in a window of its own: the personal and employment data ("Dane"), the contracts, the leave and the
+/// working time.
 /// A new card has only the data tab until it is saved.
 /// </summary>
 public sealed partial class EmployeeCardViewModel : DialogViewModel
@@ -37,7 +40,15 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
     private List<EmployeeLookupItem> _managerCandidates = [];
 
     public EmployeeCardViewModel(
-        IEmployeesApi employees, IOrganizationApi organization, ILeaveApi leave, IAccessApi access, UserAccess user, TimeProvider time, IDialogService dialogs)
+        IEmployeesApi employees,
+        IOrganizationApi organization,
+        ILeaveApi leave,
+        IAccessApi access,
+        IWorkTimeApi workTime,
+        IFileService files,
+        UserAccess user,
+        TimeProvider time,
+        IDialogService dialogs)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -49,8 +60,10 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         CanManageRoles = user.Can(UserAccess.RolesManage);
         CanSeeHistory = user.Can(UserAccess.AuditRead);
         CanSeeLeave = user.Can(UserAccess.LeaveRead);
+        CanSeeWorkTime = user.Can(UserAccess.WorkTimeRead);
         Contracts = new ContractsViewModel(employees, time, dialogs);
         Leave = new EmployeeLeaveViewModel(leave, time, dialogs);
+        WorkTime = new EmployeeWorkTimeViewModel(workTime, files, time, dialogs, user.Can(UserAccess.WorkTimeManage));
         Account = new EmployeeAccountViewModel(employees);
         Roles = new EmployeeRolesViewModel(access);
         History = new EmployeeHistoryViewModel(employees);
@@ -72,6 +85,8 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     public bool CanSeeLeave { get; }
 
+    public bool CanSeeWorkTime { get; }
+
     /// <summary>Roles of the employee, in the "Konto" tab.</summary>
     public EmployeeRolesViewModel Roles { get; }
 
@@ -80,6 +95,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     /// <summary>"Urlop" tab.</summary>
     public EmployeeLeaveViewModel Leave { get; }
+
+    /// <summary>"Czas pracy" tab.</summary>
+    public EmployeeWorkTimeViewModel WorkTime { get; }
 
     /// <summary>"Konto" tab: access to the employee portal.</summary>
     public EmployeeAccountViewModel Account { get; }
@@ -294,7 +312,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         return field is not null;
     }
 
-    // The contracts, leave, account and history tabs follow the card; a new, unsaved card has none of them. Ending or resuming the employment
+    // The contracts, leave, working time, account and history tabs follow the card; a new, unsaved card has none of them. Ending or resuming the employment
     // changes the contracts too.
     partial void OnCurrentChanged(EmployeeResponse? oldValue, EmployeeResponse? newValue)
     {
@@ -304,6 +322,11 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
             if (CanSeeLeave)
             {
                 _ = Leave.ShowAsync(newValue, CancellationToken.None);
+            }
+
+            if (CanSeeWorkTime)
+            {
+                _ = WorkTime.ShowAsync(newValue, CancellationToken.None);
             }
         }
 
