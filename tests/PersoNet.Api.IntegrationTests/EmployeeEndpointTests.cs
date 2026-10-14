@@ -129,6 +129,23 @@ public sealed class EmployeeEndpointTests(PersoNetApiFactory factory)
         second.Items.ShouldHaveSingleItem().Number.ShouldBe($"{tag}-3");
     }
 
+    [Fact]
+    public async Task The_whole_list_sorts_by_the_chosen_column_across_pages()
+    {
+        using var hr = factory.CreateSignedInClient();
+        var tag = UniqueTag();
+        await HireAsync(hr, Request($"{tag}-1", "Anna", $"Sort{tag}A") with { HireDate = new DateOnly(2022, 1, 1) });
+        await HireAsync(hr, Request($"{tag}-2", "Beata", $"Sort{tag}B") with { HireDate = new DateOnly(2024, 1, 1) });
+        await HireAsync(hr, Request($"{tag}-3", "Cezary", $"Sort{tag}C") with { HireDate = new DateOnly(2023, 1, 1) });
+
+        var newestFirst = await hr.GetFromJsonAsync<PagedResponse<EmployeeListItem>>(
+            $"{Employees}?search=sort{tag}&sort=HireDate&descending=true&page=1&pageSize=2", Cancellation);
+        var byName = await hr.GetFromJsonAsync<PagedResponse<EmployeeListItem>>($"{Employees}?search=sort{tag}&page=1&pageSize=3", Cancellation);
+
+        newestFirst!.Items.Select(item => item.FirstName).ShouldBe(["Beata", "Cezary"]);
+        byName!.Items.Select(item => item.FirstName).ShouldBe(["Anna", "Beata", "Cezary"]);
+    }
+
     private static SaveEmployeeRequest Request(string number, string firstName, string lastName) =>
         new(number, firstName, lastName, Email: null, Phone: null, HireDate, DepartmentId: null, PositionId: null, ManagerId: null);
 

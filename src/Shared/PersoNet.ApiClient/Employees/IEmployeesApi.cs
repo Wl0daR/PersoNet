@@ -20,6 +20,8 @@ public interface IEmployeesApi
 
     Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken);
 
+    Task<EmployeeResponse> RehireAsync(Guid id, DateOnly hireDate, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken);
 
     Task<ContractResponse> CreateContractAsync(Guid employeeId, SaveContractRequest request, CancellationToken cancellationToken);
@@ -29,4 +31,5 @@ public interface IEmployeesApi
     Task DeleteContractAsync(Guid employeeId, Guid contractId, CancellationToken cancellationToken);
 }
 
-public sealed record EmployeeListQuery(string? Search, Guid? DepartmentId, bool IncludeFormer, int Page, int PageSize);
+public sealed record EmployeeListQuery(
+    string? Search, Guid? DepartmentId, bool IncludeFormer, int Page, int PageSize, EmployeeSort Sort = EmployeeSort.Name, bool Descending = false);

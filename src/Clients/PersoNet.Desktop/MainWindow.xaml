@@ -179,7 +179,7 @@
             <!-- Content area: a raised layer next to the menu, as in Windows 11 apps. -->
             <Border Grid.Column="1" Background="{DynamicResource LayerFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1,1,0,0" CornerRadius="8,0,0,0" Margin="0,8,0,0">
-                <ContentControl Content="{Binding CurrentItem.Page}" Focusable="False" Margin="24,20,24,16" />
+                <ContentControl x:Name="ScreenHost" Content="{Binding CurrentItem.Page}" Focusable="False" Margin="24,20,24,16" />
             </Border>
         </Grid>
     </Grid>

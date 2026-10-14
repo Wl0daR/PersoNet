@@ -136,6 +136,8 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
 
     public Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken) => throw new NotSupportedException();
 
+    public Task<EmployeeResponse> RehireAsync(Guid id, DateOnly hireDate, CancellationToken cancellationToken) => throw new NotSupportedException();
+
     public Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<ContractResponse>>(_contracts.Where(contract => contract.EmployeeId == employeeId).OrderByDescending(contract => contract.StartDate).ToList());
 

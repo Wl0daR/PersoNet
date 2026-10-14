@@ -91,7 +91,7 @@ public sealed class ContractService(IAppDbContext db, ITenantContext tenant)
     }
 
     internal static ContractResponse ToResponse(EmploymentContract contract) =>
-        new(contract.Id, contract.EmployeeId, (ContractKind)contract.Type, contract.StartDate, contract.EndDate, contract.WorkingTime);
+        new(contract.Id, contract.EmployeeId, (ContractKind)contract.Type, contract.StartDate, contract.EndDate, contract.WorkingTime, contract.TerminatedOn);
 
     private static ContractTerms ToTerms(SaveContractRequest request) =>
         new((ContractType)request.Type, request.StartDate, request.EndDate, request.WorkingTime);
@@ -121,7 +121,12 @@ public sealed class ContractService(IAppDbContext db, ITenantContext tenant)
             return ContractErrors.WorkingTimeInvalid;
         }
 
-        if (terms.StartDate < employee.HireDate)
+        // A contract that ended with an earlier employment keeps that end, and may come from before the current hire date.
+        var terminatedOn = contractId is { } id
+            ? await db.Contracts.AsNoTracking().Where(contract => contract.Id == id).Select(contract => contract.TerminatedOn).FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+        if (terminatedOn is null && terms.StartDate < employee.HireDate)
         {
             return ContractErrors.BeforeHire;
         }
@@ -132,7 +137,8 @@ public sealed class ContractService(IAppDbContext db, ITenantContext tenant)
                 .Where(other => other.EmployeeId == employee.Id && other.Id != contractId)
                 .ToListAsync(cancellationToken);
 
-            if (others.Any(other => other.IsEmployment && other.Overlaps(terms.StartDate, terms.EndDate)))
+            var lastDay = terminatedOn is { } ended && (terms.EndDate is null || ended < terms.EndDate) ? ended : terms.EndDate;
+            if (others.Any(other => other.IsEmployment && other.Overlaps(terms.StartDate, lastDay)))
             {
                 return ContractErrors.Overlap;
             }

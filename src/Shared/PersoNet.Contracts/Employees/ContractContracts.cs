@@ -25,7 +25,11 @@ public enum ContractKind
     B2B = 6,
 }
 
-public sealed record ContractResponse(Guid Id, Guid EmployeeId, ContractKind Type, DateOnly StartDate, DateOnly? EndDate, decimal? WorkingTime);
+/// <summary>
+/// A contract. <see cref="TerminatedOn"/> is set when the contract ended before its planned end because the employment ended.
+/// </summary>
+public sealed record ContractResponse(
+    Guid Id, Guid EmployeeId, ContractKind Type, DateOnly StartDate, DateOnly? EndDate, decimal? WorkingTime, DateOnly? TerminatedOn = null);
 
 /// <summary>Create and update take the same fields. <see cref="WorkingTime"/> is the fraction of full time, only for employment contracts.</summary>
 public sealed record SaveContractRequest(ContractKind Type, DateOnly StartDate, DateOnly? EndDate, decimal? WorkingTime);

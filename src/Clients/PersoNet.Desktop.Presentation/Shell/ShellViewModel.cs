@@ -128,6 +128,28 @@ public sealed partial class ShellViewModel : ObservableObject
         }
     }
 
+    // Set once the screens have loaded after signing in; from then on opening a screen shows its current data, which may
+    // have changed elsewhere (the employee portal, another HR user).
+    private bool _screensLoaded;
+
+    partial void OnCurrentItemChanged(NavigationItem oldValue, NavigationItem newValue)
+    {
+        if (!_screensLoaded || oldValue == newValue)
+        {
+            return;
+        }
+
+        _ = newValue.Page switch
+        {
+            HomeViewModel home => home.LoadAsync(CancellationToken.None),
+            EmployeesViewModel employees => employees.LoadAsync(CancellationToken.None),
+            LeaveViewModel leave => leave.LoadAsync(CancellationToken.None),
+            DepartmentsViewModel departments => departments.LoadAsync(CancellationToken.None),
+            PositionsViewModel positions => positions.LoadAsync(CancellationToken.None),
+            _ => Task.CompletedTask,
+        };
+    }
+
     /// <summary>Shortcut from the start screen: the card of a new employee.</summary>
     [RelayCommand]
     public void AddEmployee()
@@ -191,12 +213,14 @@ public sealed partial class ShellViewModel : ObservableObject
         await Leave.LoadAsync(cancellationToken);
         await Departments.LoadAsync(cancellationToken);
         await Positions.LoadAsync(cancellationToken);
+        _screensLoaded = true;
     }
 
     [RelayCommand(CanExecute = nameof(IsSignedIn))]
     public async Task SignOutAsync(CancellationToken cancellationToken)
     {
         await _signIn.SignOutAsync(cancellationToken);
+        _screensLoaded = false;
         User = null;
     }
 

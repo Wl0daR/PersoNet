@@ -18,6 +18,7 @@ internal sealed class EmploymentContractConfiguration : IEntityTypeConfiguration
         builder.Property(contract => contract.Type).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(contract => contract.WorkingTime).HasPrecision(4, 3);
         builder.Ignore(contract => contract.IsEmployment);
+        builder.Ignore(contract => contract.LastDay);
 
         builder.HasIndex(contract => new { contract.EmployeeId, contract.StartDate });
 

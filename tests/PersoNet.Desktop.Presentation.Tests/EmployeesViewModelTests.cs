@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
+using PersoNet.Contracts.Employees;
 using PersoNet.Desktop.Presentation.Employees;
 
 namespace PersoNet.Desktop.Presentation.Tests;
@@ -182,6 +183,45 @@ public sealed class EmployeesViewModelTests
         var empty = _dialogs.Shown.OfType<EmployeeCardViewModel>().Last();
         empty.Title.ShouldBe("Nowy pracownik");
         empty.StatusBadge.ShouldBe("Nowa kartoteka");
+    }
+
+    [Fact]
+    public async Task Clicking_a_column_sorts_the_whole_list_and_clicking_it_again_reverses_the_order()
+    {
+        _employees.Add("P001", "Anna", "Zielińska");
+        var viewModel = CreateViewModel();
+        await viewModel.LoadAsync(Cancellation);
+
+        await viewModel.SortByAsync(EmployeeSort.HireDate, Cancellation);
+        _employees.Queries[^1].Sort.ShouldBe(EmployeeSort.HireDate);
+        _employees.Queries[^1].Descending.ShouldBeFalse();
+        _employees.Queries[^1].Page.ShouldBe(1);
+
+        await viewModel.SortByAsync(EmployeeSort.HireDate, Cancellation);
+        _employees.Queries[^1].Descending.ShouldBeTrue();
+
+        await viewModel.SortByAsync(EmployeeSort.Department, Cancellation);
+        _employees.Queries[^1].Sort.ShouldBe(EmployeeSort.Department);
+        _employees.Queries[^1].Descending.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Former_employee_is_rehired_from_the_card_on_a_later_date()
+    {
+        var jan = _employees.Add("P002", "Jan", "Nowak", new DateOnly(2024, 1, 1));
+        var card = await OpenCardAsync(jan.Id);
+        card.TerminationLastDay = new DateTime(2025, 3, 31);
+        await card.TerminateAsync(Cancellation);
+
+        card.RehireCommand.CanExecute(null).ShouldBeTrue();
+        card.RehireDate = new DateTime(2025, 5, 1);
+        await card.RehireAsync(Cancellation);
+
+        card.ErrorMessage.ShouldBeNull();
+        card.IsEmployed.ShouldBeTrue();
+        card.SavedMessage.ShouldBe("Pracownik zatrudniony ponownie. Dodaj nową umowę w zakładce Umowy.");
+        _employees.Employees.Single().HireDate.ShouldBe(new DateOnly(2025, 5, 1));
+        _employees.Employees.Single().TerminationDate.ShouldBeNull();
     }
 
     [Fact]

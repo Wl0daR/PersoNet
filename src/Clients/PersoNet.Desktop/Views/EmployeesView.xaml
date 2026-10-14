@@ -99,10 +99,10 @@
                     <DataGrid x:Name="List" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" local:OpenOnActivate.Command="{Binding OpenCommand}"
                               AutomationProperties.Name="Lista pracowników" AutoGenerateColumns="False" IsReadOnly="True"
                               SelectionMode="Single" HeadersVisibility="Column" GridLinesVisibility="None" MinRowHeight="52"
-                              BorderThickness="0" Background="Transparent" CanUserSortColumns="False" CanUserReorderColumns="False"
-                              HorizontalScrollBarVisibility="Disabled" Padding="8,0">
+                              BorderThickness="0" Background="Transparent" CanUserSortColumns="True" CanUserReorderColumns="False"
+                              HorizontalScrollBarVisibility="Disabled" Padding="8,0" Sorting="OnSorting">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Pracownik" Width="2*" MinWidth="200">
+                            <DataGridTemplateColumn Header="Pracownik" SortMemberPath="Name" Width="2*" MinWidth="200">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <DockPanel VerticalAlignment="Center" Margin="0,6">
@@ -121,28 +121,28 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Stanowisko" Width="1.3*" MinWidth="110">
+                            <DataGridTemplateColumn Header="Stanowisko" SortMemberPath="Position" Width="1.3*" MinWidth="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding PositionName, TargetNullValue='—'}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding PositionName}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Dział" Width="*" MinWidth="100">
+                            <DataGridTemplateColumn Header="Dział" SortMemberPath="Department" Width="*" MinWidth="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding DepartmentName, TargetNullValue='—'}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding DepartmentName}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Przełożony" Width="*" MinWidth="100">
+                            <DataGridTemplateColumn Header="Przełożony" SortMemberPath="Manager" Width="*" MinWidth="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ManagerName, TargetNullValue='—'}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding ManagerName}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Zatrudniony od" Width="Auto" MinWidth="110">
+                            <DataGridTemplateColumn Header="Zatrudniony od" SortMemberPath="HireDate" Width="Auto" MinWidth="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding HireDate, StringFormat='{}{0:d}'}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -150,7 +150,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <!-- Status in words, not color alone. -->
-                            <DataGridTemplateColumn Header="Status" Width="Auto" MinWidth="112">
+                            <DataGridTemplateColumn Header="Status" SortMemberPath="Status" Width="Auto" MinWidth="112">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Margin="0,0,8,0">

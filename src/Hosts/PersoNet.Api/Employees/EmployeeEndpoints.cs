@@ -21,11 +21,15 @@ internal static class EmployeeEndpoints
                     bool? includeFormer,
                     int? page,
                     int? pageSize,
+                    EmployeeSort? sort,
+                    bool? descending,
                     EmployeeQueries queries,
                     CancellationToken cancellationToken) =>
-                queries.ListAsync(search, departmentId, includeFormer ?? false, page ?? 1, pageSize ?? EmployeeQueries.DefaultPageSize, cancellationToken))
+                queries.ListAsync(
+                    search, departmentId, includeFormer ?? false, page ?? 1, pageSize ?? EmployeeQueries.DefaultPageSize,
+                    sort ?? EmployeeSort.Name, descending ?? false, cancellationToken))
             .RequireAuthorization(Permissions.EmployeesRead)
-            .WithName("ListEmployees").WithSummary("Lista pracowników (stronicowana, z wyszukiwaniem)");
+            .WithName("ListEmployees").WithSummary("Lista pracowników (stronicowana, z wyszukiwaniem i sortowaniem)");
 
         employees.MapGet("/lookup", (EmployeeQueries queries, CancellationToken cancellationToken) =>
                 queries.LookupAsync(cancellationToken))
@@ -61,6 +65,11 @@ internal static class EmployeeEndpoints
                 (await commands.ReinstateAsync(id, cancellationToken)).ToOk())
             .RequireAuthorization(Permissions.EmployeesManage)
             .WithName("ReinstateEmployee").WithSummary("Cofnij zakończenie zatrudnienia");
+
+        employees.MapPost("/{id:guid}/rehire", async (Guid id, RehireEmployeeRequest request, EmployeeCommands commands, CancellationToken cancellationToken) =>
+                (await commands.RehireAsync(id, request, cancellationToken)).ToOk())
+            .RequireAuthorization(Permissions.EmployeesManage)
+            .WithName("RehireEmployee").WithSummary("Zatrudnij ponownie byłego pracownika od podanej daty");
 
         var contracts = employees.MapGroup("/{employeeId:guid}/contracts").WithTags("Pracownicy");
 

@@ -163,11 +163,25 @@
                                             </StackPanel>
                                             <Button Content="Zakończ zatrudnienie" Command="{Binding TerminateCommand}" VerticalAlignment="Bottom" Margin="0,12,0,0" />
                                         </WrapPanel>
-                                        <TextBlock Text="Osoba zniknie z listy po tym dniu; dane zostają w kartotece." Style="{StaticResource HelperText}"
+                                        <TextBlock Text="Osoba zniknie z listy po tym dniu, a jej umowy zakończą się tego dnia; dane zostają w kartotece." Style="{StaticResource HelperText}"
                                                    Visibility="{Binding IsEmployed, Converter={StaticResource BoolToVisibility}}" />
 
-                                        <Button Content="Cofnij zakończenie zatrudnienia" Command="{Binding ReinstateCommand}" Margin="0,12,0,0" HorizontalAlignment="Left"
-                                                Visibility="{Binding IsTerminated, Converter={StaticResource BoolToVisibility}}" />
+                                        <!-- A former employee who comes back: a new hire date; the old contracts stay ended. -->
+                                        <WrapPanel Visibility="{Binding IsTerminated, Converter={StaticResource BoolToVisibility}}">
+                                            <StackPanel Margin="0,0,12,0">
+                                                <Label Content="_Data ponownego zatrudnienia" Target="{Binding ElementName=RehireBox}" Padding="0" Margin="0,12,0,4" />
+                                                <DatePicker x:Name="RehireBox" SelectedDate="{Binding RehireDate}" MinWidth="200"
+                                                            AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                                                <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=RehireBox}" Style="{StaticResource FieldError}" />
+                                            </StackPanel>
+                                            <Button Content="Zatrudnij ponownie" Command="{Binding RehireCommand}" Style="{DynamicResource AccentButtonStyle}"
+                                                    VerticalAlignment="Bottom" Margin="0,12,12,0" />
+                                            <Button Content="Cofnij zakończenie zatrudnienia" Command="{Binding ReinstateCommand}" VerticalAlignment="Bottom" Margin="0,12,0,0"
+                                                    ToolTip="Gdy zakończenie wpisano przez pomyłkę: umowy wracają do pierwotnych dat." />
+                                        </WrapPanel>
+                                        <TextBlock Text="„Zatrudnij ponownie”, gdy osoba wraca do pracy; dotychczasowe umowy pozostają zakończone. „Cofnij” tylko, gdy zakończenie wpisano przez pomyłkę."
+                                                   Style="{StaticResource HelperText}" TextWrapping="Wrap"
+                                                   Visibility="{Binding IsTerminated, Converter={StaticResource BoolToVisibility}}" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

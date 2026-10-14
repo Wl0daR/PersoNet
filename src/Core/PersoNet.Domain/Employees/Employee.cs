@@ -121,6 +121,26 @@ public sealed class Employee : Entity, ITenantOwned
     /// <summary>Undoes a termination, for example one entered by mistake.</summary>
     public void Reinstate() => TerminationDate = null;
 
+    /// <summary>
+    /// Hires a former employee again from <paramref name="hireDate"/>, which must come after the last day of the previous
+    /// employment. The earlier contracts stay ended; the new one is added separately.
+    /// </summary>
+    public void Rehire(DateOnly hireDate)
+    {
+        if (TerminationDate is not { } lastDay)
+        {
+            throw new DomainException("Only a former employee can be hired again.");
+        }
+
+        if (hireDate <= lastDay)
+        {
+            throw new DomainException("The new hire date must come after the last day of the previous employment.");
+        }
+
+        HireDate = hireDate;
+        TerminationDate = null;
+    }
+
     private static string NormalizeNumber(string number)
     {
         var normalized = Required(number, NumberMaxLength, "Personnel number").ToUpperInvariant();

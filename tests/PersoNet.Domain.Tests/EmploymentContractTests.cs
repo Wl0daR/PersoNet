@@ -58,4 +58,36 @@ public sealed class EmploymentContractTests
         contract.Overlaps(new DateOnly(2025, 6, 30), null).ShouldBeTrue();
         contract.Overlaps(new DateOnly(2025, 7, 1), null).ShouldBeFalse();
     }
+
+    [Fact]
+    public void Ending_early_cuts_the_contract_at_the_last_day_and_can_be_undone()
+    {
+        var contract = EmploymentContract.Create(TenantId, EmployeeId, new ContractTerms(ContractType.Indefinite, Start, null, 1m));
+
+        contract.EndEarly(new DateOnly(2025, 6, 30));
+
+        contract.EndDate.ShouldBeNull();
+        contract.TerminatedOn.ShouldBe(new DateOnly(2025, 6, 30));
+        contract.LastDay.ShouldBe(new DateOnly(2025, 6, 30));
+        contract.Overlaps(new DateOnly(2025, 7, 1), null).ShouldBeFalse();
+        contract.Overlaps(new DateOnly(2025, 6, 30), null).ShouldBeTrue();
+
+        contract.CancelEarlyEnd();
+
+        contract.LastDay.ShouldBeNull();
+        contract.Overlaps(new DateOnly(2025, 7, 1), null).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Ending_early_leaves_a_contract_that_ends_sooner_anyway()
+    {
+        var end = new DateOnly(2025, 3, 31);
+        var contract = EmploymentContract.Create(TenantId, EmployeeId, new ContractTerms(ContractType.FixedTerm, Start, end, 1m));
+
+        contract.EndEarly(new DateOnly(2025, 6, 30));
+
+        contract.TerminatedOn.ShouldBeNull();
+        contract.LastDay.ShouldBe(end);
+        Should.Throw<DomainException>(() => contract.EndEarly(Start.AddDays(-1)));
+    }
 }
