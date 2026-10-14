@@ -6,7 +6,7 @@ using PersoNet.Desktop.Presentation.Common;
 
 namespace PersoNet.Desktop.Dialogs;
 
-/// <summary>The Windows "Zapisz jako" dialog for exports, and opening a saved file in its program.</summary>
+/// <summary>The Windows "Zapisz jako" dialog for exports, "Otwórz" for imports, and opening a saved file in its program.</summary>
 public sealed class FileService : IFileService
 {
     public string? AskWhereToSaveWorkbook(string fileName)
@@ -19,6 +19,20 @@ public sealed class FileService : IFileService
             Filter = "Skoroszyt programu Excel (*.xlsx)|*.xlsx",
             AddExtension = true,
             OverwritePrompt = true,
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        };
+
+        var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive) ?? Application.Current.MainWindow;
+        return dialog.ShowDialog(owner) == true ? dialog.FileName : null;
+    }
+
+    public string? AskWhichSqlFileToOpen()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Wybierz plik z bazy danych",
+            Filter = "Plik SQL (*.sql)|*.sql|Wszystkie pliki (*.*)|*.*",
+            CheckFileExists = true,
             InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         };
 

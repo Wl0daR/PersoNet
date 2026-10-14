@@ -46,6 +46,12 @@ internal static class EmployeeErrors
             "employee.reinstate_overlap",
             "Nie można cofnąć zakończenia zatrudnienia, bo pracownik ma już nową umowę. Jeśli wraca do pracy, użyj „Zatrudnij ponownie”.");
 
+    public static readonly AppError ImportEmpty =
+        AppError.Validation("employee.import_empty", "Plik nie zawiera pracowników do zaimportowania.");
+
+    public static readonly AppError ImportTooLarge =
+        AppError.Validation("employee.import_too_large", $"Jednorazowo można zaimportować najwyżej {EmployeeImportService.MaxRows} pracowników.");
+
     public static AppError Invalid(DomainException exception) =>
         AppError.Validation("employee.invalid", exception.Message);
 }

@@ -51,6 +51,13 @@ internal static class EmployeeEndpoints
             .RequireAuthorization(Permissions.EmployeesManage)
             .WithName("CreateEmployee").WithSummary("Dodaj pracownika");
 
+        employees.MapPost("/import", async (ImportEmployeesRequest request, EmployeeImportService service, CancellationToken cancellationToken) =>
+                (await service.ImportAsync(request, cancellationToken)).ToOk())
+            .RequireAuthorization(Permissions.EmployeesManage)
+            .WithName("ImportEmployees").WithSummary("Importuj pracowników z poprzedniego systemu")
+            .WithDescription("Zakłada kartoteki z pliku poprzedniego systemu. Numery ewidencyjne, które już są w PersoNet, zostają bez zmian, "
+                + "więc ten sam plik można zaimportować ponownie. Wymiar urlopu trafia na bieżący rok.");
+
         employees.MapPut("/{id:guid}", async (Guid id, SaveEmployeeRequest request, EmployeeCommands commands, CancellationToken cancellationToken) =>
                 (await commands.UpdateAsync(id, request, cancellationToken)).ToOk())
             .RequireAuthorization(Permissions.EmployeesManage)
