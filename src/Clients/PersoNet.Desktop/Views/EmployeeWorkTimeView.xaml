@@ -36,8 +36,8 @@
 
     <!-- Only the list of days scrolls while the window is tall enough; in a short window (laptop at 150%) the whole tab
          scrolls instead, so the list always keeps room for several days. -->
-    <ScrollViewer x:Name="Page" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-    <DockPanel Margin="8,12,8,0" Height="{Binding ViewportHeight, ElementName=Page}" MinHeight="400">
+    <ScrollViewer x:Name="Page" Margin="8,12,8,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+    <DockPanel Height="{Binding ViewportHeight, ElementName=Page}" MinHeight="400">
         <!-- The month and who this is in the time clock system. -->
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
