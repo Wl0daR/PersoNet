@@ -50,6 +50,15 @@ internal static class LeaveEndpoints
             .RequireAuthorization(Permissions.LeaveManage)
             .WithName("CancelLeaveRequest").WithSummary("Anuluj oczekujący lub zatwierdzony urlop");
 
+        api.MapGet("/leave-calendar", async (int? year, int? month, Guid? departmentId, LeaveCalendarService calendar, TimeProvider time, CancellationToken cancellationToken) =>
+            {
+                var now = time.GetLocalNow();
+                return (await calendar.GetForCompanyAsync(year ?? now.Year, month ?? now.Month, departmentId, cancellationToken)).ToOk();
+            })
+            .WithTags("Urlopy")
+            .RequireAuthorization(Permissions.LeaveRead)
+            .WithName("GetLeaveCalendar").WithSummary("Kalendarz urlopów firmy lub działu (z działami podrzędnymi) w miesiącu");
+
         // Public holidays are no secret: the employee portal shows them too.
         api.MapGet("/holidays/{year:int}", (int year) => LeaveService.Holidays(year).ToOk())
             .WithTags("Urlopy")

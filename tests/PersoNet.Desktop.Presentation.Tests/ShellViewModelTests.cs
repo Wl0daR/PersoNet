@@ -24,7 +24,7 @@ public sealed class ShellViewModelTests
         new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), _user, TimeProvider.System);
 
     private ShellViewModel Shell(FakeOrganizationApi api, FakeSignIn? signIn = null) => new(
-        signIn ?? new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs),
+        signIn ?? new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new TeamCalendarViewModel(new FakeLeaveApi(), api, TimeProvider.System), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs),
         new RolesViewModel(_access, _dialogs), new CompanyViewModel(new FakeCompanyApi(), _dialogs), _access, _user, _theme);
 
     private LeaveViewModel LeaveScreen() =>
@@ -101,7 +101,7 @@ public sealed class ShellViewModelTests
 
         await shell.SignInAsync(Cancellation);
 
-        shell.Navigation.ShouldBe([shell.HomeItem, shell.LeaveItem]);
+        shell.Navigation.ShouldBe([shell.HomeItem, shell.LeaveItem, shell.CalendarItem]);
         shell.Home.CanSeeEmployees.ShouldBeFalse();
         shell.Home.CanAddLeave.ShouldBeTrue();
         shell.Navigate(shell.RolesItem);
@@ -111,7 +111,7 @@ public sealed class ShellViewModelTests
         _access.Permissions.AddRange(UserAccessFor.Everything);
         await shell.SignInAsync(Cancellation);
 
-        shell.Navigation.ShouldBe([shell.HomeItem, shell.EmployeesItem, shell.LeaveItem, shell.DepartmentsItem, shell.PositionsItem, shell.RolesItem, shell.CompanyItem]);
+        shell.Navigation.ShouldBe([shell.HomeItem, shell.EmployeesItem, shell.LeaveItem, shell.CalendarItem, shell.DepartmentsItem, shell.PositionsItem, shell.RolesItem, shell.CompanyItem]);
     }
 
     private sealed class FakeSignIn : ISignInService

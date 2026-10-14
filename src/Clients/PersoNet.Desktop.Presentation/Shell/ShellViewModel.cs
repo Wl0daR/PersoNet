@@ -28,6 +28,7 @@ public sealed partial class ShellViewModel : ObservableObject
         HomeViewModel home,
         EmployeesViewModel employees,
         LeaveViewModel leave,
+        TeamCalendarViewModel calendar,
         DepartmentsViewModel departments,
         PositionsViewModel positions,
         RolesViewModel roles,
@@ -43,6 +44,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Home = home;
         Employees = employees;
         Leave = leave;
+        Calendar = calendar;
         Departments = departments;
         Positions = positions;
         Roles = roles;
@@ -51,6 +53,7 @@ public sealed partial class ShellViewModel : ObservableObject
         HomeItem = new NavigationItem("Start", "\uE80F", home);
         EmployeesItem = new NavigationItem("Pracownicy", "\uE716", employees);
         LeaveItem = new NavigationItem("Urlopy", "\uE787", leave);
+        CalendarItem = new NavigationItem("Kalendarz urlopów", "\uE8C0", calendar);
         DepartmentsItem = new NavigationItem("Działy", "\uE8B7", departments);
         PositionsItem = new NavigationItem("Stanowiska", "\uE821", positions);
         RolesItem = new NavigationItem("Role", "\uE8D7", roles);
@@ -115,6 +118,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public LeaveViewModel Leave { get; }
 
+    public TeamCalendarViewModel Calendar { get; }
+
     public DepartmentsViewModel Departments { get; }
 
     public PositionsViewModel Positions { get; }
@@ -128,6 +133,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public NavigationItem EmployeesItem { get; }
 
     public NavigationItem LeaveItem { get; }
+
+    public NavigationItem CalendarItem { get; }
 
     public NavigationItem DepartmentsItem { get; }
 
@@ -255,6 +262,7 @@ public sealed partial class ShellViewModel : ObservableObject
             (HomeItem, true),
             (EmployeesItem, _user.Can(UserAccess.EmployeesRead)),
             (LeaveItem, _user.Can(UserAccess.LeaveRead)),
+            (CalendarItem, _user.Can(UserAccess.LeaveRead)),
             (DepartmentsItem, _user.Can(UserAccess.OrganizationManage)),
             (PositionsItem, _user.Can(UserAccess.OrganizationManage)),
             (RolesItem, _user.Can(UserAccess.RolesManage)),
@@ -285,6 +293,7 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         EmployeesViewModel employees => employees.LoadAsync(cancellationToken),
         LeaveViewModel leave => leave.LoadAsync(cancellationToken),
+        TeamCalendarViewModel calendar => calendar.LoadAsync(cancellationToken),
         DepartmentsViewModel departments => departments.LoadAsync(cancellationToken),
         PositionsViewModel positions => positions.LoadAsync(cancellationToken),
         RolesViewModel roles => roles.LoadAsync(cancellationToken),

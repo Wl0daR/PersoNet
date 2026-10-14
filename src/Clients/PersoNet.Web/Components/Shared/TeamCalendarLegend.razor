@@ -1,0 +1,18 @@
+@* What the marks of the leave calendar mean: a letter per kind of leave, filled when approved, outlined while waiting. *@
+<div class="calendar-legend" aria-label="Legenda">
+    @foreach (var (kind, name) in LeaveTexts.Kinds)
+    {
+        <span class="legend-item">
+            <span class="leave-mark is-approved" aria-hidden="true">@LeaveCalendarMonth.Mark(kind)</span>
+            @name
+        </span>
+    }
+    <span class="legend-item">
+        <span class="leave-mark is-pending" aria-hidden="true">W</span>
+        Czeka na decyzję
+    </span>
+    <span class="legend-item">
+        <span class="legend-day-off" aria-hidden="true"></span>
+        Weekend lub święto
+    </span>
+</div>

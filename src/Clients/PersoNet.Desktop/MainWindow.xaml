@@ -27,6 +27,9 @@
         <DataTemplate DataType="{x:Type leave:LeaveViewModel}">
             <views:LeaveView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type leave:TeamCalendarViewModel}">
+            <views:TeamCalendarView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type org:DepartmentsViewModel}">
             <views:DepartmentsView />
         </DataTemplate>
@@ -41,15 +44,16 @@
         </DataTemplate>
     </Window.Resources>
 
-    <!-- Ctrl+1…7 switch screens, in the order of the side menu (screens the user may not open are skipped). -->
+    <!-- Ctrl+1…8 switch screens, in the order of the side menu (screens the user may not open are skipped). -->
     <Window.InputBindings>
         <KeyBinding Key="D1" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding HomeItem}" />
         <KeyBinding Key="D2" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding EmployeesItem}" />
         <KeyBinding Key="D3" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding LeaveItem}" />
-        <KeyBinding Key="D4" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding DepartmentsItem}" />
-        <KeyBinding Key="D5" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding PositionsItem}" />
-        <KeyBinding Key="D6" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding RolesItem}" />
-        <KeyBinding Key="D7" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding CompanyItem}" />
+        <KeyBinding Key="D4" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding CalendarItem}" />
+        <KeyBinding Key="D5" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding DepartmentsItem}" />
+        <KeyBinding Key="D6" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding PositionsItem}" />
+        <KeyBinding Key="D7" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding RolesItem}" />
+        <KeyBinding Key="D8" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding CompanyItem}" />
     </Window.InputBindings>
 
     <Grid>

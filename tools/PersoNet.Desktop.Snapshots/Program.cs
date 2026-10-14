@@ -71,7 +71,7 @@ namespace PersoNet.Desktop.Snapshots
             var positions = new PositionsViewModel(api, dialogs);
             var roles = new RolesViewModel(api, dialogs);
             var company = new CompanyViewModel(api, dialogs);
-            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, user, time), employees, leave, departments, positions, roles, company, api, user, api);
+            var shell = new ShellViewModel(api, new HomeViewModel(api, api, api, user, time), employees, leave, new TeamCalendarViewModel(api, api, time), departments, positions, roles, company, api, user, api);
 
             var window = new MainWindow(shell)
             {

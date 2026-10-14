@@ -414,3 +414,77 @@ h1:focus { outline: none; }
     .blazor-error-boundary::after {
         content: "Wystąpił błąd w tej części strony."
     }
+
+/* Team leave calendar: people in rows, days of the month in columns. The grid scrolls sideways inside its frame
+   (never the page) and the names stay in view; a letter marks the kind of leave, so colour is never the only cue. */
+.calendar-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 12px; }
+.month-label { min-width: 9.5rem; text-align: center; font-weight: 600; }
+
+.calendar-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 12px; font-size: .875rem; color: var(--color-muted-foreground); }
+.legend-item { display: inline-flex; align-items: center; gap: 8px; }
+.legend-day-off { display: inline-block; width: 22px; height: 22px; border-radius: 4px; background: var(--color-neutral-surface); border: 1px solid var(--color-border); }
+
+.calendar-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+.calendar-wrap:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+
+.leave-calendar { border-collapse: separate; border-spacing: 0; font-size: .875rem; }
+.leave-calendar th, .leave-calendar td { border-bottom: 1px solid var(--color-border); }
+.leave-calendar tbody tr:last-child > * { border-bottom: 0; }
+.leave-calendar .person-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 13rem;
+    max-width: 16rem;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 400;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+}
+.leave-calendar thead .person-col { color: var(--color-muted-foreground); font-weight: 600; vertical-align: bottom; }
+.leave-calendar .day-col { min-width: 34px; padding: 4px 2px; text-align: center; vertical-align: middle; }
+.leave-calendar thead .day-col { font-weight: 600; color: var(--color-foreground); }
+.leave-calendar .day-number { display: block; font-variant-numeric: tabular-nums; }
+.leave-calendar .day-name { display: block; font-size: .75rem; font-weight: 400; color: var(--color-muted-foreground); }
+.leave-calendar .is-day-off { background: var(--color-neutral-surface); }
+.leave-calendar thead .is-today { box-shadow: inset 0 -3px 0 var(--color-primary); color: var(--color-primary); }
+.leave-calendar tbody .is-today { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-primary) 35%, transparent), inset -2px 0 0 color-mix(in srgb, var(--color-primary) 35%, transparent); }
+
+/* One letter per day of leave: filled when approved, dashed outline while it waits for a decision. */
+.leave-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.leave-mark.is-approved { background: var(--color-primary); color: var(--color-on-primary); }
+.leave-mark.is-pending { border: 2px dashed var(--color-warning); color: var(--color-warning); background: var(--color-warning-surface); }
+
+.absence-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.absence-list li {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+.absence-list li > div { flex: 1 1 14rem; min-width: 0; }
+
+@media (max-width: 720px) {
+    .leave-calendar .person-col { min-width: 9rem; max-width: 10rem; }
+}

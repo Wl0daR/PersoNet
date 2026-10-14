@@ -21,6 +21,9 @@ public interface IPortalApi
     /// <summary>The people who report to the signed-in manager, with their annual leave in <paramref name="year"/>.</summary>
     Task<IReadOnlyList<TeamMemberResponse>> ListTeamAsync(int year, CancellationToken cancellationToken);
 
+    /// <summary>Who of the signed-in person and their team is on leave in the month.</summary>
+    Task<LeaveCalendarResponse> GetTeamCalendarAsync(int year, int month, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<LeaveRequestResponse>> ListTeamRequestsAsync(LeaveState? state, int? year, CancellationToken cancellationToken);
 
     Task<LeaveRequestResponse> ApproveAsync(Guid id, string? note, CancellationToken cancellationToken);

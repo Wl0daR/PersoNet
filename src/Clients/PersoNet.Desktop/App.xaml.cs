@@ -54,6 +54,7 @@ public partial class App : Application
         builder.Services.AddSingleton<PositionsViewModel>();
         builder.Services.AddSingleton<RolesViewModel>();
         builder.Services.AddSingleton<CompanyViewModel>();
+        builder.Services.AddSingleton<TeamCalendarViewModel>();
         builder.Services.AddSingleton<UserAccess>();
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();

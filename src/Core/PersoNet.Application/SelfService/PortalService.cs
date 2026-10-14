@@ -15,7 +15,7 @@ namespace PersoNet.Application.SelfService;
 /// who report to them. The person is the current employee whose work e-mail is the account's e-mail; every rule of
 /// leave itself stays in <see cref="LeaveService"/>.
 /// </summary>
-public sealed class PortalService(IAppDbContext db, ICurrentUser user, LeaveService leave, CompanyService company, TimeProvider time)
+public sealed class PortalService(IAppDbContext db, ICurrentUser user, LeaveService leave, LeaveCalendarService calendar, CompanyService company, TimeProvider time)
 {
     public async Task<Result<MyProfileResponse>> GetProfileAsync(CancellationToken cancellationToken)
     {
@@ -155,6 +155,28 @@ public sealed class PortalService(IAppDbContext db, ICurrentUser user, LeaveServ
         }
 
         return team;
+    }
+
+    /// <summary>
+    /// The month of the signed-in person and the people who report to them (also those who left or joined during it),
+    /// so a manager sees who is away when planning.
+    /// </summary>
+    public async Task<Result<LeaveCalendarResponse>> GetTeamCalendarAsync(int year, int month, CancellationToken cancellationToken)
+    {
+        var me = await FindMeAsync(cancellationToken);
+        if (!me.IsSuccess)
+        {
+            return me.Error!;
+        }
+
+        var managerId = me.Value.Id;
+        var people = await db.Employees.AsNoTracking()
+            .Where(employee => employee.ManagerId == managerId)
+            .Select(employee => employee.Id)
+            .ToListAsync(cancellationToken);
+        people.Add(managerId);
+
+        return await calendar.GetForEmployeesAsync(people, year, month, cancellationToken);
     }
 
     /// <summary>Requests of the employees who report to the signed-in manager, waiting ones first.</summary>

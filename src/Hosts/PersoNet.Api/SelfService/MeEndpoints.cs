@@ -44,6 +44,13 @@ internal static class MeEndpoints
                 (await portal.ListTeamAsync(year ?? time.GetLocalNow().Year, cancellationToken)).ToOk())
             .WithName("ListMyTeam").WithSummary("Mój zespół: osoby, którym jestem przełożonym, z ich urlopem w roku");
 
+        me.MapGet("/team/calendar", async (int? year, int? month, PortalService portal, TimeProvider time, CancellationToken cancellationToken) =>
+            {
+                var now = time.GetLocalNow();
+                return (await portal.GetTeamCalendarAsync(year ?? now.Year, month ?? now.Month, cancellationToken)).ToOk();
+            })
+            .WithName("GetMyTeamCalendar").WithSummary("Kalendarz zespołu: kto z moich ludzi (i ja) jest na urlopie w miesiącu");
+
         var team = me.MapGroup("/team/leave-requests");
 
         team.MapGet("/", async (LeaveState? state, int? year, PortalService portal, CancellationToken cancellationToken) =>

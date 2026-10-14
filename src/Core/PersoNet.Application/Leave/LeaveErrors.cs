@@ -66,6 +66,12 @@ internal static class LeaveErrors
     public static readonly AppError EntitlementInvalid =
         AppError.Validation("leave.entitlement_invalid", "Liczba dni musi być od 0 do 60.");
 
+    public static readonly AppError MonthOutOfRange =
+        AppError.Validation("leave.month_out_of_range", "Miesiąc musi być liczbą od 1 do 12.");
+
+    public static readonly AppError DepartmentNotFound =
+        AppError.NotFound("department.not_found", "Nie znaleziono działu.");
+
     public static readonly AppError YearOutOfRange =
         AppError.Validation("leave.year_out_of_range", "Rok musi być z zakresu 2000–2100.");
 

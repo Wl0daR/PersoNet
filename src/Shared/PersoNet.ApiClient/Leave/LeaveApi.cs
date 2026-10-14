@@ -44,6 +44,14 @@ internal sealed class LeaveApi(HttpClient http) : ILeaveApi
 
     public Task<LeaveRequestResponse> CancelAsync(Guid id, string? note, CancellationToken cancellationToken) => DecideAsync(id, "cancel", note, cancellationToken);
 
+    public async Task<LeaveCalendarResponse> GetCalendarAsync(int year, int month, Guid? departmentId, CancellationToken cancellationToken)
+    {
+        var query = string.Create(CultureInfo.InvariantCulture, $"api/v1/leave-calendar?year={year}&month={month}")
+            + (departmentId is { } id ? "&departmentId=" + id : string.Empty);
+        using var response = await http.GetAsync(new Uri(query, UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<LeaveCalendarResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<HolidayResponse>> GetHolidaysAsync(int year, CancellationToken cancellationToken)
     {
         using var response = await http.GetAsync(new Uri("api/v1/holidays/" + year.ToString(CultureInfo.InvariantCulture), UriKind.Relative), cancellationToken).ConfigureAwait(false);

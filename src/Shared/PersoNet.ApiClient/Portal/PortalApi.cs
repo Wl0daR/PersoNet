@@ -48,6 +48,13 @@ internal sealed class PortalApi(HttpClient http) : IPortalApi
         return await ApiResponses.ReadAsync<List<TeamMemberResponse>>(response, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<LeaveCalendarResponse> GetTeamCalendarAsync(int year, int month, CancellationToken cancellationToken)
+    {
+        var query = string.Create(CultureInfo.InvariantCulture, $"{Me}/team/calendar?year={year}&month={month}");
+        using var response = await http.GetAsync(new Uri(query, UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<LeaveCalendarResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<LeaveRequestResponse>> ListTeamRequestsAsync(LeaveState? state, int? year, CancellationToken cancellationToken)
     {
         var parameters = new List<string>();
