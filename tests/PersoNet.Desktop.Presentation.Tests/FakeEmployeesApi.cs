@@ -2,6 +2,7 @@ using System.Net;
 using PersoNet.ApiClient;
 using PersoNet.ApiClient.Employees;
 using PersoNet.Contracts.Account;
+using PersoNet.Contracts.Audit;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 
@@ -130,6 +131,17 @@ internal sealed class FakeEmployeesApi : IEmployeesApi
     {
         Accounts[employeeId] = blocked ? AccountState.Blocked : AccountState.Active;
         return Task.FromResult(AccountOf(employeeId));
+    }
+
+    /// <summary>History entries by employee id, newest first.</summary>
+    public Dictionary<Guid, List<HistoryEntryResponse>> History { get; } = [];
+
+    public int HistoryReads { get; private set; }
+
+    public Task<IReadOnlyList<HistoryEntryResponse>> GetHistoryAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        HistoryReads++;
+        return Task.FromResult<IReadOnlyList<HistoryEntryResponse>>(History.GetValueOrDefault(employeeId) ?? []);
     }
 
     private EmployeeAccountResponse AccountOf(Guid employeeId) =>

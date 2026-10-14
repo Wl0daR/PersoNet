@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using PersoNet.Application.Abstractions;
+using PersoNet.Infrastructure.Audit;
 using PersoNet.Infrastructure.Persistence;
 using PersoNet.Infrastructure.Tenancy;
 
@@ -23,6 +24,7 @@ public static class DependencyInjection
                 $"Connection string '{DbContextOptionsSetup.ConnectionStringName}' is missing. See README for local setup.");
 
         services.TryAddScoped<ITenantContext, NoTenantContext>();
+        services.TryAddScoped<IAuditActor, SystemAuditActor>();
 
         services.AddDbContext<PersoNetDbContext>(options => options.UsePersoNetDatabase(connectionString));
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<PersoNetDbContext>());

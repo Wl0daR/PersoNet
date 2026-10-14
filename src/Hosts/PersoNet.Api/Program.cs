@@ -1,5 +1,6 @@
 using OpenIddict.Validation.AspNetCore;
 using PersoNet.Api.Account;
+using PersoNet.Api.Audit;
 using PersoNet.Api.Development;
 using PersoNet.Api.Employees;
 using PersoNet.Api.Leave;
@@ -23,6 +24,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+builder.Services.AddScoped<IAuditActor, HttpAuditActor>();
 
 // Access tokens come from PersoNet.Identity. Locally its address comes from Aspire service discovery;
 // on IIS it is set in "Identity:Authority".
@@ -90,6 +92,7 @@ api.MapEmployeeEndpoints();
 api.MapEmployeeAccountEndpoints();
 api.MapLeaveEndpoints();
 api.MapMeEndpoints();
+api.MapAuditEndpoints();
 
 await app.RunAsync().ConfigureAwait(false);
 

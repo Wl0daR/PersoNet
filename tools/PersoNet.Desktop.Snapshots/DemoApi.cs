@@ -2,6 +2,7 @@ using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.Contracts.Account;
+using PersoNet.Contracts.Audit;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Leave;
@@ -141,6 +142,24 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, ISig
 
     public Task<EmployeeAccountResponse> GetAccountAsync(Guid employeeId, CancellationToken cancellationToken) =>
         Task.FromResult(new EmployeeAccountResponse(employeeId, _employees.Single(employee => employee.Id == employeeId).Email, AccountState.Active));
+
+    public Task<IReadOnlyList<HistoryEntryResponse>> GetHistoryAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        var at = new DateTimeOffset(2026, 10, 14, 9, 30, 0, TimeSpan.FromHours(2));
+        return Task.FromResult<IReadOnlyList<HistoryEntryResponse>>(
+        [
+            new(Guid.NewGuid(), at.AddHours(6), "Anna Kowalska", "Konto w portalu", "Utworzono konto w portalu i link do ustawienia hasła", HistoryAction.Created,
+                [new("Stan konta", "brak konta", "czeka na ustawienie hasła")]),
+            new(Guid.NewGuid(), at.AddHours(5), "Marek Wiśniewski", "Wniosek urlopowy", "Zatwierdzono wniosek: urlop wypoczynkowy, 3 listopada 2026 – 7 listopada 2026", HistoryAction.Changed,
+                [new("Stan", "czeka na decyzję", "zatwierdzony")]),
+            new(Guid.NewGuid(), at.AddHours(1), "Jan Nowak", "Wniosek urlopowy", "Złożono wniosek: urlop wypoczynkowy, 3 listopada 2026 – 7 listopada 2026", HistoryAction.Created,
+                [new("Rodzaj", null, "urlop wypoczynkowy"), new("Od", null, "3 listopada 2026"), new("Do", null, "7 listopada 2026"), new("Dni robocze", null, "5"), new("Godziny", null, "40"), new("Stan", null, "czeka na decyzję")]),
+            new(Guid.NewGuid(), at, "Anna Kowalska", "Kartoteka", "Zmieniono dane", HistoryAction.Changed,
+                [new("Telefon", "600 100 200", "600 100 300"), new("Stanowisko", "Księgowa", "Starsza księgowa")]),
+            new(Guid.NewGuid(), at.AddDays(-30), "Anna Kowalska", "Umowa", "Dodano umowę: umowa o pracę na czas nieokreślony od 1 października 2026", HistoryAction.Created,
+                [new("Rodzaj umowy", null, "umowa o pracę na czas nieokreślony"), new("Od", null, "1 października 2026"), new("Wymiar etatu", null, "1")]),
+        ]);
+    }
 
     public Task<AccountLinkResponse> CreateAccountLinkAsync(Guid employeeId, CancellationToken cancellationToken) => throw new NotSupportedException();
 
