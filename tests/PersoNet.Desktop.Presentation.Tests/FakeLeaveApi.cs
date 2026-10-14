@@ -53,6 +53,29 @@ internal sealed class FakeLeaveApi : ILeaveApi
 
     public Task<LeaveRequestResponse> CancelAsync(Guid id, string? note, CancellationToken cancellationToken) => Decide(id, LeaveState.Cancelled, note);
 
+    /// <summary>People the calendar shows; their leave comes from <see cref="Requests"/>.</summary>
+    public List<(Guid Id, string FirstName, string LastName, Guid? DepartmentId)> People { get; } = [];
+
+    /// <summary>The department asked for in the last calendar call.</summary>
+    public Guid? CalendarDepartment { get; private set; }
+
+    public Task<LeaveCalendarResponse> GetCalendarAsync(int year, int month, Guid? departmentId, CancellationToken cancellationToken)
+    {
+        CalendarDepartment = departmentId;
+        var first = new DateOnly(year, month, 1);
+        var last = first.AddMonths(1).AddDays(-1);
+        var people = People
+            .Where(person => departmentId is null || person.DepartmentId == departmentId)
+            .Select(person => new LeaveCalendarPerson(person.Id, person.FirstName, person.LastName, null, null,
+                [.. Requests
+                    .Where(request => request.EmployeeId == person.Id && request.StartDate <= last && request.EndDate >= first
+                        && request.State is LeaveState.Approved or LeaveState.Pending)
+                    .Select(request => new LeaveCalendarEntry(request.Id, request.Kind, request.StartDate, request.EndDate, request.State, request.IsHourly, request.Hours))]))
+            .ToList();
+
+        return Task.FromResult(new LeaveCalendarResponse(year, month, [], people));
+    }
+
     public Task<IReadOnlyList<HolidayResponse>> GetHolidaysAsync(int year, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<HolidayResponse>>(
         [

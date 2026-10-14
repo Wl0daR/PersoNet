@@ -29,7 +29,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <TextBlock Text="Firma nie ma jeszcze ról. Dodasz je na ekranie Role (Ctrl+6)." Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,8,0,0"
+        <TextBlock Text="Firma nie ma jeszcze ról. Dodasz je na ekranie Role (Ctrl+7)." Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,8,0,0"
                    Visibility="{Binding HasNoRoles, Converter={StaticResource BoolToVisibility}}" />
 
         <WrapPanel Margin="0,12,0,0">

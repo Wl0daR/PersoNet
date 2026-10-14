@@ -1,0 +1,165 @@
+<UserControl x:Class="PersoNet.Desktop.Views.TeamCalendarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:leave="clr-namespace:PersoNet.Desktop.Presentation.Leave;assembly=PersoNet.Desktop.Presentation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=leave:TeamCalendarViewModel}">
+    <UserControl.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding LoadCommand}" />
+        <KeyBinding Key="PageUp" Command="{Binding PreviousMonthCommand}" />
+        <KeyBinding Key="PageDown" Command="{Binding NextMonthCommand}" />
+    </UserControl.InputBindings>
+
+    <UserControl.Resources>
+        <!-- Column header: the day of the month over its short weekday name; days off are shaded. -->
+        <DataTemplate x:Key="DayHeader" DataType="{x:Type leave:TeamCalendarDay}">
+            <StackPanel HorizontalAlignment="Center" ToolTip="{Binding ToolTip}">
+                <TextBlock x:Name="Number" Text="{Binding Day}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding DayName}" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsToday}" Value="True">
+                    <Setter TargetName="Number" Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                    <Setter TargetName="Number" Property="TextDecorations" Value="Underline" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- One day of a person: a letter for the kind of leave, filled when approved, dashed while it waits. -->
+        <DataTemplate x:Key="DayCell" DataType="{x:Type leave:TeamCalendarCell}">
+            <Border x:Name="Day" MinHeight="40" Background="Transparent" ToolTip="{Binding Description}"
+                    AutomationProperties.Name="{Binding Description}">
+                <Grid x:Name="Mark" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                    <Rectangle x:Name="Fill" RadiusX="4" RadiusY="4" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                    <TextBlock x:Name="Letter" Text="{Binding Mark}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsDayOff}" Value="True">
+                    <Setter TargetName="Day" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsApproved}" Value="True">
+                    <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsPending}" Value="True">
+                    <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="Fill" Property="Fill" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+                    <Setter TargetName="Fill" Property="Stroke" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                    <Setter TargetName="Fill" Property="StrokeThickness" Value="2" />
+                    <Setter TargetName="Fill" Property="StrokeDashArray" Value="2 1.5" />
+                    <Setter TargetName="Letter" Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Page header: what this screen is. -->
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+            <TextBlock Text="Kalendarz urlopów" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="Kto i kiedy jest na urlopie w miesiącu, w całej firmie albo w dziale. Pomaga planować zastępstwa i decyzje o wnioskach."
+                       Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+        </StackPanel>
+
+        <!-- The month and the department to show. -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Button DockPanel.Dock="Right" Command="{Binding LoadCommand}" Padding="8" Margin="8,0,0,0" VerticalAlignment="Top"
+                    ToolTip="Odśwież (F5)" AutomationProperties.Name="Odśwież">
+                <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" />
+            </Button>
+            <WrapPanel Style="{StaticResource Toolbar}">
+                <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                    <Button Command="{Binding PreviousMonthCommand}" Padding="8" ToolTip="Poprzedni miesiąc (Page Up)" AutomationProperties.Name="Poprzedni miesiąc">
+                        <TextBlock Text="&#xE76B;" Style="{StaticResource Icon}" FontSize="14" />
+                    </Button>
+                    <TextBlock Text="{Binding MonthTitle}" FontSize="16" FontWeight="SemiBold" MinWidth="150" TextAlignment="Center" VerticalAlignment="Center"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <Button Command="{Binding NextMonthCommand}" Padding="8" ToolTip="Następny miesiąc (Page Down)" AutomationProperties.Name="Następny miesiąc">
+                        <TextBlock Text="&#xE76C;" Style="{StaticResource Icon}" FontSize="14" />
+                    </Button>
+                    <Button Command="{Binding CurrentMonthCommand}" Content="Bieżący miesiąc" Padding="12,6" Margin="8,0,0,0"
+                            Visibility="{Binding IsCurrentMonth, Converter={StaticResource CollapsedWhenTrue}}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Label Content="_Dział" Target="{Binding ElementName=DepartmentBox}" Padding="0" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <ComboBox x:Name="DepartmentBox" ItemsSource="{Binding Departments}" SelectedItem="{Binding Department}"
+                              DisplayMemberPath="Name" MinWidth="220" MaxWidth="320" />
+                </StackPanel>
+            </WrapPanel>
+        </DockPanel>
+
+        <!-- What the marks mean; colour only reinforces the letters. -->
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Text="{Binding Summary}" Style="{StaticResource SecondaryText}" Margin="0,0,24,6" VerticalAlignment="Center" />
+            <ItemsControl ItemsSource="{x:Static leave:TeamCalendarViewModel.Legend}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type leave:LeaveMarkLegend}">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                            <Border Width="20" Height="20" CornerRadius="4" Background="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,6,0">
+                                <TextBlock Text="{Binding Mark}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Border>
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource SecondaryText}" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <Grid Width="20" Height="20" Margin="0,0,6,0">
+                    <Rectangle RadiusX="4" RadiusY="4" Fill="{DynamicResource SystemFillColorCautionBackgroundBrush}" Stroke="{DynamicResource SystemFillColorCautionBrush}"
+                               StrokeThickness="2" StrokeDashArray="2 1.5" />
+                    <TextBlock Text="W" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Text="Czeka na decyzję" Style="{StaticResource SecondaryText}" FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
+        </WrapPanel>
+
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" Margin="0,8,0,0" />
+
+        <Border Style="{StaticResource Card}" Padding="0">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="16,8,16,0">
+                    <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie" />
+                </Border>
+
+                <Grid>
+                    <!-- Names stay in place while the days scroll sideways; a column per day is added in code. -->
+                    <DataGrid x:Name="Grid" ItemsSource="{Binding Rows}" AutomationProperties.Name="Kalendarz urlopów"
+                              AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column"
+                              FrozenColumnCount="1" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                              BorderThickness="0" Background="Transparent" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False"
+                              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MinRowHeight="44">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Pracownik" Width="220" MinWidth="160">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type leave:TeamCalendarRow}">
+                                        <StackPanel VerticalAlignment="Center" Margin="8,4">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                            <TextBlock Text="{Binding Details}" Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="NoWrap"
+                                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding Details}"
+                                                       Visibility="{Binding Details, Converter={StaticResource CollapsedWhenEmpty}}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="&#xE787;" Style="{StaticResource Icon}" FontSize="40" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <TextBlock Text="Nikt tu nie pracuje w tym miesiącu" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" Margin="0,12,0,4" />
+                        <TextBlock Text="Wybierz inny dział albo „Cała firma”." Style="{StaticResource SecondaryText}" TextAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

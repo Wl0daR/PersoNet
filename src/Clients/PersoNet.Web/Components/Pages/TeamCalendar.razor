@@ -1,0 +1,194 @@
+@page "/kalendarz-zespolu"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IPortalApi Portal
+@inject MyProfile Me
+@inject TimeProvider Time
+
+<PageTitle>Kalendarz zespołu – PersoNet</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Kalendarz zespołu</h1>
+        <p class="lead-muted mb-0">Kto z Twojego zespołu i kiedy jest na urlopie. Pomaga zaplanować pracę i decyzje o wnioskach.</p>
+    </div>
+    <a class="btn btn-quiet" href="zespol">Wnioski zespołu</a>
+</div>
+
+@if (_problem is not null)
+{
+    <div class="alert-box is-error" role="alert">@_problem</div>
+}
+else if (_profile is { IsManager: false })
+{
+    <div class="empty-state">
+        <p class="mb-0">W kartotece nie podlega Ci żaden pracownik. Jeśli to błąd, zgłoś to w dziale kadr.</p>
+    </div>
+}
+else if (_profile is not null)
+{
+    <div class="calendar-toolbar">
+        <div class="year-switch" role="group" aria-label="Miesiąc">
+            <button type="button" class="btn btn-quiet btn-icon" aria-label="Poprzedni miesiąc" @onclick="() => ChangeMonthAsync(-1)">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
+            </button>
+            <span class="month-label" aria-live="polite">@(_month?.Title ?? MonthTitle)</span>
+            <button type="button" class="btn btn-quiet btn-icon" aria-label="Następny miesiąc" @onclick="() => ChangeMonthAsync(1)">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
+            </button>
+        </div>
+        @if (!IsCurrentMonth)
+        {
+            <button type="button" class="btn btn-quiet" @onclick="GoToTodayAsync">Bieżący miesiąc</button>
+        }
+    </div>
+
+    @if (_loading || _month is null)
+    {
+        <LoadingRow />
+    }
+    else
+    {
+        @if (IsCurrentMonth)
+        {
+            <p class="team-summary" role="status">Dziś na urlopie: @_month.AwayOn(Today) z @_month.Rows.Count @LeaveTexts.Plural(_month.Rows.Count, "osoby", "osób", "osób")</p>
+        }
+
+        <TeamCalendarLegend />
+
+        <div class="calendar-wrap" tabindex="0" aria-label="Kalendarz urlopów, przewiń w bok, aby zobaczyć cały miesiąc">
+            <table class="leave-calendar">
+                <caption class="visually-hidden">Urlopy zespołu, @_month.Title</caption>
+                <thead>
+                    <tr>
+                        <th scope="col" class="person-col">Pracownik</th>
+                        @foreach (var day in _month.Days)
+                        {
+                            <th scope="col" class="@DayClass(day)" title="@day.Holiday">
+                                <span class="day-number">@day.Date.Day</span>
+                                <span class="day-name">@day.DayName</span>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _month.Rows)
+                    {
+                        <tr>
+                            <th scope="row" class="person-col">
+                                <span class="cell-strong">@row.Person.LastName @row.Person.FirstName</span>
+                                @if (row.Person.PositionName is { } position)
+                                {
+                                    <span class="cell-sub">@position</span>
+                                }
+                            </th>
+                            @foreach (var cell in row.Cells)
+                            {
+                                <td class="@DayClass(cell.Day)" title="@cell.Description">
+                                    @if (cell.Entry is { } entry)
+                                    {
+                                        <span class="leave-mark @(entry.State == LeaveState.Pending ? "is-pending" : "is-approved")">@LeaveCalendarMonth.Mark(entry.Kind)</span>
+                                    }
+                                    <span class="visually-hidden">@cell.Description</span>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="section-title">Urlopy w tym miesiącu</h2>
+        @if (_month.Absences.Count == 0)
+        {
+            <p class="text-muted-foreground">W tym miesiącu nikt z zespołu nie ma zaplanowanego urlopu.</p>
+        }
+        else
+        {
+            <ul class="absence-list">
+                @foreach (var (person, entry) in _month.Absences)
+                {
+                    <li>
+                        <span class="leave-mark @(entry.State == LeaveState.Pending ? "is-pending" : "is-approved")" aria-hidden="true">@LeaveCalendarMonth.Mark(entry.Kind)</span>
+                        <div>
+                            <span class="cell-strong">@person.LastName @person.FirstName</span>
+                            <span class="cell-sub">
+                                @LeaveTexts.KindName(entry.Kind), @LeaveTexts.Period(entry.StartDate, entry.EndDate)@(entry.IsHourly ? $" ({LeaveTexts.Hours(entry.Hours)})" : string.Empty)
+                            </span>
+                        </div>
+                        @if (entry.State == LeaveState.Pending)
+                        {
+                            <span class="badge-state is-pending">Czeka na decyzję</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    }
+}
+else
+{
+    <LoadingRow />
+}
+
+@code {
+    private MyProfileResult? _profile;
+    private LeaveCalendarMonth? _month;
+    private DateOnly _shown;
+    private bool _loading = true;
+    private string? _problem;
+
+    private DateOnly Today => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    private bool IsCurrentMonth => _shown.Year == Today.Year && _shown.Month == Today.Month;
+
+    private string MonthTitle => _shown.ToString("MMMM yyyy", LeaveTexts.Polish);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _shown = new DateOnly(Today.Year, Today.Month, 1);
+        _profile = await Me.GetAsync(CancellationToken.None);
+        if (_profile.Profile is null)
+        {
+            _problem = _profile.Problem;
+            return;
+        }
+
+        if (_profile.IsManager)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var calendar = await Portal.GetTeamCalendarAsync(_shown.Year, _shown.Month, CancellationToken.None);
+            _month = new LeaveCalendarMonth(calendar, Today);
+        }
+        catch (Exception exception) when (exception is ApiClient.ApiException or HttpRequestException)
+        {
+            _problem = Messages.Of(exception);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task ChangeMonthAsync(int step)
+    {
+        _shown = _shown.AddMonths(step);
+        return LoadAsync();
+    }
+
+    private Task GoToTodayAsync()
+    {
+        _shown = new DateOnly(Today.Year, Today.Month, 1);
+        return LoadAsync();
+    }
+
+    private static string DayClass(CalendarDay day) =>
+        string.Join(' ', new[] { "day-col", day.IsDayOff ? "is-day-off" : null, day.IsToday ? "is-today" : null }.Where(name => name is not null));
+}

@@ -19,5 +19,8 @@ public interface ILeaveApi
 
     Task<IReadOnlyList<HolidayResponse>> GetHolidaysAsync(int year, CancellationToken cancellationToken);
 
+    /// <summary>Who is on leave in the month: the whole company, or a department with the departments under it.</summary>
+    Task<LeaveCalendarResponse> GetCalendarAsync(int year, int month, Guid? departmentId, CancellationToken cancellationToken);
+
     Task<LeaveBalanceResponse> SetEntitlementAsync(Guid employeeId, int year, SaveLeaveEntitlementRequest request, CancellationToken cancellationToken);
 }

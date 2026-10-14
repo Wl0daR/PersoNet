@@ -147,6 +147,11 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
 
         AddLeave(kadry, LeaveKind.Annual, firstMonday, firstMonday.AddDays(4), 5, LeaveState.Approved, "Wyjazd w góry.");
         AddLeave(kadry, LeaveKind.ChildCare, firstMonday.AddDays(15), firstMonday.AddDays(15), 1, LeaveState.Pending, null, hours: 2m);
+        // Others away this month too, so the leave calendar shows overlaps.
+        AddLeave(wojcik, LeaveKind.Annual, firstMonday.AddDays(7), firstMonday.AddDays(11), 5, LeaveState.Approved, null);
+        AddLeave(lewandowska, LeaveKind.OnDemand, firstMonday.AddDays(9), firstMonday.AddDays(9), 1, LeaveState.Approved, null);
+        AddLeave(wozniak, LeaveKind.Annual, firstMonday.AddDays(14), firstMonday.AddDays(18), 5, LeaveState.Pending, null);
+        AddLeave(dabrowska, LeaveKind.Unpaid, firstMonday.AddDays(2), firstMonday.AddDays(3), 2, LeaveState.Approved, null);
         AddLeave(wozniak, LeaveKind.Occasional, new DateOnly(year, 9, 18), new DateOnly(year, 9, 18), 1, LeaveState.Approved, "Ślub brata.");
         AddLeave(wojcik, LeaveKind.ChildCare, new DateOnly(year, 10, 22), new DateOnly(year, 10, 22), 1, LeaveState.Pending, "Wizyta u lekarza z synem.", hours: 3m);
         AddLeave(wozniak, LeaveKind.ForceMajeure, new DateOnly(year, 9, 3), new DateOnly(year, 9, 3), 1, LeaveState.Approved, "Awaria ogrzewania w domu.", hours: 2.5m);
@@ -302,6 +307,48 @@ internal sealed class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAcc
 
         var total = (entitlement.Days + entitlement.CarriedOver) * 8m;
         return Task.FromResult(new LeaveBalanceResponse(employeeId, year, true, entitlement.Days, entitlement.CarriedOver, total, used, pending, total - used - pending, onDemand, 8m));
+    }
+
+    public Task<LeaveCalendarResponse> GetCalendarAsync(int year, int month, Guid? departmentId, CancellationToken cancellationToken)
+    {
+        var first = new DateOnly(year, month, 1);
+        var last = first.AddMonths(1).AddDays(-1);
+        var included = departmentId is { } root ? Subtree(root) : null;
+
+        var people = _employees
+            .Where(employee => employee.HireDate <= last && (employee.TerminationDate is null || employee.TerminationDate >= first))
+            .Where(employee => included is null || (employee.DepartmentId is { } id && included.Contains(id)))
+            .OrderBy(employee => employee.LastName).ThenBy(employee => employee.FirstName)
+            .Select(employee => new LeaveCalendarPerson(
+                employee.Id,
+                employee.FirstName,
+                employee.LastName,
+                _departments.FirstOrDefault(department => department.Id == employee.DepartmentId)?.Name,
+                _positions.FirstOrDefault(position => position.Id == employee.PositionId)?.Name,
+                [.. _leave
+                    .Where(request => request.EmployeeId == employee.Id && request.StartDate <= last && request.EndDate >= first
+                        && request.State is LeaveState.Approved or LeaveState.Pending)
+                    .OrderBy(request => request.StartDate)
+                    .Select(request => new LeaveCalendarEntry(request.Id, request.Kind, request.StartDate, request.EndDate, request.State, request.IsHourly, request.Hours))]))
+            .ToList();
+        var holidays = GetHolidaysAsync(year, cancellationToken).Result.Where(holiday => holiday.Date.Month == month).ToList();
+
+        return Task.FromResult(new LeaveCalendarResponse(year, month, holidays, people));
+    }
+
+    private HashSet<Guid> Subtree(Guid root)
+    {
+        var included = new HashSet<Guid> { root };
+        for (var added = true; added;)
+        {
+            added = false;
+            foreach (var department in _departments.Where(d => d.ParentId is { } parent && included.Contains(parent) && !included.Contains(d.Id)))
+            {
+                added = included.Add(department.Id) || added;
+            }
+        }
+
+        return included;
     }
 
     public Task<LeaveBalanceResponse> SetEntitlementAsync(Guid employeeId, int year, SaveLeaveEntitlementRequest request, CancellationToken cancellationToken) =>
