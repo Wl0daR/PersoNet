@@ -38,7 +38,10 @@ public sealed class LoginModel(SignInManager<ApplicationUser> signInManager, ILo
         if (result.IsLockedOut)
         {
             LoginLog.LockedOut(logger);
-            ErrorMessage = "Konto zostało czasowo zablokowane po kilku nieudanych próbach. Spróbuj ponownie później.";
+            var user = await signInManager.UserManager.FindByEmailAsync(Input.Email);
+            ErrorMessage = user?.LockoutEnd == DateTimeOffset.MaxValue
+                ? "Konto zostało zablokowane przez dział kadr. Skontaktuj się z nim, jeśli to pomyłka."
+                : "Konto zostało czasowo zablokowane po kilku nieudanych próbach. Spróbuj ponownie później.";
         }
         else
         {

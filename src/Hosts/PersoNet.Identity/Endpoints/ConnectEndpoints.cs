@@ -37,6 +37,13 @@ internal static class ConnectEndpoints
         var cookie = await context.AuthenticateAsync(IdentityConstants.ApplicationScheme);
         var user = cookie.Succeeded ? await users.GetUserAsync(cookie.Principal) : null;
 
+        // An account HR blocked loses its sign-in at once, not when the cookie expires.
+        if (user is not null && await users.IsLockedOutAsync(user))
+        {
+            await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+            user = null;
+        }
+
         // Not signed in (or the account is gone): show the login page, then come back here with the same request.
         if (user is null || request.HasPromptValue(PromptValues.Login))
         {

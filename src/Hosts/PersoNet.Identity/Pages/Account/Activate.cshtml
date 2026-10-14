@@ -1,0 +1,62 @@
+@page "/account/activate"
+@model PersoNet.Identity.Pages.Account.ActivateModel
+@{
+    ViewData["Title"] = "Ustaw hasło";
+
+    string? FieldError(string key) => ModelState[key]?.Errors.FirstOrDefault()?.ErrorMessage;
+
+    var passwordError = FieldError("Input.Password");
+    var confirmError = FieldError("Input.Confirm");
+}
+
+@if (Model.Done)
+{
+    <h1>Hasło ustawione</h1>
+    <p class="lead" role="status">Możesz się teraz zalogować adresem <strong>@Model.Email</strong> i nowym hasłem.</p>
+    @if (Model.PortalUri is { } portal)
+    {
+        <a class="button-link" href="@portal">Przejdź do portalu</a>
+    }
+}
+else if (Model.Email is null)
+{
+    <h1>Ustaw hasło</h1>
+    <p class="alert" role="alert">@(Model.ErrorMessage ?? "Ten link jest niepełny. Otwórz go jeszcze raz w całości.")</p>
+}
+else
+{
+    <h1>Ustaw hasło</h1>
+    <p class="lead">Konto <strong>@Model.Email</strong>. Wybierz hasło, którym będziesz się logować.</p>
+
+    <form method="post" novalidate data-login-form>
+        <input type="hidden" name="user" value="@Model.UserId" />
+        <input type="hidden" name="code" value="@Model.Code" />
+        <input type="text" name="username" value="@Model.Email" autocomplete="username" hidden />
+
+        <div class="field">
+            <label asp-for="Input.Password">Nowe hasło</label>
+            <div class="password">
+                <input asp-for="Input.Password" type="password" autocomplete="new-password" autofocus
+                       aria-invalid="@(passwordError is not null ? "true" : null)"
+                       aria-describedby="password-hint@(passwordError is not null ? " password-error" : null)" />
+                <button type="button" class="toggle" hidden data-password-toggle aria-controls="Input_Password" aria-pressed="false">Pokaż</button>
+            </div>
+            <span id="password-hint" class="field-hint">@PersoNet.Identity.Pages.Account.ActivateModel.PasswordRules</span>
+            <span id="password-error" class="field-error">@passwordError</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Confirm">Powtórz hasło</label>
+            <input asp-for="Input.Confirm" type="password" autocomplete="new-password"
+                   aria-invalid="@(confirmError is not null ? "true" : null)"
+                   aria-describedby="@(confirmError is not null ? "confirm-error" : null)" />
+            <span id="confirm-error" class="field-error">@confirmError</span>
+        </div>
+
+        <button type="submit" data-busy-text="Zapisywanie…">Ustaw hasło</button>
+    </form>
+}
+
+@section Scripts {
+    <script src="~/js/login.js" asp-append-version="true"></script>
+}

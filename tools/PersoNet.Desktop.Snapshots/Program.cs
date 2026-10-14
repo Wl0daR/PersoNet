@@ -130,6 +130,10 @@ namespace PersoNet.Desktop.Snapshots
                         await RenderDialogAsync(window, contractWindow, Sizes[2], Path.Combine(output, $"19-nowa-umowa-laptop150-{suffix}.png"), dialogWindow);
                     };
                     await card.Contracts.NewAsync(CancellationToken.None);
+
+                    // The portal account tab.
+                    Tabs(dialogWindow).SelectedIndex = 3;
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"21-karta-konto-laptop150-{suffix}.png"));
                     Tabs(dialogWindow).SelectedIndex = 0;
 
                     // The same card with validation errors.
@@ -214,7 +218,7 @@ namespace PersoNet.Desktop.Snapshots
             window.Close();
         }
 
-        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 3);
+        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 4);
 
         internal static IntPtr AllowLargerThanScreen(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {

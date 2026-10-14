@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using PersoNet.Application.Abstractions;
+using PersoNet.Application.Accounts;
 using PersoNet.Domain.Tenants;
 using PersoNet.Testing;
 
@@ -18,6 +19,9 @@ public sealed class PersoNetApiFactory : WebApplicationFactory<Program>, IAsyncL
     private const string DatabaseName = "personet_api_tests";
 
     private WebApplicationFactory<Program>? _signedIn;
+
+    /// <summary>The portal accounts the signed-in host sees instead of the login server.</summary>
+    public FakeAccountDirectory Accounts { get; } = new();
 
     public async ValueTask InitializeAsync()
     {
@@ -34,9 +38,13 @@ public sealed class PersoNetApiFactory : WebApplicationFactory<Program>, IAsyncL
     public HttpClient CreateSignedInClient(Guid? tenantId = null, params string[] roles)
     {
         // One signed-in host for all tests; the derived factory is disposed with this one.
-        _signedIn ??= WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services
-            .AddAuthentication(TestAuthHandler.SchemeName)
-            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { })));
+        _signedIn ??= WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services
+                .AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+            services.AddSingleton<IAccountDirectory>(Accounts);
+        }));
 
         var client = _signedIn.CreateClient();
 

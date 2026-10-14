@@ -41,6 +41,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         _time = time;
         Contracts = new ContractsViewModel(employees, time, dialogs);
         Leave = new EmployeeLeaveViewModel(leave, time, dialogs);
+        Account = new EmployeeAccountViewModel(employees);
     }
 
     /// <summary>"Umowy" tab.</summary>
@@ -48,6 +49,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     /// <summary>"Urlop" tab.</summary>
     public EmployeeLeaveViewModel Leave { get; }
+
+    /// <summary>"Konto" tab: access to the employee portal.</summary>
+    public EmployeeAccountViewModel Account { get; }
 
     public ObservableCollection<Choice> Departments { get; } = [NoDepartment];
 
@@ -256,7 +260,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         return field is not null;
     }
 
-    // The contracts and leave tabs follow the card; a new, unsaved card has neither. Ending or resuming the employment
+    // The contracts, leave and account tabs follow the card; a new, unsaved card has none of them. Ending or resuming the employment
     // changes the contracts too.
     partial void OnCurrentChanged(EmployeeResponse? oldValue, EmployeeResponse? newValue)
     {
@@ -264,6 +268,12 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         {
             _ = Contracts.ShowAsync(newValue, CancellationToken.None);
             _ = Leave.ShowAsync(newValue, CancellationToken.None);
+        }
+
+        // The account is found by the e-mail, so a changed e-mail may mean another account.
+        if (oldValue?.Id != newValue?.Id || oldValue?.Email != newValue?.Email)
+        {
+            _ = Account.ShowAsync(newValue, CancellationToken.None);
         }
     }
 

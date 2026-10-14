@@ -1,3 +1,4 @@
+using PersoNet.Contracts.Account;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 
@@ -21,6 +22,14 @@ public interface IEmployeesApi
     Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken);
 
     Task<EmployeeResponse> RehireAsync(Guid id, DateOnly hireDate, CancellationToken cancellationToken);
+
+    /// <summary>The employee's portal account (state <see cref="AccountState.None"/> when there is none).</summary>
+    Task<EmployeeAccountResponse> GetAccountAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    /// <summary>A one-time link to set the password; the first one creates the account.</summary>
+    Task<AccountLinkResponse> CreateAccountLinkAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    Task<EmployeeAccountResponse> SetAccountBlockedAsync(Guid employeeId, bool blocked, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken);
 
