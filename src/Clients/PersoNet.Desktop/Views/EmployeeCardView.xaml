@@ -196,6 +196,9 @@
                     <TabItem Header="_Konto" Style="{StaticResource SavedCardTab}">
                         <local:EmployeeAccountView DataContext="{Binding Account}" />
                     </TabItem>
+                    <TabItem Header="_Historia" Style="{StaticResource SavedCardTab}" IsSelected="{Binding History.IsActive}">
+                        <local:EmployeeHistoryView DataContext="{Binding History}" />
+                    </TabItem>
                 </TabControl>
             </DockPanel>
         </Border>

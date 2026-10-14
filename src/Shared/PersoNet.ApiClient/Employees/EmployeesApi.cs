@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Http.Json;
 using PersoNet.Contracts.Account;
+using PersoNet.Contracts.Audit;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 
@@ -94,6 +95,12 @@ internal sealed class EmployeesApi(HttpClient http) : IEmployeesApi
         var action = blocked ? "block" : "unblock";
         using var response = await http.PostAsync(new Uri($"{Employees}/{employeeId}/account/{action}", UriKind.Relative), content: null, cancellationToken).ConfigureAwait(false);
         return await ApiResponses.ReadAsync<EmployeeAccountResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<HistoryEntryResponse>> GetHistoryAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(new Uri($"{Employees}/{employeeId}/history", UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<List<HistoryEntryResponse>>(response, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<EmployeeResponse> ReinstateAsync(Guid id, CancellationToken cancellationToken)

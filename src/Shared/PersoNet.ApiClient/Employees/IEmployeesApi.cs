@@ -1,4 +1,5 @@
 using PersoNet.Contracts.Account;
+using PersoNet.Contracts.Audit;
 using PersoNet.Contracts.Common;
 using PersoNet.Contracts.Employees;
 
@@ -30,6 +31,9 @@ public interface IEmployeesApi
     Task<AccountLinkResponse> CreateAccountLinkAsync(Guid employeeId, CancellationToken cancellationToken);
 
     Task<EmployeeAccountResponse> SetAccountBlockedAsync(Guid employeeId, bool blocked, CancellationToken cancellationToken);
+
+    /// <summary>Who changed the employee's data and when, newest first.</summary>
+    Task<IReadOnlyList<HistoryEntryResponse>> GetHistoryAsync(Guid employeeId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ContractResponse>> ListContractsAsync(Guid employeeId, CancellationToken cancellationToken);
 

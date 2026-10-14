@@ -21,6 +21,11 @@ public sealed class TenantIsolationTests : IAsyncLifetime
         await using var context = CreateContext(tenantId: null);
         await context.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+
+        // Saved notes are audited, and the audit log points at the company.
+        await context.Database.ExecuteSqlAsync(
+            $"INSERT INTO tenants (id, name, subdomain, is_active) VALUES ({_tenantA}, 'Firma A', {"a-" + _tenantA.ToString("N")}, true), ({_tenantB}, 'Firma B', {"b-" + _tenantB.ToString("N")}, true)",
+            TestContext.Current.CancellationToken);
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

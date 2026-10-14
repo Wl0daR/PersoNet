@@ -23,5 +23,8 @@ public static class Permissions
     /// <summary>Give employees access to the portal (accounts, links to set the password) and block it.</summary>
     public const string AccountsManage = "accounts.manage";
 
-    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage, AccountsManage];
+    /// <summary>See who changed an employee's data and when (the audit log).</summary>
+    public const string AuditRead = "audit.read";
+
+    public static IReadOnlyList<string> All { get; } = [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage, AccountsManage, AuditRead];
 }

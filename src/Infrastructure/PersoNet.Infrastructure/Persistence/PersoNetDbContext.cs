@@ -2,10 +2,12 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
 using PersoNet.Domain.Abstractions;
+using PersoNet.Domain.Audit;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
 using PersoNet.Domain.Tenants;
+using PersoNet.Infrastructure.Audit;
 
 namespace PersoNet.Infrastructure.Persistence;
 
@@ -22,19 +24,23 @@ public class PersoNetDbContext : DbContext, IAppDbContext
         typeof(PersoNetDbContext).GetMethod(nameof(ApplyTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
     private readonly ITenantContext _tenantContext;
+    private readonly IAuditActor _auditActor;
+    private readonly TimeProvider _time;
 
-    public PersoNetDbContext(DbContextOptions<PersoNetDbContext> options, ITenantContext tenantContext)
-        : this((DbContextOptions)options, tenantContext)
+    public PersoNetDbContext(DbContextOptions<PersoNetDbContext> options, ITenantContext tenantContext, IAuditActor? auditActor = null, TimeProvider? time = null)
+        : this((DbContextOptions)options, tenantContext, auditActor, time)
     {
     }
 
     /// <summary>
     /// Lets tests derive a context with extra entities.
     /// </summary>
-    protected PersoNetDbContext(DbContextOptions options, ITenantContext tenantContext)
+    protected PersoNetDbContext(DbContextOptions options, ITenantContext tenantContext, IAuditActor? auditActor = null, TimeProvider? time = null)
         : base(options)
     {
         _tenantContext = tenantContext;
+        _auditActor = auditActor ?? new SystemAuditActor();
+        _time = time ?? TimeProvider.System;
     }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
@@ -51,18 +57,22 @@ public class PersoNetDbContext : DbContext, IAppDbContext
 
     public DbSet<LeaveEntitlement> LeaveEntitlements => Set<LeaveEntitlement>();
 
+    public DbSet<AuditEntry> AuditLog => Set<AuditEntry>();
+
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         EnsureWritesStayInTenant();
+        RecordAuditTrail();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         EnsureWritesStayInTenant();
+        RecordAuditTrail();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
@@ -93,6 +103,16 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     {
         modelBuilder.Entity<TEntity>().HasQueryFilter(TenantFilter, entity => entity.TenantId == CurrentTenantId);
         modelBuilder.Entity<TEntity>().HasIndex(entity => entity.TenantId);
+    }
+
+    // Every change of company data gets its audit entry in the same save, so both are stored or neither.
+    private void RecordAuditTrail()
+    {
+        var entries = AuditTrail.Collect(ChangeTracker, _auditActor, _time.GetUtcNow());
+        if (entries.Count > 0)
+        {
+            AuditLog.AddRange(entries);
+        }
     }
 
     private void EnsureWritesStayInTenant()

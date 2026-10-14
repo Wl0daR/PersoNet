@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PersoNet.Domain.Audit;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
@@ -24,6 +25,9 @@ public interface IAppDbContext
     DbSet<LeaveRequest> LeaveRequests { get; }
 
     DbSet<LeaveEntitlement> LeaveEntitlements { get; }
+
+    /// <summary>Who changed what and when. Filled automatically on save; add entries only for changes kept elsewhere (accounts).</summary>
+    DbSet<AuditEntry> AuditLog { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

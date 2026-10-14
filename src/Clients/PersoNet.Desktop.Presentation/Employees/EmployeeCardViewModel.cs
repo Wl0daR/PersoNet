@@ -42,6 +42,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         Contracts = new ContractsViewModel(employees, time, dialogs);
         Leave = new EmployeeLeaveViewModel(leave, time, dialogs);
         Account = new EmployeeAccountViewModel(employees);
+        History = new EmployeeHistoryViewModel(employees);
     }
 
     /// <summary>"Umowy" tab.</summary>
@@ -52,6 +53,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     /// <summary>"Konto" tab: access to the employee portal.</summary>
     public EmployeeAccountViewModel Account { get; }
+
+    /// <summary>"Historia" tab: who changed what and when.</summary>
+    public EmployeeHistoryViewModel History { get; }
 
     public ObservableCollection<Choice> Departments { get; } = [NoDepartment];
 
@@ -260,7 +264,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         return field is not null;
     }
 
-    // The contracts, leave and account tabs follow the card; a new, unsaved card has none of them. Ending or resuming the employment
+    // The contracts, leave, account and history tabs follow the card; a new, unsaved card has none of them. Ending or resuming the employment
     // changes the contracts too.
     partial void OnCurrentChanged(EmployeeResponse? oldValue, EmployeeResponse? newValue)
     {
@@ -275,6 +279,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         {
             _ = Account.ShowAsync(newValue, CancellationToken.None);
         }
+
+        // Any saved change adds to the history.
+        _ = History.ShowAsync(newValue, CancellationToken.None);
     }
 
     private bool Validate()
