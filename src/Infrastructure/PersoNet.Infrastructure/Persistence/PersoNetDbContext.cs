@@ -4,6 +4,7 @@ using PersoNet.Application.Abstractions;
 using PersoNet.Domain.Abstractions;
 using PersoNet.Domain.Access;
 using PersoNet.Domain.Audit;
+using PersoNet.Domain.Company;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
@@ -63,6 +64,8 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     public DbSet<Role> Roles => Set<Role>();
 
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
+
+    public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
 
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;

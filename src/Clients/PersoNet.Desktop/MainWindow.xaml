@@ -9,6 +9,7 @@
         xmlns:org="clr-namespace:PersoNet.Desktop.Presentation.Organization;assembly=PersoNet.Desktop.Presentation"
         xmlns:leave="clr-namespace:PersoNet.Desktop.Presentation.Leave;assembly=PersoNet.Desktop.Presentation"
         xmlns:acc="clr-namespace:PersoNet.Desktop.Presentation.Access;assembly=PersoNet.Desktop.Presentation"
+        xmlns:company="clr-namespace:PersoNet.Desktop.Presentation.Company;assembly=PersoNet.Desktop.Presentation"
         xmlns:views="clr-namespace:PersoNet.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=shell:ShellViewModel}"
@@ -35,9 +36,12 @@
         <DataTemplate DataType="{x:Type acc:RolesViewModel}">
             <views:RolesView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type company:CompanyViewModel}">
+            <views:CompanyView />
+        </DataTemplate>
     </Window.Resources>
 
-    <!-- Ctrl+1…6 switch screens, in the order of the side menu (screens the user may not open are skipped). -->
+    <!-- Ctrl+1…7 switch screens, in the order of the side menu (screens the user may not open are skipped). -->
     <Window.InputBindings>
         <KeyBinding Key="D1" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding HomeItem}" />
         <KeyBinding Key="D2" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding EmployeesItem}" />
@@ -45,6 +49,7 @@
         <KeyBinding Key="D4" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding DepartmentsItem}" />
         <KeyBinding Key="D5" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding PositionsItem}" />
         <KeyBinding Key="D6" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding RolesItem}" />
+        <KeyBinding Key="D7" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding CompanyItem}" />
     </Window.InputBindings>
 
     <Grid>

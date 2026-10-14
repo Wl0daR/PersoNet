@@ -1,6 +1,7 @@
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Authentication;
 using PersoNet.Desktop.Presentation.Common;
+using PersoNet.Desktop.Presentation.Company;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
@@ -24,7 +25,7 @@ public sealed class ShellViewModelTests
 
     private ShellViewModel Shell(FakeOrganizationApi api, FakeSignIn? signIn = null) => new(
         signIn ?? new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs),
-        new RolesViewModel(_access, _dialogs), _access, _user, _theme);
+        new RolesViewModel(_access, _dialogs), new CompanyViewModel(new FakeCompanyApi(), _dialogs), _access, _user, _theme);
 
     private LeaveViewModel LeaveScreen() =>
         new(new FakeLeaveApi(), new FakeEmployeesApi(), TimeProvider.System, _dialogs);
@@ -110,7 +111,7 @@ public sealed class ShellViewModelTests
         _access.Permissions.AddRange(UserAccessFor.Everything);
         await shell.SignInAsync(Cancellation);
 
-        shell.Navigation.ShouldBe([shell.HomeItem, shell.EmployeesItem, shell.LeaveItem, shell.DepartmentsItem, shell.PositionsItem, shell.RolesItem]);
+        shell.Navigation.ShouldBe([shell.HomeItem, shell.EmployeesItem, shell.LeaveItem, shell.DepartmentsItem, shell.PositionsItem, shell.RolesItem, shell.CompanyItem]);
     }
 
     private sealed class FakeSignIn : ISignInService

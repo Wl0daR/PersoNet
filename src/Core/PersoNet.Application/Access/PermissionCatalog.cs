@@ -14,6 +14,7 @@ public static class PermissionCatalog
         Describe(Permissions.LeaveRead, "Urlopy", "Przeglądanie urlopów", "Wnioski, wymiar i saldo urlopu wszystkich pracowników."),
         Describe(Permissions.LeaveManage, "Urlopy", "Decyzje urlopowe", "Wpisywanie, zatwierdzanie, odrzucanie i anulowanie wniosków oraz ustalanie wymiaru."),
         Describe(Permissions.OrganizationManage, "Firma", "Struktura firmy", "Dodawanie i zmiana działów oraz stanowisk."),
+        Describe(Permissions.SettingsManage, "Firma", "Ustawienia firmy", "Dane firmy oraz rodzaje urlopów, o które pracownicy proszą w portalu."),
         Describe(Permissions.RolesManage, "Firma", "Role i uprawnienia", "Tworzenie ról i nadawanie ich pracownikom."),
         Describe(Permissions.AccountsManage, "Firma", "Konta w portalu", "Zakładanie i blokowanie kont pracowników. Ma je tylko administrator kadr."),
     ];

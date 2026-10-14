@@ -14,6 +14,7 @@ public sealed class UserAccess
     public const string AccountsManage = "accounts.manage";
     public const string AuditRead = "audit.read";
     public const string RolesManage = "roles.manage";
+    public const string SettingsManage = "settings.manage";
 
     private HashSet<string> _permissions = [];
 

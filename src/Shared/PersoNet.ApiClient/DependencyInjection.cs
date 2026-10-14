@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Authentication;
+using PersoNet.ApiClient.Company;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
@@ -40,6 +41,10 @@ public static class DependencyInjection
             .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
 
         services.AddHttpClient<IAccessApi, AccessApi>(client => client.BaseAddress = root)
+            .AddHttpMessageHandler<AccessTokenHandler>()
+            .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
+
+        services.AddHttpClient<ICompanyApi, CompanyApi>(client => client.BaseAddress = root)
             .AddHttpMessageHandler<AccessTokenHandler>()
             .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
 

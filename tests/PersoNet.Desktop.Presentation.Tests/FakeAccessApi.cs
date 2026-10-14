@@ -97,7 +97,7 @@ internal static class UserAccessFor
     public static readonly string[] Everything =
     [
         UserAccess.EmployeesRead, UserAccess.EmployeesManage, UserAccess.LeaveRead, UserAccess.LeaveManage,
-        UserAccess.OrganizationManage, UserAccess.AccountsManage, UserAccess.AuditRead, UserAccess.RolesManage,
+        UserAccess.OrganizationManage, UserAccess.AccountsManage, UserAccess.AuditRead, UserAccess.RolesManage, UserAccess.SettingsManage,
     ];
 
     public static UserAccess Administrator() => With(Everything);

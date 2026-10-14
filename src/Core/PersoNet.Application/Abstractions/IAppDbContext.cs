@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Domain.Access;
 using PersoNet.Domain.Audit;
+using PersoNet.Domain.Company;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
@@ -35,6 +36,9 @@ public interface IAppDbContext
 
     /// <summary>Which employee has which role.</summary>
     DbSet<RoleAssignment> RoleAssignments { get; }
+
+    /// <summary>The company's data and leave settings; at most one record, missing until HR first saves them.</summary>
+    DbSet<CompanySettings> CompanySettings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

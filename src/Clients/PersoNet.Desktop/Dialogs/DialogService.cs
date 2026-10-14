@@ -1,6 +1,7 @@
 using System.Windows;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
+using PersoNet.Desktop.Presentation.Company;
 using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
@@ -31,6 +32,8 @@ public sealed class DialogService : IDialogService
         DepartmentDialogViewModel => new DepartmentDialogView(),
         PositionDialogViewModel => new PositionDialogView(),
         RoleDialogViewModel => new RoleDialogView(),
+        CompanyDetailsDialogViewModel => new CompanyDetailsDialogView(),
+        LeaveSettingsDialogViewModel => new LeaveSettingsDialogView(),
         _ => throw new ArgumentOutOfRangeException(nameof(dialog), dialog.GetType().Name, "Brak widoku dla tego okna."),
     };
 }
