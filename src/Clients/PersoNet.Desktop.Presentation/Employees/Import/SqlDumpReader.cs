@@ -73,6 +73,124 @@ public static class SqlDumpReader
         return rows.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<SqlRow>)pair.Value, StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// The rows of <paramref name="table"/> read statement by statement, for a dump too large to hold in memory at once
+    /// (attendance has about a million rows). Statements of other tables are skipped without being parsed.
+    /// </summary>
+    public static IEnumerable<SqlRow> StreamTable(TextReader reader, string table)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(table);
+
+        var statement = new StringBuilder();
+        var startLine = 0;
+        var lineNumber = 0;
+        var quote = '\0';
+        var inComment = false;
+        string? createTable = null;
+
+        while (reader.ReadLine() is { } line)
+        {
+            lineNumber++;
+            if (statement.Length == 0)
+            {
+                var trimmed = line.TrimStart();
+                if (trimmed.Length == 0 || trimmed.StartsWith("--", StringComparison.Ordinal) || trimmed.StartsWith('#'))
+                {
+                    continue;
+                }
+
+                startLine = lineNumber;
+            }
+
+            statement.Append(line).Append('\n');
+            if (!EndsStatement(line, ref quote, ref inComment))
+            {
+                continue;
+            }
+
+            var text = statement.ToString();
+            statement.Clear();
+            if (text.IndexOf(table, StringComparison.OrdinalIgnoreCase) is < 0 or > 300)
+            {
+                continue;
+            }
+
+            if (text.TrimStart().StartsWith("CREATE", StringComparison.OrdinalIgnoreCase))
+            {
+                createTable = text;
+                continue;
+            }
+
+            // Values without a column list take the columns of the table's CREATE TABLE, which goes in front of them.
+            var prefixLines = createTable is null ? 0 : createTable.Count(c => c == '\n');
+            var unreadable = new List<string>();
+            var rows = ReadTables((createTable ?? string.Empty) + text, [table], unreadable);
+            if (unreadable.Count > 0)
+            {
+                throw new FormatException(NoColumns(table));
+            }
+
+            foreach (var row in rows.GetValueOrDefault(table) ?? [])
+            {
+                yield return row with { Line = startLine + row.Line - prefixLines - 1 };
+            }
+        }
+    }
+
+    // True when the line ends a statement: a semicolon outside quotes and comments; the state carries over to the next line.
+    private static bool EndsStatement(string line, ref char quote, ref bool inComment)
+    {
+        var ends = false;
+        for (var i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            if (inComment)
+            {
+                if (c == '*' && i + 1 < line.Length && line[i + 1] == '/')
+                {
+                    inComment = false;
+                    i++;
+                }
+            }
+            else if (quote != '\0')
+            {
+                if (c == '\\' && quote != '`')
+                {
+                    i++;
+                }
+                else if (c == quote)
+                {
+                    quote = '\0';
+                }
+            }
+            else if (c is '\'' or '"' or '`')
+            {
+                quote = c;
+                ends = false;
+            }
+            else if (c == '/' && i + 1 < line.Length && line[i + 1] == '*')
+            {
+                inComment = true;
+                i++;
+            }
+            else if (c == '-' && i + 1 < line.Length && line[i + 1] == '-' && (i + 2 == line.Length || char.IsWhiteSpace(line[i + 2])))
+            {
+                break;
+            }
+            else if (c == ';')
+            {
+                ends = true;
+            }
+            else if (!char.IsWhiteSpace(c))
+            {
+                ends = false;
+            }
+        }
+
+        return ends && quote == '\0' && !inComment;
+    }
+
     private static bool ReadInsert(List<Token> statement, int index, List<string>? declared, List<int> lines, List<SqlRow> rows)
     {
         // Optional column list, then VALUES.

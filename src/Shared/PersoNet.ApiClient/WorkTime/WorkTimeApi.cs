@@ -42,6 +42,12 @@ internal sealed class WorkTimeApi(HttpClient http) : IWorkTimeApi
         return await ApiResponses.ReadAsync<ImportClockEventsResponse>(response, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<ImportWorkDaysResponse> ImportDaysAsync(ImportWorkDaysRequest request, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync("api/v1/work-days/import", request, cancellationToken).ConfigureAwait(false);
+        return await ApiResponses.ReadAsync<ImportWorkDaysResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
     private static string Month(Guid employeeId, int year, int month) =>
         string.Create(CultureInfo.InvariantCulture, $"api/v1/employees/{employeeId}/work-time/{year}/{month}");
 

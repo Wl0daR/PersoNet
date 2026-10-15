@@ -16,4 +16,7 @@ public interface IWorkTimeApi
     Task SetClockIdAsync(Guid employeeId, SaveClockIdRequest request, CancellationToken cancellationToken);
 
     Task<ImportClockEventsResponse> ImportEventsAsync(ImportClockEventsRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Days worked in an earlier system, for employees already imported.</summary>
+    Task<ImportWorkDaysResponse> ImportDaysAsync(ImportWorkDaysRequest request, CancellationToken cancellationToken);
 }

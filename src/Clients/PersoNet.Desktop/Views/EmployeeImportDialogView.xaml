@@ -31,7 +31,7 @@
         <Border Style="{StaticResource DialogBody}">
             <DockPanel Margin="24,20,24,12">
                 <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Style="{StaticResource SecondaryText}"
-                           Text="Zaznacz pliki .sql z poprzedniego systemu (eksport MySQL, np. z HeidiSQL): Employees oraz, jeśli masz, wydzialy, Departments, Positions, EmploymentHistory i Companies. Pliki są czytane na tym komputerze; zanim cokolwiek zapiszesz, zobaczysz listę pracowników." />
+                           Text="Zaznacz pliki .sql z poprzedniego systemu (eksport MySQL, np. z HeidiSQL): Employees oraz, jeśli masz, wydzialy, Departments, Positions, EmploymentHistory, Companies, absencja z urlopy_typy i obecnosc. Pliki są czytane na tym komputerze; zanim cokolwiek zapiszesz, zobaczysz listę pracowników." />
 
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,12,0,8" IsEnabled="{Binding IsIdle}">
                     <Button Command="{Binding ChooseFileCommand}" Padding="12,6" ToolTip="Wybierz jeden lub kilka plików .sql (Ctrl lub Shift zaznacza kilka)">
@@ -71,7 +71,7 @@
                 <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="0,0,0,8">
                     <StackPanel>
                         <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa importowanie" />
-                        <!-- The leave history has tens of thousands of rows, so a long import says how far it has got. -->
+                        <!-- The leave history and attendance have up to a million rows, so a long read or import says how far it has got. -->
                         <TextBlock Text="{Binding Progress}" Style="{StaticResource SecondaryText}" Margin="0,4,0,0" AutomationProperties.LiveSetting="Polite"
                                    Visibility="{Binding Progress, Converter={StaticResource CollapsedWhenEmpty}}" />
                     </StackPanel>

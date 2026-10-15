@@ -173,6 +173,41 @@ public sealed class WorkTimeEndpointTests(PersoNetApiFactory factory)
         import.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Days_worked_in_the_earlier_system_are_imported_once_and_not_over_approved_leave()
+    {
+        var tenantId = await factory.CreateTenantAsync();
+        using var hr = factory.CreateSignedInClient(tenantId);
+        var ala = await HireWithContractAsync(hr, "Ala", 1m);
+        await PutAsync(hr, $"/api/v1/employees/{ala.Id}/leave/2025", new SaveLeaveEntitlementRequest(26, 0));
+        var leave = await PostAsync<LeaveRequestResponse>(hr, "/api/v1/leave-requests", new CreateLeaveRequest(ala.Id, LeaveKind.Annual, Day(4), Day(4), null), HttpStatusCode.Created);
+        await PostAsync<LeaveRequestResponse>(hr, $"/api/v1/leave-requests/{leave.Id}/approve", new LeaveDecisionRequest(null));
+        var request = new ImportWorkDaysRequest(
+        [
+            new ImportWorkDayRow(1, ala.Number.ToLowerInvariant(), Day(3), new TimeOnly(6, 0), new TimeOnly(14, 0)),
+            new ImportWorkDayRow(2, ala.Number, Day(4), new TimeOnly(6, 0), new TimeOnly(14, 0)),
+            new ImportWorkDayRow(3, ala.Number, Day(5), new TimeOnly(22, 0), new TimeOnly(6, 0)),
+            new ImportWorkDayRow(4, ala.Number, Day(6), new TimeOnly(8, 0), new TimeOnly(8, 0)),
+            new ImportWorkDayRow(5, "NIEMA", Day(3), new TimeOnly(6, 0), new TimeOnly(14, 0)),
+        ]);
+
+        var first = await PostAsync<ImportWorkDaysResponse>(hr, "/api/v1/work-days/import", request);
+        var again = await PostAsync<ImportWorkDaysResponse>(hr, "/api/v1/work-days/import", request);
+        using var empty = await hr.PostAsJsonAsync(new Uri("/api/v1/work-days/import", UriKind.Relative), new ImportWorkDaysRequest([]), Cancellation);
+        var sheet = await GetSheetAsync(hr, ala.Id);
+
+        first.Added.ShouldBe(2);
+        first.Existing.ShouldBe(0);
+        first.Problems.Select(problem => problem.Line).ShouldBe([2, 4, 5]);
+        first.Problems[0].Message.ShouldContain("zatwierdzony urlop");
+        again.Added.ShouldBe(0);
+        again.Existing.ShouldBe(2);
+        await ShouldFailAsync(empty, HttpStatusCode.BadRequest, "worktime.days_import_empty");
+        (sheet.Days[2].Start, sheet.Days[2].End, sheet.Days[2].WorkedHours).ShouldBe((new TimeOnly(6, 0), new TimeOnly(14, 0), 8m));
+        (sheet.Days[4].Start, sheet.Days[4].End, sheet.Days[4].WorkedHours).ShouldBe((new TimeOnly(22, 0), new TimeOnly(6, 0), 8m));
+        sheet.Days[3].IsRecorded.ShouldBeFalse();
+    }
+
     private static DateOnly Day(int day) => new(2025, 11, day);
 
     private static ClockEventInput Event(string clockId, string at, ClockEventDirection direction, string? device = null) =>

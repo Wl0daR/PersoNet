@@ -78,6 +78,8 @@ internal sealed partial class DemoApi
 
     public Task<ImportClockEventsResponse> ImportEventsAsync(ImportClockEventsRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
 
+    public Task<ImportWorkDaysResponse> ImportDaysAsync(ImportWorkDaysRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
+
     private static TimesheetDay Day(DateOnly date, TimesheetDayKind kind, string? holiday, decimal planned) =>
         new(date, kind, holiday, true, planned, null, null, 0, 0m, 0m, 0m, 0m, 0m, 0m, null, null, 0m, null, false, false, ClockIssue.None, []);
 

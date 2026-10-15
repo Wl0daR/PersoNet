@@ -92,10 +92,10 @@ public sealed class EmployeeImportTests : IDisposable
         await File.WriteAllTextAsync(path, Dump, Cancellation);
         _files.OpenPaths.Add(path);
         _api.ImportRejects[26] = "Numer telefonu może mieć najwyżej 30 znaków.";
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
 
         viewModel.ImportCommand.CanExecute(null).ShouldBeFalse();
-        viewModel.ChooseFile();
+        await viewModel.ChooseFileAsync();
 
         viewModel.FileName.ShouldBe("kadry.sql");
         viewModel.Rows.Count.ShouldBe(4);
@@ -181,9 +181,9 @@ public sealed class EmployeeImportTests : IDisposable
         await File.WriteAllTextAsync(other, Organization, Cancellation);
         await File.WriteAllTextAsync(attendance, "CREATE TABLE IF NOT EXISTS `obecnosc` (`id` int);\nREPLACE INTO `obecnosc` (`id`) VALUES (1);", Cancellation);
         _files.OpenPaths.AddRange([employees, other, attendance]);
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
 
-        viewModel.ChooseFile();
+        await viewModel.ChooseFileAsync();
 
         viewModel.FileName.ShouldBe("table-Employees.sql, tabele.sql, table-obecnosc.sql");
         viewModel.HasEmployers.ShouldBeTrue();
@@ -191,8 +191,9 @@ public sealed class EmployeeImportTests : IDisposable
         viewModel.Rows.Count.ShouldBe(3);
         viewModel.Rows[0].Department.ShouldBe("Łuki");
         viewModel.Details.ShouldBe(
-            "Wczytane tabele: Employees, wydzialy, Departments, Positions, EmploymentHistory, Companies. "
-            + "Do zaimportowania działy: 3, stanowiska: 1, okresy zatrudnienia (umowy): 2, pracownicy innych firm, pominięci: 1.");
+            "Wczytane tabele: Employees, wydzialy, Departments, Positions, EmploymentHistory, Companies, obecnosc. "
+            + "Do zaimportowania działy: 3, stanowiska: 1, okresy zatrudnienia (umowy): 2, pracownicy innych firm, pominięci: 1, "
+            + "z obecności dni pracy: 0, zwolnienia płatne: 0, nieobecności: 0.");
 
         viewModel.Employer = viewModel.Employers[1];
         viewModel.Rows.Select(row => row.Name).ShouldBe(["Zielińska Ewa"]);
@@ -228,9 +229,9 @@ public sealed class EmployeeImportTests : IDisposable
         await File.WriteAllTextAsync(employees, Dump, Cancellation);
         await File.WriteAllTextAsync(history, History, Cancellation);
         _files.OpenPaths.AddRange([employees, history]);
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
 
-        viewModel.ChooseFile();
+        await viewModel.ChooseFileAsync();
         await viewModel.ImportAsync(Cancellation);
 
         viewModel.Details.ShouldNotBeNull().ShouldContain("urlopy: 1, nieobecności: 2, wymiar roczny: 2, wiersze nieobecności z błędami: 1");
@@ -245,7 +246,7 @@ public sealed class EmployeeImportTests : IDisposable
     {
         var path = Path.Combine(_folder, "inne.sql");
         await File.WriteAllTextAsync(path, "INSERT INTO `Positions` VALUES (1, 'Magazynier');", Cancellation);
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
 
         viewModel.LoadFile(path);
 

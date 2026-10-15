@@ -144,7 +144,7 @@ public sealed class LeaveHistoryImportService(IAppDbContext db, ITenantContext t
             // The earlier system let absences overlap (home office on a day of a business trip), so they are kept as they were.
             try
             {
-                db.Absences.Add(Absence.Create(tenantId, employeeId, (AbsenceType)row.Kind, row.StartDate, row.EndDate, null, now));
+                db.Absences.Add(Absence.Create(tenantId, employeeId, (AbsenceType)row.Kind, row.StartDate, row.EndDate, row.Note, now));
                 recorded.Add(new Period(employeeId, (int)row.Kind, row.StartDate, row.EndDate));
                 absencesAdded++;
             }

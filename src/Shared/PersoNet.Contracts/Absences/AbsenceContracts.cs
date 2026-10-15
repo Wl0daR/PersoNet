@@ -67,8 +67,8 @@ public sealed record SaveAbsenceRequest(AbsenceKind Kind, DateOnly StartDate, Da
 /// </summary>
 public sealed record ImportLeaveRow(int Line, string Number, LeaveKind Kind, DateOnly StartDate, DateOnly EndDate);
 
-/// <summary>An absence from the earlier system, for the employee with this <paramref name="Number"/>.</summary>
-public sealed record ImportAbsenceRow(int Line, string Number, AbsenceKind Kind, DateOnly StartDate, DateOnly EndDate);
+/// <summary>An absence from the earlier system, for the employee with this <paramref name="Number"/>, with an optional note.</summary>
+public sealed record ImportAbsenceRow(int Line, string Number, AbsenceKind Kind, DateOnly StartDate, DateOnly EndDate, string? Note = null);
 
 /// <summary>
 /// The annual leave days of an employee in a year and the unused days carried over from the year before, from the earlier

@@ -72,6 +72,14 @@ internal sealed class FakeWorkTimeApi : IWorkTimeApi
     public Task<ImportClockEventsResponse> ImportEventsAsync(ImportClockEventsRequest request, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
+    public List<ImportWorkDaysRequest> ImportedDays { get; } = [];
+
+    public Task<ImportWorkDaysResponse> ImportDaysAsync(ImportWorkDaysRequest request, CancellationToken cancellationToken)
+    {
+        ImportedDays.Add(request);
+        return Task.FromResult(new ImportWorkDaysResponse(request.Days.Count, 0, []));
+    }
+
     private static decimal Planned(DateOnly date) => date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? 0m : 8m;
 
     private TimesheetResponse Sheet(Guid employeeId, int year, int month)
