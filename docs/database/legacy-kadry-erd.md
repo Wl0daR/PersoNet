@@ -291,7 +291,7 @@ erDiagram
 | `JobCategories` | InnoDB | Kategoria pracy (biurowa, produkcyjna, …). | brak |
 | `Companies` | InnoDB | Pracodawca: spółka albo agencja pracy tymczasowej. | brak |
 | `PriorEmployments`, `EmployeeSchools`, `SchoolTypes` | InnoDB | Staż pracy: wcześniejsze zatrudnienia i szkoły (do wymiaru urlopu). | brak |
-| `obecnosc` | MyISAM | Obecności dzienne (~1 mln wierszy): wejście, wyjście, minuty, kod dnia. | `work_days` |
+| `obecnosc` | MyISAM | Obecności dzienne (~1 mln wierszy): wejście, wyjście, minuty, kod dnia. Importowane są godziny `od`/`do` (zaakceptowane przez kadry), nie surowe odczyty `wejscie`/`wyjscie`. | `work_days` (dni z godzinami); kody z `inne` jako okresy kolejnych dni: `ZP` → `leave_requests`, pozostałe (NN, DEL, IN, CHOP, SZK, BAD, TAR) → `absences`, nieznane (ZO, OP, ON) → „inna usprawiedliwiona” z kodem w uwadze |
 | `absencja` | MyISAM | Nieobecności i urlopy w okresach od–do; kod `R` to roczny wymiar urlopu (suma wpisów z 1 stycznia, wpisy ze statusem 2 to zaległy). | `leave_requests` (urlopy, zatwierdzone), `absences` (L4, delegacje, HO itd.), `leave_entitlements` (`R`) |
 | `urlopy_typy` | InnoDB | Słownik rodzajów nieobecności (`nazwa_skrot`: U, UB, UM, UOK, UOP, UNŻ, UON, UOŚ, HO, UOJ, URODZ, UWYCH, SW, R, CH, CHOPD, CHOP, ZRH, CHW, NN, DEL, SZK, BAD, IN, TAR, ZP). | `LeaveType` / `Absences.AbsenceType` po skrócie |
 | `zarzadzanie_godzinami`, `rozliczone_dni` | ? | Nadgodziny i godziny urlopu do odbioru oraz ich rozliczenie (brak w zrzucie). | brak |

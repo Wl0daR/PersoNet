@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<CompanyService>();
         services.AddScoped<ReportService>();
         services.AddScoped<WorkTimeService>();
+        services.AddScoped<WorkDayImportService>();
 
         return services;
     }

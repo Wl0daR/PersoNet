@@ -131,7 +131,7 @@ public sealed partial class EmployeesViewModel(
         }
     }
 
-    public EmployeeImportDialogViewModel CreateImport() => new(employees, absences, files);
+    public EmployeeImportDialogViewModel CreateImport() => new(employees, absences, workTime, files);
 
     /// <summary>Creates the card window's view model; the tests and the screenshot tool open it the same way.</summary>
     public EmployeeCardViewModel CreateCard() => new(employees, organization, leave, absences, access, workTime, files, user, time, dialogs);

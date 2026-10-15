@@ -56,6 +56,12 @@ internal static class WorkTimeErrors
     public static readonly AppError EventInvalid =
         AppError.Validation("worktime.event_invalid", "Każde odbicie musi mieć pracownika (identyfikator RCP), datę z lat 2000–2100 i kierunek: wejście albo wyjście.");
 
+    public static readonly AppError DaysImportEmpty =
+        AppError.Validation("worktime.days_import_empty", "Nie ma żadnych dni do zapisania.");
+
+    public static readonly AppError DaysImportTooLarge =
+        AppError.Validation("worktime.days_import_too_large", $"Jednorazowo można zapisać najwyżej {WorkDayImportService.MaxRows} dni. Podziel import na mniejsze części.");
+
     public static readonly AppError NoTenant =
         AppError.Forbidden("tenant.missing", "Użytkownik nie jest przypisany do firmy.");
 

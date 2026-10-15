@@ -162,3 +162,18 @@ public sealed record ImportClockEventsRequest(ClockEventOrigin Origin, IReadOnly
 /// how many working days were worked out again.
 /// </summary>
 public sealed record ImportClockEventsResponse(int Received, int Added, int Duplicates, IReadOnlyList<string> UnknownClockIds, int DaysUpdated);
+
+/// <summary>
+/// A day worked in the earlier system, for the employee with this <paramref name="Number"/>: from <paramref name="Start"/>
+/// to <paramref name="End"/> (past midnight when the end is earlier), without a break.
+/// </summary>
+public sealed record ImportWorkDayRow(int Line, string Number, DateOnly Date, TimeOnly Start, TimeOnly End);
+
+/// <summary>Days worked in the earlier system, at most 5000 in one request.</summary>
+public sealed record ImportWorkDaysRequest(IReadOnlyList<ImportWorkDayRow> Days);
+
+/// <summary>
+/// What an import of days did. A day already in the timesheet counts as existing and is left as it is, so the import
+/// can run again; <paramref name="Problems"/> are the rows not imported, with the reason.
+/// </summary>
+public sealed record ImportWorkDaysResponse(int Added, int Existing, IReadOnlyList<PersoNet.Contracts.Absences.ImportLeaveProblem> Problems);

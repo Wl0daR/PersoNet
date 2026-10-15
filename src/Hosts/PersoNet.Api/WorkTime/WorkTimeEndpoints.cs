@@ -41,6 +41,14 @@ internal static class WorkTimeEndpoints
             .RequireAuthorization(Permissions.WorkTimeManage)
             .WithName("SetClockId").WithSummary("Ustaw identyfikator pracownika w systemie RCP (numer karty lub ID użytkownika)");
 
+        api.MapPost("/work-days/import", async (ImportWorkDaysRequest request, WorkDayImportService service, CancellationToken cancellationToken) =>
+                (await service.ImportAsync(request, cancellationToken)).ToOk())
+            .WithTags("Czas pracy")
+            .RequireAuthorization(Permissions.WorkTimeManage)
+            .WithName("ImportWorkDays").WithSummary("Import przepracowanych dni z poprzedniego systemu")
+            .WithDescription("Pracownicy są rozpoznawani po numerze ewidencyjnym. Dni już wpisane w PersoNet zostają bez zmian, "
+                + "a dni zatwierdzonego urlopu nie są zamieniane na pracę.");
+
         api.MapPost("/clock-events/import", async (ImportClockEventsRequest request, WorkTimeService service, CancellationToken cancellationToken) =>
                 (await service.ImportEventsAsync(request, cancellationToken)).ToOk())
             .WithTags("Czas pracy")
