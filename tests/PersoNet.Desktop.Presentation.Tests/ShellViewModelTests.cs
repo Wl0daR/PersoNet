@@ -19,7 +19,7 @@ public sealed class ShellViewModelTests
     private readonly UserAccess _user = new();
 
     private EmployeesViewModel Employees(FakeOrganizationApi organization) =>
-        new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), _access, new FakeWorkTimeApi(), new FakeFileService(), _user, TimeProvider.System, _dialogs);
+        new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), new FakeAbsencesApi(), _access, new FakeWorkTimeApi(), new FakeFileService(), _user, TimeProvider.System, _dialogs);
 
     private HomeViewModel Home(FakeOrganizationApi organization) =>
         new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), _user, TimeProvider.System);

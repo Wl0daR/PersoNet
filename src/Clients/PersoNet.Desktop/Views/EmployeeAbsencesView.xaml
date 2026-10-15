@@ -1,0 +1,104 @@
+<UserControl x:Class="PersoNet.Desktop.Views.EmployeeAbsencesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:abs="clr-namespace:PersoNet.Desktop.Presentation.Absences;assembly=PersoNet.Desktop.Presentation"
+             xmlns:local="clr-namespace:PersoNet.Desktop.Views"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=abs:EmployeeAbsencesViewModel}">
+    <DockPanel Margin="8,12,8,8">
+        <!-- The year shown, and the commands: add, change and remove the picked absence (removal needs a second click). -->
+        <WrapPanel DockPanel.Dock="Top" Style="{StaticResource Toolbar}" IsEnabled="{Binding IsIdle}">
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                <Button Command="{Binding PreviousYearCommand}" Padding="8" Background="Transparent" BorderThickness="0"
+                        ToolTip="Poprzedni rok" AutomationProperties.Name="Poprzedni rok">
+                    <TextBlock Text="&#xE76B;" Style="{StaticResource Icon}" FontSize="12" />
+                </Button>
+                <TextBlock Text="{Binding Year}" Style="{StaticResource SectionTitle}" Margin="8,0" VerticalAlignment="Center"
+                           AutomationProperties.LiveSetting="Polite" />
+                <Button Command="{Binding NextYearCommand}" Padding="8" Background="Transparent" BorderThickness="0"
+                        ToolTip="Następny rok" AutomationProperties.Name="Następny rok">
+                    <TextBlock Text="&#xE76C;" Style="{StaticResource Icon}" FontSize="12" />
+                </Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding CanManage, Converter={StaticResource BoolToVisibility}}">
+                <Button Command="{Binding NewCommand}" Style="{DynamicResource AccentButtonStyle}" Padding="12,6" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                        <TextBlock Text="Dodaj nieobecność" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding EditCommand}" Padding="12,6" Margin="0,0,8,8" ToolTip="Zmień zaznaczoną nieobecność (Enter)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE70F;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                        <TextBlock Text="Zmień" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DeleteCommand}" Padding="12,6" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding DeleteText}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </WrapPanel>
+
+        <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}">
+            <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa wczytywanie nieobecności" />
+        </Border>
+
+        <!-- Days of the year by kind, e.g. "Choroba (L4): 12 dni · Praca zdalna (home office): 40 dni". -->
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="4,0,4,8"
+                   Visibility="{Binding IsEmpty, Converter={StaticResource CollapsedWhenTrue}}" />
+
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+
+        <Grid>
+            <!-- Absences, the latest first. Double click or Enter changes one. -->
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" local:OpenOnActivate.Command="{Binding EditCommand}"
+                      AutomationProperties.Name="Nieobecności pracownika" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                      HeadersVisibility="Column" GridLinesVisibility="None" MinRowHeight="44" BorderThickness="0" Background="Transparent"
+                      CanUserSortColumns="False" CanUserReorderColumns="False" HorizontalScrollBarVisibility="Disabled">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Rodzaj" Width="2*" MinWidth="170">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type abs:AbsenceRow}">
+                                <TextBlock Text="{Binding KindName}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding KindName}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Okres" Width="2*" MinWidth="150">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type abs:AbsenceRow}">
+                                <TextBlock Text="{Binding Period}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Period}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Dni" Width="*" MinWidth="110">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type abs:AbsenceRow}">
+                                <TextBlock Text="{Binding DaysText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding DaysText}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Uwagi" Width="2*" MinWidth="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="{x:Type abs:AbsenceRow}">
+                                <TextBlock Text="{Binding Absence.Note}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Absence.Note}"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Style="{StaticResource EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="&#xE787;" Style="{StaticResource Icon}" FontSize="36" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <TextBlock Text="Brak nieobecności w tym roku" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" Margin="0,12,0,4" />
+                <TextBlock Text="Zwolnienia lekarskie, delegacje, szkolenia i pracę zdalną wpiszesz przyciskiem „Dodaj nieobecność”." Style="{StaticResource SecondaryText}"
+                           TextAlignment="Center" TextWrapping="Wrap" MaxWidth="360" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

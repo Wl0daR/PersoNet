@@ -5,7 +5,9 @@ using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
+using PersoNet.ApiClient.Absences;
 using PersoNet.ApiClient.Employees;
+using PersoNet.Contracts.Absences;
 using PersoNet.Contracts.Employees;
 using PersoNet.Desktop.Presentation.Common;
 
@@ -14,11 +16,14 @@ namespace PersoNet.Desktop.Presentation.Employees.Import;
 /// <summary>
 /// "Import pracowników": HR picks the .sql files of the earlier system, chooses the company when the files hold more than
 /// one, sees every employee with their department, position and any problem, and only then imports: departments and
-/// positions first, then the employees with their contracts. The files are read on this computer; only what is imported
-/// is sent to the server.
+/// positions first, then the employees with their contracts, and last their leave history (leave, absences and yearly
+/// entitlements) when the files have it. The files are read on this computer; only what is imported is sent to the server.
 /// </summary>
-public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IFileService files) : DialogViewModel
+public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAbsencesApi absences, IFileService files) : DialogViewModel
 {
+    /// <summary>Problems of the leave history listed in the result; the rest are only counted.</summary>
+    public const int ProblemsShown = 5;
+
     /// <summary>Employees sent in one request, well under the server's limit.</summary>
     public const int BatchSize = 1000;
 
@@ -62,6 +67,10 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IFi
     public partial string? ResultText { get; set; }
 
     public bool IsImported => ResultText is not null;
+
+    /// <summary>How far a long import has got, e.g. "Historia nieobecności: 12 000 z 82 000 wierszy"; null otherwise.</summary>
+    [ObservableProperty]
+    public partial string? Progress { get; set; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ImportCommand))]
@@ -157,6 +166,16 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IFi
             details.Add($"pracownicy innych firm, pominięci: {_plan.OtherEmployersEmployees}");
         }
 
+        var history = _plan.LeaveHistory;
+        if (!history.IsEmpty || history.Problems.Count > 0)
+        {
+            details.Add($"urlopy: {history.Leave.Count}, nieobecności: {history.Absences.Count}, wymiar roczny: {history.Entitlements.Count}");
+            if (history.Problems.Count > 0)
+            {
+                details.Add($"wiersze nieobecności z błędami: {history.Problems.Count}");
+            }
+        }
+
         Details = string.Create(CultureInfo.CurrentCulture, $"Wczytane tabele: {string.Join(", ", _import.FoundTables)}. Do zaimportowania {string.Join(", ", details)}.");
     }
 
@@ -207,8 +226,53 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IFi
         }
 
         text.Append(CultureInfo.CurrentCulture, $"Umowy: {contracts}. Bez zmian: {existing}. Pominięto z powodu błędów: {skipped}.");
+
+        if (!plan.LeaveHistory.IsEmpty)
+        {
+            text.AppendLine().AppendLine().Append(await ImportHistoryAsync(plan.LeaveHistory, cancellationToken));
+        }
+
         ResultText = text.ToString();
     });
+
+    // After the employees, as the history is matched to them by number; in small batches, as each row is a record of its own.
+    private async Task<string> ImportHistoryAsync(LeaveHistoryPlan history, CancellationToken cancellationToken)
+    {
+        int leave = 0, absent = 0, entitlements = 0, existing = 0, sent = 0;
+        var total = history.Leave.Count + history.Absences.Count + history.Entitlements.Count;
+        var problems = new List<ImportLeaveProblem>(history.Problems);
+        var batches = history.Leave.Chunk(BatchSize).Select(batch => new ImportLeaveHistoryRequest(batch, [], []))
+            .Concat(history.Absences.Chunk(BatchSize).Select(batch => new ImportLeaveHistoryRequest([], batch, [])))
+            .Concat(history.Entitlements.Chunk(BatchSize).Select(batch => new ImportLeaveHistoryRequest([], [], batch)));
+
+        foreach (var batch in batches)
+        {
+            Progress = string.Create(CultureInfo.CurrentCulture, $"Historia nieobecności: {sent:N0} z {total:N0} wierszy…");
+            var result = await absences.ImportHistoryAsync(batch, cancellationToken);
+            sent += batch.Leave.Count + batch.Absences.Count + batch.Entitlements.Count;
+            leave += result.LeaveAdded;
+            absent += result.AbsencesAdded;
+            entitlements += result.EntitlementsSaved;
+            existing += result.Existing;
+            problems.AddRange(result.Problems);
+            HasChanges |= result.LeaveAdded + result.AbsencesAdded + result.EntitlementsSaved > 0;
+        }
+
+        Progress = null;
+
+        var text = new StringBuilder();
+        text.Append(CultureInfo.CurrentCulture, $"Historia: urlopy {leave}, nieobecności {absent}, wymiar roczny (lata pracowników) {entitlements}. Już były w PersoNet: {existing}.");
+        if (problems.Count > 0)
+        {
+            text.Append(CultureInfo.CurrentCulture, $" Nie zaimportowano wierszy: {problems.Count}, np.:");
+            foreach (var problem in problems.OrderBy(problem => problem.Line).Take(ProblemsShown))
+            {
+                text.AppendLine().Append(CultureInfo.CurrentCulture, $"• wiersz {problem.Line}, pracownik {problem.Number}: {problem.Message}");
+            }
+        }
+
+        return text.ToString();
+    }
 
     protected override bool TryShowOnField(ApiException exception) => false;
 

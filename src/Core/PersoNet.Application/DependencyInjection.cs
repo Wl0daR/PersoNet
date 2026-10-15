@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PersoNet.Application.Absences;
 using PersoNet.Application.Access;
 using PersoNet.Application.Accounts;
 using PersoNet.Application.Audit;
@@ -30,6 +31,8 @@ public static class DependencyInjection
         services.AddScoped<ContractService>();
         services.AddScoped<LeaveService>();
         services.AddScoped<LeaveCalendarService>();
+        services.AddScoped<LeaveHistoryImportService>();
+        services.AddScoped<AbsenceService>();
         services.AddScoped<PortalService>();
         services.AddScoped<AccountService>();
         services.AddScoped<AuditQueries>();

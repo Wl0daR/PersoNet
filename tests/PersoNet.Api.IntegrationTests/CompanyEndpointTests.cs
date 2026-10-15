@@ -38,7 +38,8 @@ public sealed class CompanyEndpointTests(PersoNetApiFactory factory)
 
         defaults!.Name.ShouldBe("Inna firma");
         defaults.TaxId.ShouldBeNull();
-        defaults.PortalLeaveKinds.ShouldBe(Enum.GetValues<LeaveKind>());
+        // Maternity, parental and similar leave follow a document HR has, so HR records them.
+        defaults.PortalLeaveKinds.ShouldBe([LeaveKind.Annual, LeaveKind.OnDemand, LeaveKind.Occasional, LeaveKind.Unpaid, LeaveKind.ChildCare, LeaveKind.ForceMajeure]);
         saved.StatusCode.ShouldBe(HttpStatusCode.OK, await saved.Content.ReadAsStringAsync(Cancellation));
         read.ShouldBe(new CompanyResponse(
             "Acme", "Acme Polska sp. z o.o.", "5261043838", "142130400", "ul. Prosta 1", "00-850", "Warszawa", "kadry@acme.test", "22 100 20 30", read!.PortalLeaveKinds, WorkTimeSourceKind.Manual));

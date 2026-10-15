@@ -1,3 +1,4 @@
+using PersoNet.ApiClient.Absences;
 using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Company;
 using PersoNet.ApiClient.Employees;
@@ -21,7 +22,7 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAccessApi, ICompanyApi, IReportsApi, IWorkTimeApi, ISignInService, IThemeService
+internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAbsencesApi, IAccessApi, ICompanyApi, IReportsApi, IWorkTimeApi, ISignInService, IThemeService
 {
     private static readonly IReadOnlyList<PermissionResponse> Catalog =
     [

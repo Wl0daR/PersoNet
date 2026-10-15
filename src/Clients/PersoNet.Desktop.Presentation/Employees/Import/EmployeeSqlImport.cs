@@ -1,4 +1,5 @@
 using System.Globalization;
+using PersoNet.Contracts.Absences;
 using PersoNet.Contracts.Employees;
 
 namespace PersoNet.Desktop.Presentation.Employees.Import;
@@ -30,25 +31,50 @@ public sealed record EmployeeFileEntry(
 /// <summary>An employer of the earlier system; a temporary work agency's people count towards the employer using it.</summary>
 public sealed record LegacyEmployer(string Id, string Name);
 
-/// <summary>What one company gets from the files: its departments, the positions its people hold, and its employees.</summary>
+/// <summary>
+/// What one company gets from the files: its departments, the positions its people hold, its employees, and their leave
+/// history when the files have it.
+/// </summary>
 public sealed record EmployeeImportPlan(
     IReadOnlyList<ImportDepartment> Departments,
     IReadOnlyList<ImportPosition> Positions,
     IReadOnlyList<EmployeeFileEntry> Employees,
-    int OtherEmployersEmployees);
+    int OtherEmployersEmployees,
+    LeaveHistoryPlan? History = null)
+{
+    public LeaveHistoryPlan LeaveHistory => History ?? LeaveHistoryPlan.None;
+}
+
+/// <summary>
+/// Leave, absences and yearly entitlements of the company's employees from <c>absencja</c>, and the rows that cannot be
+/// imported (<see cref="Problems"/>); rows of other companies' people are only counted.
+/// </summary>
+public sealed record LeaveHistoryPlan(
+    IReadOnlyList<ImportLeaveRow> Leave,
+    IReadOnlyList<ImportAbsenceRow> Absences,
+    IReadOnlyList<ImportEntitlementRow> Entitlements,
+    IReadOnlyList<ImportLeaveProblem> Problems,
+    int OtherEmployersRows)
+{
+    public static LeaveHistoryPlan None { get; } = new([], [], [], [], 0);
+
+    public bool IsEmpty => Leave.Count + Absences.Count + Entitlements.Count == 0;
+}
 
 /// <summary>
 /// The earlier system's MySQL database ("Kadry"), read from its .sql dumps: <c>Employees</c> (required), and when given
 /// <c>wydzialy</c> and <c>Departments</c> (the department tree), <c>Positions</c>, <c>EmploymentHistory</c> (periods of
 /// employment, which become contracts, and the employer) and <c>Companies</c> (employers and temporary work agencies).
 /// <c>EmployeeID</c> becomes the personnel number, <c>UrlopR</c> the yearly leave in days; birth date, gender and status
-/// are not taken.
+/// are not taken. With <c>absencja</c> (and <c>urlopy_typy</c>, its kinds) the plan also has the leave history.
 /// </summary>
 public sealed class EmployeeSqlImport
 {
     public const string Table = "Employees";
 
-    public static readonly IReadOnlyList<string> Tables = [Table, "wydzialy", "Departments", "Positions", "EmploymentHistory", "Companies"];
+    public const string AbsenceTable = "absencja";
+
+    public static readonly IReadOnlyList<string> Tables = [Table, "wydzialy", "Departments", "Positions", "EmploymentHistory", "Companies", AbsenceTable, "urlopy_typy"];
 
     private readonly Dictionary<string, List<SqlRow>> _tables = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _employerOfCompany = new(StringComparer.Ordinal);
@@ -169,7 +195,87 @@ public sealed class EmployeeSqlImport
             .Select(name => new ImportPosition(name, departmentsOfName.GetValueOrDefault(name) ?? []))
             .ToList();
 
-        return new EmployeeImportPlan(tree, positions, employees, others);
+        return new EmployeeImportPlan(tree, positions, employees, others, History(employees.Select(entry => entry.Number).ToHashSet(StringComparer.OrdinalIgnoreCase)));
+    }
+
+    // Each row of absencja is one period of a kind from urlopy_typy, for the employee idPrac (= EmployeeID). The kind "R"
+    // is the yearly entitlement instead: on the 1st of January, as a sum of entries (corrections are entries of their
+    // own, also negative ones), where the entries with status 2 hold the days carried over from the year before. Leave
+    // carried over below zero (taken in advance) cannot be held in PersoNet and counts as none.
+    private LeaveHistoryPlan History(HashSet<string> numbers)
+    {
+        var rows = Rows(AbsenceTable);
+        if (rows.Count == 0)
+        {
+            return LeaveHistoryPlan.None;
+        }
+
+        var names = Rows("urlopy_typy").Where(row => Text(row, "id") is not null && Text(row, "nazwa_skrot") is not null)
+            .ToDictionary(row => Text(row, "id")!, row => Text(row, "nazwa_skrot")!, StringComparer.Ordinal);
+        if (names.Count == 0)
+        {
+            names = new Dictionary<string, string>(LegacyLeaveCodes.DefaultNumbers, StringComparer.Ordinal);
+        }
+
+        var leave = new List<ImportLeaveRow>();
+        var absences = new List<ImportAbsenceRow>();
+        var problems = new List<ImportLeaveProblem>();
+        var years = new Dictionary<(string Number, int Year), (int Line, int Days, int CarriedOver)>();
+        var others = 0;
+
+        foreach (var row in rows)
+        {
+            var number = Text(row, "idPrac") ?? string.Empty;
+            if (!numbers.Contains(number))
+            {
+                others++;
+                continue;
+            }
+
+            var code = Text(row, "idAbsencja") ?? string.Empty;
+            if (!names.TryGetValue(code, out var shortName) || !LegacyLeaveCodes.ByShortName.TryGetValue(shortName, out var kind))
+            {
+                problems.Add(new ImportLeaveProblem(row.Line, number, $"Nieznany rodzaj nieobecności {(names.GetValueOrDefault(code) ?? code)}."));
+                continue;
+            }
+
+            var start = Date(row, "dzien_od", out _);
+            if (kind.IsEntitlement)
+            {
+                if (start is null || !int.TryParse(Text(row, "wymiar"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var days))
+                {
+                    problems.Add(new ImportLeaveProblem(row.Line, number, "Wymiar roczny bez roku albo liczby dni."));
+                    continue;
+                }
+
+                var key = (number, start.Value.Year);
+                var sum = years.GetValueOrDefault(key, (Line: row.Line, Days: 0, CarriedOver: 0));
+                years[key] = Text(row, "idStatus") == "2" ? sum with { CarriedOver = sum.CarriedOver + days } : sum with { Days = sum.Days + days };
+                continue;
+            }
+
+            if (start is null || Date(row, "dzien_do", out _) is not { } end)
+            {
+                problems.Add(new ImportLeaveProblem(row.Line, number, "Brak daty początku albo końca."));
+                continue;
+            }
+
+            if (kind.Leave is { } leaveKind)
+            {
+                leave.Add(new ImportLeaveRow(row.Line, number, leaveKind, start.Value, end));
+            }
+            else
+            {
+                absences.Add(new ImportAbsenceRow(row.Line, number, kind.Absence!.Value, start.Value, end));
+            }
+        }
+
+        var entitlements = years
+            .Select(year => new ImportEntitlementRow(year.Value.Line, year.Key.Number, year.Key.Year, year.Value.Days, Math.Max(0, year.Value.CarriedOver)))
+            .OrderBy(row => row.Line)
+            .ToList();
+
+        return new LeaveHistoryPlan(leave, absences, entitlements, problems, others);
     }
 
     // Employers are the companies that are not agencies; each agency belongs to the employer whose name it starts with,

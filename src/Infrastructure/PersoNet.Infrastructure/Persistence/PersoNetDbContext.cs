@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
+using PersoNet.Domain.Absences;
 using PersoNet.Domain.Abstractions;
 using PersoNet.Domain.Access;
 using PersoNet.Domain.Audit;
@@ -71,6 +72,8 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     public DbSet<WorkDay> WorkDays => Set<WorkDay>();
 
     public DbSet<ClockEvent> ClockEvents => Set<ClockEvent>();
+
+    public DbSet<Absence> Absences => Set<Absence>();
 
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;

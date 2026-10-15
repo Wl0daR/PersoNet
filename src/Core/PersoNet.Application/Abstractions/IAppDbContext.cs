@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PersoNet.Domain.Absences;
 using PersoNet.Domain.Access;
 using PersoNet.Domain.Audit;
 using PersoNet.Domain.Company;
@@ -46,6 +47,9 @@ public interface IAppDbContext
 
     /// <summary>Clock-in and clock-out events from time clock systems, kept as they came.</summary>
     DbSet<ClockEvent> ClockEvents { get; }
+
+    /// <summary>Sickness, unexcused absences and work away from the workplace, as periods.</summary>
+    DbSet<Absence> Absences { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

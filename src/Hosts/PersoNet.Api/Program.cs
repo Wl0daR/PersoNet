@@ -1,4 +1,5 @@
 using OpenIddict.Validation.AspNetCore;
+using PersoNet.Api.Absences;
 using PersoNet.Api.Access;
 using PersoNet.Api.Account;
 using PersoNet.Api.Audit;
@@ -95,6 +96,7 @@ api.MapOrganizationEndpoints();
 api.MapEmployeeEndpoints();
 api.MapEmployeeAccountEndpoints();
 api.MapLeaveEndpoints();
+api.MapAbsenceEndpoints();
 api.MapMeEndpoints();
 api.MapAuditEndpoints();
 api.MapAccessEndpoints();

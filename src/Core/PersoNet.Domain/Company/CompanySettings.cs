@@ -61,7 +61,14 @@ public sealed partial class CompanySettings : Entity, ITenantOwned
     /// <summary>Where the company's working time comes from; HR can correct any day whatever the source.</summary>
     public WorkTimeSource WorkTimeSource { get; private set; } = WorkTimeSource.Manual;
 
-    /// <summary>The settings a company has before HR changes them: its name, no details, every kind of leave in the portal.</summary>
+    /// <summary>
+    /// Kinds employees request in the portal until HR chooses otherwise: the everyday ones. Parental leave, time off for
+    /// overtime and the like are agreed with HR and registered there.
+    /// </summary>
+    public static IReadOnlyList<LeaveType> DefaultPortalLeaveTypes { get; } =
+        [LeaveType.Annual, LeaveType.OnDemand, LeaveType.Occasional, LeaveType.Unpaid, LeaveType.ChildCare, LeaveType.ForceMajeure];
+
+    /// <summary>The settings a company has before HR changes them: its name, no details, the everyday kinds of leave in the portal.</summary>
     public static CompanySettings CreateDefault(Guid tenantId, string name)
     {
         if (tenantId == Guid.Empty)
@@ -71,7 +78,7 @@ public sealed partial class CompanySettings : Entity, ITenantOwned
 
         var settings = new CompanySettings(tenantId);
         settings.ChangeDetails(new CompanyDetails(name, null, null, null, null, null, null, null, null));
-        settings.ChangePortalLeaveTypes(Enum.GetValues<LeaveType>());
+        settings.ChangePortalLeaveTypes(DefaultPortalLeaveTypes);
         return settings;
     }
 
