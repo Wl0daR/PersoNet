@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
+using PersoNet.ApiClient.Absences;
 using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
@@ -10,6 +11,7 @@ using PersoNet.ApiClient.Organization;
 using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Organization;
+using PersoNet.Desktop.Presentation.Absences;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Leave;
@@ -46,6 +48,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         IEmployeesApi employees,
         IOrganizationApi organization,
         ILeaveApi leave,
+        IAbsencesApi absences,
         IAccessApi access,
         IWorkTimeApi workTime,
         IFileService files,
@@ -66,6 +69,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         CanSeeWorkTime = user.Can(UserAccess.WorkTimeRead);
         Contracts = new ContractsViewModel(employees, time, dialogs);
         Leave = new EmployeeLeaveViewModel(leave, time, dialogs);
+        Absences = new EmployeeAbsencesViewModel(absences, time, dialogs, user.Can(UserAccess.LeaveManage));
         WorkTime = new EmployeeWorkTimeViewModel(workTime, files, time, dialogs, user.Can(UserAccess.WorkTimeManage));
         Account = new EmployeeAccountViewModel(employees);
         Roles = new EmployeeRolesViewModel(access);
@@ -98,6 +102,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     /// <summary>"Urlop" tab.</summary>
     public EmployeeLeaveViewModel Leave { get; }
+
+    /// <summary>"Nieobecności" tab: sickness, business trips, remote work.</summary>
+    public EmployeeAbsencesViewModel Absences { get; }
 
     /// <summary>"Czas pracy" tab.</summary>
     public EmployeeWorkTimeViewModel WorkTime { get; }
@@ -336,6 +343,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
             if (CanSeeLeave)
             {
                 _ = Leave.ShowAsync(newValue, CancellationToken.None);
+                _ = Absences.ShowAsync(newValue, CancellationToken.None);
             }
 
             if (CanSeeWorkTime)

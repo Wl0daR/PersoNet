@@ -19,6 +19,13 @@ internal static class LeaveTexts
         (LeaveKind.Unpaid, "Urlop bezpłatny"),
         (LeaveKind.ChildCare, "Opieka nad dzieckiem (art. 188)"),
         (LeaveKind.ForceMajeure, "Siła wyższa (art. 148¹)"),
+        (LeaveKind.Maternity, "Urlop macierzyński"),
+        (LeaveKind.Paternity, "Urlop ojcowski"),
+        (LeaveKind.Parental, "Urlop rodzicielski"),
+        (LeaveKind.ChildRearing, "Urlop wychowawczy"),
+        (LeaveKind.OvertimeTimeOff, "Odbiór nadgodzin"),
+        (LeaveKind.HolidayTimeOff, "Odbiór dnia wolnego za święto"),
+        (LeaveKind.PaidRelease, "Zwolnienie płatne"),
     ];
 
     /// <summary>Kinds that may be taken in hours (the Labour Code rules are checked by the server).</summary>

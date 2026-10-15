@@ -1,6 +1,7 @@
 using PersoNet.Api.Common;
 using PersoNet.Application.Abstractions;
 using PersoNet.Application.Leave;
+using PersoNet.Contracts.Absences;
 using PersoNet.Contracts.Leave;
 
 namespace PersoNet.Api.Leave;
@@ -49,6 +50,15 @@ internal static class LeaveEndpoints
                 (await service.CancelAsync(id, decision, cancellationToken)).ToOk())
             .RequireAuthorization(Permissions.LeaveManage)
             .WithName("CancelLeaveRequest").WithSummary("Anuluj oczekujący lub zatwierdzony urlop");
+
+        api.MapPost("/leave/import", async (ImportLeaveHistoryRequest request, LeaveHistoryImportService service, CancellationToken cancellationToken) =>
+                (await service.ImportAsync(request, cancellationToken)).ToOk())
+            .WithTags("Urlopy")
+            .RequireAuthorization(Permissions.LeaveManage)
+            .WithName("ImportLeaveHistory").WithSummary("Import historii urlopów, nieobecności i wymiaru z poprzedniego systemu")
+            .WithDescription("Pracownicy są rozpoznawani po numerze ewidencyjnym, więc najpierw trzeba ich zaimportować. Urlopy trafiają jako "
+                + "zatwierdzone, bez sprawdzania salda i limitów, podzielone na przełomie lat. Wiersze, które już są w PersoNet, są pomijane, "
+                + "a wymiar roku zastępuje dotychczasowy.");
 
         api.MapGet("/leave-calendar", async (int? year, int? month, Guid? departmentId, LeaveCalendarService calendar, TimeProvider time, CancellationToken cancellationToken) =>
             {

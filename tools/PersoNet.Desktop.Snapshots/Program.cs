@@ -68,7 +68,7 @@ namespace PersoNet.Desktop.Snapshots
             var dialogs = new SnapshotDialogs();
             var user = new UserAccess();
             var files = new SnapshotFiles();
-            var employees = new EmployeesViewModel(api, api, api, api, api, files, user, time, dialogs);
+            var employees = new EmployeesViewModel(api, api, api, api, api, api, files, user, time, dialogs);
             var leave = new LeaveViewModel(api, api, time, dialogs);
             var departments = new DepartmentsViewModel(api, dialogs);
             var positions = new PositionsViewModel(api, dialogs);
@@ -142,8 +142,19 @@ namespace PersoNet.Desktop.Snapshots
                     };
                     await card.Contracts.NewAsync(CancellationToken.None);
 
-                    // The working time tab, with the whole of last month, and a day with a missing clock-out in its window.
+                    // The absences tab (sickness, business trips, remote work), and one of them in its window over the card.
                     Tabs(dialogWindow).SelectedIndex = 3;
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"32-karta-nieobecnosci-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"32-karta-nieobecnosci-laptop150-{suffix}.png"));
+                    dialogs.Script = async (_, absenceWindow) =>
+                    {
+                        await RenderDialogAsync(window, absenceWindow, Sizes[1], Path.Combine(output, $"33-nieobecnosc-srodek-{suffix}.png"), dialogWindow);
+                        await RenderDialogAsync(window, absenceWindow, Sizes[2], Path.Combine(output, $"33-nieobecnosc-laptop150-{suffix}.png"), dialogWindow);
+                    };
+                    await card.Absences.EditAsync(card.Absences.Items.First(), CancellationToken.None);
+
+                    // The working time tab, with the whole of last month, and a day with a missing clock-out in its window.
+                    Tabs(dialogWindow).SelectedIndex = 4;
                     await card.WorkTime.PreviousMonthAsync(CancellationToken.None);
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"28-karta-czas-pracy-srodek-{suffix}.png"));
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"28-karta-czas-pracy-laptop150-{suffix}.png"));
@@ -155,11 +166,11 @@ namespace PersoNet.Desktop.Snapshots
                     await card.WorkTime.OpenDayAsync(card.WorkTime.Rows.First(row => row.HasIssue));
 
                     // The portal account tab.
-                    Tabs(dialogWindow).SelectedIndex = 4;
+                    Tabs(dialogWindow).SelectedIndex = 5;
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"21-karta-konto-laptop150-{suffix}.png"));
 
                     // The history of changes.
-                    Tabs(dialogWindow).SelectedIndex = 5;
+                    Tabs(dialogWindow).SelectedIndex = 6;
                     await card.History.RefreshAsync(CancellationToken.None);
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"22-karta-historia-srodek-{suffix}.png"));
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"22-karta-historia-laptop150-{suffix}.png"));
@@ -300,7 +311,7 @@ namespace PersoNet.Desktop.Snapshots
             window.Close();
         }
 
-        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 6);
+        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 7);
 
         internal static IntPtr AllowLargerThanScreen(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {

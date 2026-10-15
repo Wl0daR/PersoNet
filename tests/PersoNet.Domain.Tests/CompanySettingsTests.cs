@@ -9,13 +9,13 @@ public sealed class CompanySettingsTests
     private static readonly Guid TenantId = Guid.CreateVersion7();
 
     [Fact]
-    public void A_new_company_has_its_name_and_every_kind_of_leave_in_the_portal()
+    public void A_new_company_has_its_name_and_the_usual_kinds_of_leave_in_the_portal()
     {
         var settings = CompanySettings.CreateDefault(TenantId, " Acme ");
 
         settings.Name.ShouldBe("Acme");
         settings.TaxId.ShouldBeNull();
-        settings.PortalLeaveTypes.ShouldBe(Enum.GetValues<LeaveType>());
+        settings.PortalLeaveTypes.ShouldBe([LeaveType.Annual, LeaveType.OnDemand, LeaveType.Occasional, LeaveType.Unpaid, LeaveType.ChildCare, LeaveType.ForceMajeure]);
     }
 
     [Theory]

@@ -75,6 +75,12 @@ internal static class LeaveErrors
     public static readonly AppError YearOutOfRange =
         AppError.Validation("leave.year_out_of_range", "Rok musi być z zakresu 2000–2100.");
 
+    public static readonly AppError ImportEmpty =
+        AppError.Validation("leave.import_empty", "Nie ma czego zaimportować.");
+
+    public static readonly AppError ImportTooLarge =
+        AppError.Validation("leave.import_too_large", $"Jednorazowo można zaimportować najwyżej {LeaveHistoryImportService.MaxRows} wierszy każdego rodzaju.");
+
     public static readonly AppError NoTenant =
         AppError.Forbidden("tenant.missing", "Użytkownik nie jest przypisany do firmy.");
 

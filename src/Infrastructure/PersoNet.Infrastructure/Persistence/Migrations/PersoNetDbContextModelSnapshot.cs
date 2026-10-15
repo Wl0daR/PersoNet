@@ -23,6 +23,58 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PersoNet.Domain.Absences.Absence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date")
+                        .HasColumnName("end_date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("start_date");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_absences");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_absences_tenant_id");
+
+                    b.HasIndex("EmployeeId", "StartDate")
+                        .HasDatabaseName("ix_absences_employee_id_start_date");
+
+                    b.HasIndex("StartDate", "EndDate")
+                        .HasDatabaseName("ix_absences_start_date_end_date");
+
+                    b.ToTable("absences", (string)null);
+                });
+
             modelBuilder.Entity("PersoNet.Domain.Access.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -770,6 +822,23 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_work_days_tenant_id_employee_id_date");
 
                     b.ToTable("work_days", (string)null);
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Absences.Absence", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_absences_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_absences_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("PersoNet.Domain.Access.Role", b =>

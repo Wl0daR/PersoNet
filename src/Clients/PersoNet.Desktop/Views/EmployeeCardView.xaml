@@ -201,6 +201,10 @@
                              Visibility="{Binding CanSeeLeave, Converter={StaticResource BoolToVisibility}}">
                         <local:EmployeeLeaveView DataContext="{Binding Leave}" />
                     </TabItem>
+                    <TabItem Header="_Nieobecności" Style="{StaticResource SavedCardTab}"
+                             Visibility="{Binding CanSeeLeave, Converter={StaticResource BoolToVisibility}}">
+                        <local:EmployeeAbsencesView DataContext="{Binding Absences}" />
+                    </TabItem>
                     <TabItem Header="_Czas pracy" Style="{StaticResource SavedCardTab}"
                              Visibility="{Binding CanSeeWorkTime, Converter={StaticResource BoolToVisibility}}">
                         <local:EmployeeWorkTimeView DataContext="{Binding WorkTime}" />

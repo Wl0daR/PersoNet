@@ -23,6 +23,27 @@ public enum LeaveKind
 
     /// <summary>Zwolnienie z powodu siły wyższej (art. 148¹ KP): 2 days or 16 hours a year.</summary>
     ForceMajeure = 6,
+
+    /// <summary>Urlop macierzyński.</summary>
+    Maternity = 7,
+
+    /// <summary>Urlop ojcowski.</summary>
+    Paternity = 8,
+
+    /// <summary>Urlop rodzicielski.</summary>
+    Parental = 9,
+
+    /// <summary>Urlop wychowawczy.</summary>
+    ChildRearing = 10,
+
+    /// <summary>Odbiór nadgodzin (czas wolny za pracę w godzinach nadliczbowych).</summary>
+    OvertimeTimeOff = 11,
+
+    /// <summary>Dzień wolny za święto przypadające w sobotę.</summary>
+    HolidayTimeOff = 12,
+
+    /// <summary>Zwolnienie od pracy z zachowaniem wynagrodzenia.</summary>
+    PaidRelease = 13,
 }
 
 /// <summary>Where a request stands; sent as text, e.g. "Pending".</summary>

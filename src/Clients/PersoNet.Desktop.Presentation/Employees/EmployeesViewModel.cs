@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
+using PersoNet.ApiClient.Absences;
 using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
@@ -22,6 +23,7 @@ public sealed partial class EmployeesViewModel(
     IEmployeesApi employees,
     IOrganizationApi organization,
     ILeaveApi leave,
+    IAbsencesApi absences,
     IAccessApi access,
     IWorkTimeApi workTime,
     IFileService files,
@@ -129,10 +131,10 @@ public sealed partial class EmployeesViewModel(
         }
     }
 
-    public EmployeeImportDialogViewModel CreateImport() => new(employees, files);
+    public EmployeeImportDialogViewModel CreateImport() => new(employees, absences, files);
 
     /// <summary>Creates the card window's view model; the tests and the screenshot tool open it the same way.</summary>
-    public EmployeeCardViewModel CreateCard() => new(employees, organization, leave, access, workTime, files, user, time, dialogs);
+    public EmployeeCardViewModel CreateCard() => new(employees, organization, leave, absences, access, workTime, files, user, time, dialogs);
 
     private async Task ShowCardAsync(Guid? employeeId, CancellationToken cancellationToken)
     {

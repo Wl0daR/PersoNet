@@ -1,0 +1,61 @@
+<UserControl x:Class="PersoNet.Desktop.Views.AbsenceDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:abs="clr-namespace:PersoNet.Desktop.Presentation.Absences;assembly=PersoNet.Desktop.Presentation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=abs:AbsenceDialogViewModel}"
+             Width="520">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsEnabled="{Binding IsIdle}">
+                <Button Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}" MinWidth="110" Margin="0,0,8,0" />
+                <Button Content="Anuluj" IsCancel="True" MinWidth="110" ToolTip="Zamknij bez zapisywania (Esc)" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource DialogBody}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
+                    <TextBlock Text="Pola oznaczone * są wymagane." Style="{StaticResource HelperText}" Margin="0" />
+
+                    <Label Content="_Rodzaj nieobecności *" Target="{Binding ElementName=KindBox}" Padding="0" Margin="0,16,0,4" />
+                    <ComboBox x:Name="KindBox" ItemsSource="{x:Static abs:EmployeeAbsencesViewModel.Kinds}" SelectedItem="{Binding EditKind}"
+                              DisplayMemberPath="Name" HorizontalAlignment="Stretch" />
+
+                    <!-- First and last day side by side; both days count. -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <Label Content="_Od *" Target="{Binding ElementName=StartBox}" Padding="0" Margin="0,16,0,4" />
+                            <DatePicker x:Name="StartBox" SelectedDate="{Binding EditStartDate}"
+                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=StartBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <Label Content="_Do (włącznie) *" Target="{Binding ElementName=EndBox}" Padding="0" Margin="0,16,0,4" />
+                            <DatePicker x:Name="EndBox" SelectedDate="{Binding EditEndDate}"
+                                        AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=EndBox}" Style="{StaticResource FieldError}" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="Zwolnienie lekarskie wpisz z datami z e-ZLA; liczą się wszystkie dni kalendarzowe." Style="{StaticResource HelperText}" TextWrapping="Wrap" />
+
+                    <Label Content="_Uwagi" Target="{Binding ElementName=NoteBox}" Padding="0" Margin="0,16,0,4" />
+                    <TextBox x:Name="NoteBox" Text="{Binding EditNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="64" MaxLength="{x:Static abs:AbsenceDialogViewModel.NoteMaxLength}" VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="Np. numer zwolnienia lekarskiego albo cel delegacji." Style="{StaticResource HelperText}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NoteBox}" Style="{StaticResource FieldError}" />
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</UserControl>

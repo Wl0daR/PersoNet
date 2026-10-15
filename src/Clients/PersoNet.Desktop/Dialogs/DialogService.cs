@@ -1,4 +1,5 @@
 using System.Windows;
+using PersoNet.Desktop.Presentation.Absences;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Company;
@@ -28,6 +29,7 @@ public sealed class DialogService : IDialogService
     {
         EmployeeCardViewModel => new EmployeeCardView(),
         ContractDialogViewModel => new ContractDialogView(),
+        AbsenceDialogViewModel => new AbsenceDialogView(),
         LeaveFormViewModel => new LeaveFormView(),
         LeaveDecisionViewModel => new LeaveDecisionView(),
         EntitlementDialogViewModel => new EntitlementDialogView(),

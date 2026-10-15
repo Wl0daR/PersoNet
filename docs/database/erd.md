@@ -39,6 +39,7 @@ erDiagram
     employees ||--o{ contracts : "employee_id"
     employees ||--o{ leave_entitlements : "employee_id"
     employees ||--o{ leave_requests : "employee_id"
+    employees ||--o{ absences : "employee_id"
     employees ||--o{ work_days : "employee_id"
     employees ||--o{ clock_events : "employee_id"
     employees ||--o{ role_assignments : "employee_id"
@@ -126,6 +127,17 @@ erDiagram
         int year "UK (tenant_id, employee_id, year)"
         int days "wymiar roczny w dniach"
         int carried_over_days "urlop zaległy"
+    }
+
+    absences {
+        uuid id PK
+        uuid tenant_id FK
+        uuid employee_id FK
+        varchar(30) type "enum AbsenceType (Absences)"
+        date start_date "NOT NULL"
+        date end_date "NOT NULL, włącznie"
+        varchar(500) note
+        timestamptz created_at
     }
 
     leave_requests {
@@ -225,7 +237,8 @@ erDiagram
 | `employees` | Kadry | Kartoteka pracownika; dział, stanowisko i przełożony są przypisane tutaj. |
 | `contracts` | Kadry | Umowy pracownika (historia, jeden pracownik ma wiele umów). |
 | `leave_entitlements` | Urlopy | Roczny wymiar urlopu pracownika (dni + zaległe). 1 dzień = 8 h. |
-| `leave_requests` | Urlopy | Wnioski urlopowe i ich decyzje. |
+| `leave_requests` | Urlopy | Wnioski urlopowe i ich decyzje. Historia z poprzedniego systemu trafia tu jako zatwierdzone wnioski (uzasadnienie „Import z poprzedniego systemu”). |
+| `absences` | Nieobecności | Rejestr nieobecności, które nie są urlopem: L4 i zasiłki, nieobecność nieusprawiedliwiona i inna, delegacje, szkolenia, targi, badania, praca zdalna. Bez akceptacji, nie zużywa wymiaru. |
 | `work_days` | Czas pracy | Dzień pracy pracownika (wejście, wyjście, przerwa, nieobecność) – wynik ręczny albo wyliczony z odbić. |
 | `clock_events` | Czas pracy | Surowe odbicia RCP (wejście/wyjście), z ręki, z pliku lub z integracji (Roger PR Master). |
 | `roles` | Uprawnienia | Role z listą kodów uprawnień. |
@@ -248,7 +261,8 @@ erDiagram
 | Kolumna | Wartości |
 |---|---|
 | `contracts.type` (ContractType) | `Probation` (na okres próbny), `FixedTerm` (na czas określony), `Indefinite` (na czas nieokreślony), `Mandate` (zlecenie), `SpecificWork` (o dzieło), `B2B` |
-| `leave_requests.type` (LeaveType) | `Annual` (wypoczynkowy), `OnDemand` (na żądanie, max 4 dni), `Occasional` (okolicznościowy), `Unpaid` (bezpłatny), `ChildCare` (opieka nad dzieckiem, art. 188 KP), `ForceMajeure` (siła wyższa, art. 148¹ KP) |
+| `leave_requests.type` (LeaveType) | `Annual` (wypoczynkowy), `OnDemand` (na żądanie, max 4 dni), `Occasional` (okolicznościowy), `Unpaid` (bezpłatny), `ChildCare` (opieka nad dzieckiem, art. 188 KP), `ForceMajeure` (siła wyższa, art. 148¹ KP), `Maternity` (macierzyński), `Paternity` (ojcowski), `Parental` (rodzicielski), `ChildRearing` (wychowawczy), `OvertimeTimeOff` (odbiór nadgodzin), `HolidayTimeOff` (odbiór dnia wolnego za święto), `PaidRelease` (zwolnienie płatne) |
+| `absences.type` (Absences.AbsenceType) | `Sickness` (L4), `ChildCareAllowance` (opieka nad chorym dzieckiem), `FamilyCareAllowance` (opieka nad innym członkiem rodziny), `Rehabilitation` (świadczenie rehabilitacyjne), `WorkAccident` (wypadek przy pracy), `Unexcused` (nieusprawiedliwiona), `OtherExcused` (inna usprawiedliwiona), `BusinessTrip` (delegacja), `Training` (szkolenie), `MedicalExam` (badania), `TradeFair` (targi), `RemoteWork` (praca zdalna) |
 | `leave_requests.status` (LeaveStatus) | `Pending`, `Approved`, `Rejected`, `Cancelled` |
 | `company_settings.work_time_source` (WorkTimeSource) | `Manual`, `FileImport`, `RogerPrMaster`, `Api` |
 | `work_days.absence` (AbsenceType) | `Sickness` (L4), `CareAllowance` (zasiłek opiekuńczy), `Excused` (usprawiedliwiona), `Unexcused` (nieusprawiedliwiona) |

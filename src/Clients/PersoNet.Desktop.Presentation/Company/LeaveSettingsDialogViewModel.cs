@@ -52,6 +52,10 @@ public sealed partial class LeaveSettingsDialogViewModel : DialogViewModel
         LeaveKind.Unpaid => "Na pisemny wniosek pracownika.",
         LeaveKind.ChildCare => "2 dni lub 16 godzin w roku (art. 188 KP).",
         LeaveKind.ForceMajeure => "2 dni lub 16 godzin w roku (art. 148¹ KP).",
+        LeaveKind.Maternity or LeaveKind.Paternity or LeaveKind.Parental or LeaveKind.ChildRearing => "Na wniosek z dokumentami; zwykle przyjmuje go kadry.",
+        LeaveKind.OvertimeTimeOff => "Czas wolny za nadgodziny (art. 151² KP).",
+        LeaveKind.HolidayTimeOff => "Dzień wolny za święto przypadające w sobotę.",
+        LeaveKind.PaidRelease => "Inne zwolnienie od pracy z zachowaniem wynagrodzenia.",
         _ => string.Empty,
     };
 }

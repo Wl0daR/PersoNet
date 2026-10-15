@@ -46,7 +46,7 @@ internal sealed class LeaveCalendarMonth
     public int AwayOn(DateOnly date) =>
         Rows.Count(row => row.Cells.Any(cell => cell.Day.Date == date && cell.Entry is { State: LeaveState.Approved }));
 
-    /// <summary>Short mark of a kind of leave, so the grid does not rely on colour: W, Ż, O, B, D, S.</summary>
+    /// <summary>Short mark of a kind of leave, so the grid does not rely on colour: W, Ż, O, B, D, S and the rest.</summary>
     public static string Mark(LeaveKind kind) => kind switch
     {
         LeaveKind.Annual => "W",
@@ -55,6 +55,13 @@ internal sealed class LeaveCalendarMonth
         LeaveKind.Unpaid => "B",
         LeaveKind.ChildCare => "D",
         LeaveKind.ForceMajeure => "S",
+        LeaveKind.Maternity => "M",
+        LeaveKind.Paternity => "T",
+        LeaveKind.Parental => "R",
+        LeaveKind.ChildRearing => "Y",
+        LeaveKind.OvertimeTimeOff => "N",
+        LeaveKind.HolidayTimeOff => "Ś",
+        LeaveKind.PaidRelease => "P",
         _ => "?",
     };
 

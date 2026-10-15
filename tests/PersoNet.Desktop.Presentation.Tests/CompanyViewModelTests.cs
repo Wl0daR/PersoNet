@@ -89,6 +89,6 @@ public sealed class CompanyViewModelTests
 
         _api.Company.PortalLeaveKinds.ShouldBe([LeaveKind.Annual, LeaveKind.OnDemand]);
         screen.LeaveKinds.Where(row => row.InPortal).Select(row => row.Name).ShouldBe(["Urlop wypoczynkowy", "Urlop na żądanie"]);
-        screen.PortalSummary.ShouldBe("W portalu: 2 z 6 rodzajów. Pozostałe wpisuje dział kadr.");
+        screen.PortalSummary.ShouldBe("W portalu: 2 z 13 rodzajów. Pozostałe wpisuje dział kadr.");
     }
 }

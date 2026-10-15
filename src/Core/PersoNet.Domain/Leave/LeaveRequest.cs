@@ -2,7 +2,7 @@ using PersoNet.Domain.Abstractions;
 
 namespace PersoNet.Domain.Leave;
 
-/// <summary>Kinds of leave HR records. Sick leave (L4) is not a request and is not modelled here.</summary>
+/// <summary>Kinds of leave HR records. Sick leave (L4) is not a request; it is an <c>Absence</c>.</summary>
 public enum LeaveType
 {
     /// <summary>Urlop wypoczynkowy, taken from the yearly entitlement.</summary>
@@ -22,6 +22,27 @@ public enum LeaveType
 
     /// <summary>Zwolnienie z powodu siły wyższej (art. 148¹ KP): 2 days or 16 hours a year, paid at half rate.</summary>
     ForceMajeure = 6,
+
+    /// <summary>Urlop macierzyński (art. 180 KP).</summary>
+    Maternity = 7,
+
+    /// <summary>Urlop ojcowski (art. 182³ KP).</summary>
+    Paternity = 8,
+
+    /// <summary>Urlop rodzicielski (art. 182¹ᵃ KP).</summary>
+    Parental = 9,
+
+    /// <summary>Urlop wychowawczy (art. 186 KP).</summary>
+    ChildRearing = 10,
+
+    /// <summary>Czas wolny za pracę w godzinach nadliczbowych (art. 151² KP).</summary>
+    OvertimeTimeOff = 11,
+
+    /// <summary>Dzień wolny za święto przypadające w sobotę (art. 130 § 2 KP).</summary>
+    HolidayTimeOff = 12,
+
+    /// <summary>Zwolnienie od pracy z zachowaniem prawa do wynagrodzenia (other paid time off agreed with HR).</summary>
+    PaidRelease = 13,
 }
 
 public enum LeaveStatus

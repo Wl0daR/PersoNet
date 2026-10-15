@@ -69,7 +69,12 @@
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
 
                 <Border DockPanel.Dock="Top" Style="{StaticResource BusyArea}" Margin="0,0,0,8">
-                    <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa importowanie" />
+                    <StackPanel>
+                        <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" AutomationProperties.Name="Trwa importowanie" />
+                        <!-- The leave history has tens of thousands of rows, so a long import says how far it has got. -->
+                        <TextBlock Text="{Binding Progress}" Style="{StaticResource SecondaryText}" Margin="0,4,0,0" AutomationProperties.LiveSetting="Polite"
+                                   Visibility="{Binding Progress, Converter={StaticResource CollapsedWhenEmpty}}" />
+                    </StackPanel>
                 </Border>
 
                 <DataGrid ItemsSource="{Binding Rows}" AutomationProperties.Name="Pracownicy w plikach" AutoGenerateColumns="False" IsReadOnly="True"
