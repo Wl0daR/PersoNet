@@ -7,9 +7,11 @@ using CommunityToolkit.Mvvm.Input;
 using PersoNet.ApiClient;
 using PersoNet.ApiClient.Absences;
 using PersoNet.ApiClient.Employees;
+using PersoNet.ApiClient.Safety;
 using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Absences;
 using PersoNet.Contracts.Employees;
+using PersoNet.Contracts.Safety;
 using PersoNet.Contracts.WorkTime;
 using PersoNet.Desktop.Presentation.Common;
 
@@ -19,10 +21,12 @@ namespace PersoNet.Desktop.Presentation.Employees.Import;
 /// "Import pracowników": HR picks the .sql files of the earlier system, chooses the company when the files hold more than
 /// one, sees every employee with their department, position and any problem, and only then imports: departments and
 /// positions first, then the employees with their contracts, and last their leave history (leave, absences and yearly
-/// entitlements) and attendance (days worked and the absences marked in them) when the files have them. The files are
+/// entitlements), medical examinations and trainings, and attendance (days worked and the absences marked in them) when
+/// the files have them. The files are
 /// read on this computer; only what is imported is sent to the server.
 /// </summary>
-public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAbsencesApi absences, IWorkTimeApi workTime, IFileService files) : DialogViewModel
+public sealed partial class EmployeeImportDialogViewModel(
+    IEmployeesApi api, IAbsencesApi absences, IWorkTimeApi workTime, ISafetyApi safety, IFileService files) : DialogViewModel
 {
     /// <summary>Problems of the leave history listed in the result; the rest are only counted.</summary>
     public const int ProblemsShown = 5;
@@ -37,6 +41,8 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
     private EmployeeImportPlan? _plan;
     private AttendanceSqlImport? _attendance;
     private AttendancePlan _attendancePlan = AttendancePlan.None;
+    private SafetySqlImport? _safety;
+    private SafetyPlan _safetyPlan = SafetyPlan.None;
 
     public override string Title => "Import pracowników z bazy SQL";
 
@@ -128,6 +134,8 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
         _plan = null;
         _attendance = null;
         _attendancePlan = AttendancePlan.None;
+        _safety = null;
+        _safetyPlan = SafetyPlan.None;
         FileName = string.Join(", ", paths.Select(Path.GetFileName));
     }
 
@@ -135,6 +143,7 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
     private static Loaded Read(IReadOnlyList<string> paths)
     {
         var dumps = new List<string>();
+        var safetyDumps = new List<string>();
         AttendanceSqlImport? attendance = null;
         try
         {
@@ -147,17 +156,28 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
                     using var reader = new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
                     attendance = AttendanceSqlImport.Read(reader);
                 }
-                else if (EmployeeSqlImport.Tables.Any(table => Declares(head, table)))
+                else
                 {
-                    dumps.Add(File.ReadAllText(path));
+                    var employees = EmployeeSqlImport.Tables.Any(table => Declares(head, table));
+                    var safety = SafetySqlImport.Tables.Any(table => Declares(head, table));
+                    var text = employees || safety ? File.ReadAllText(path) : null;
+                    if (employees)
+                    {
+                        dumps.Add(text!);
+                    }
+
+                    if (safety)
+                    {
+                        safetyDumps.Add(text!);
+                    }
                 }
             }
 
-            return new Loaded(EmployeeSqlImport.Read(dumps), attendance, null);
+            return new Loaded(EmployeeSqlImport.Read(dumps), attendance, safetyDumps.Count > 0 ? SafetySqlImport.Read(safetyDumps) : null, null);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or FormatException)
         {
-            return new Loaded(null, null, exception is FormatException ? exception.Message : $"Nie udało się odczytać pliku: {exception.Message}");
+            return new Loaded(null, null, null, exception is FormatException ? exception.Message : $"Nie udało się odczytać pliku: {exception.Message}");
         }
     }
 
@@ -171,6 +191,7 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
 
         _import = loaded.Import!;
         _attendance = loaded.Attendance;
+        _safety = loaded.Safety;
         if (!_import.HasEmployees)
         {
             ErrorMessage = $"W wybranych plikach nie ma danych tabeli {EmployeeSqlImport.Table} (poleceń INSERT ani REPLACE). Zaznacz także plik z tą tabelą.";
@@ -196,6 +217,7 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
         _plan = _import.Plan(value);
         _attendancePlan = _attendance?.Plan(_plan.Employees.Select(entry => entry.Number.Trim().ToUpperInvariant()).ToHashSet(StringComparer.Ordinal))
             ?? AttendancePlan.None;
+        _safetyPlan = _safety?.Plan(_plan) ?? SafetyPlan.None;
         ResultText = null;
         Rows.Clear();
         foreach (var entry in _plan.Employees)
@@ -241,7 +263,19 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
             }
         }
 
-        var tables = _attendance is null ? _import.FoundTables : [.. _import.FoundTables, AttendanceSqlImport.Table];
+        var records = _safetyPlan;
+        if (_safety is not null)
+        {
+            details.Add($"lista szkoleń: {records.Courses.Count}, ukończone szkolenia: {records.Trainings.Count}, badania lekarskie: {records.Exams.Count}");
+            if (records.Problems.Count > 0)
+            {
+                details.Add($"wiersze badań i szkoleń z błędami: {records.Problems.Count}");
+            }
+        }
+
+        IEnumerable<string> tables = _import.FoundTables;
+        tables = _safety is null ? tables : tables.Concat(_safety.FoundTables);
+        tables = _attendance is null ? tables : tables.Append(AttendanceSqlImport.Table);
         Details = string.Create(CultureInfo.CurrentCulture, $"Wczytane tabele: {string.Join(", ", tables)}. Do zaimportowania {string.Join(", ", details)}.");
     }
 
@@ -298,6 +332,11 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
             text.AppendLine().AppendLine().Append(await ImportHistoryAsync(plan.LeaveHistory, cancellationToken));
         }
 
+        if (!_safetyPlan.IsEmpty)
+        {
+            text.AppendLine().AppendLine().Append(await ImportSafetyAsync(_safetyPlan, cancellationToken));
+        }
+
         if (!_attendancePlan.IsEmpty)
         {
             text.AppendLine().AppendLine().Append(await ImportAttendanceAsync(_attendancePlan, cancellationToken));
@@ -333,6 +372,37 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
 
         var text = new StringBuilder();
         text.Append(CultureInfo.CurrentCulture, $"Historia: urlopy {leave}, nieobecności {absent}, wymiar roczny (lata pracowników) {entitlements}. Już były w PersoNet: {existing}.");
+        AppendProblems(text, problems);
+        return text.ToString();
+    }
+
+    // The list of trainings first, as the completed trainings are matched to it by name.
+    private async Task<string> ImportSafetyAsync(SafetyPlan plan, CancellationToken cancellationToken)
+    {
+        int courses = 0, trainings = 0, exams = 0, existing = 0, sent = 0;
+        var total = plan.Courses.Count + plan.Trainings.Count + plan.Exams.Count;
+        var problems = new List<ImportLeaveProblem>(plan.Problems);
+        var batches = plan.Courses.Chunk(BatchSize).Select(batch => new ImportSafetyRequest(batch, [], []))
+            .Concat(plan.Trainings.Chunk(BatchSize).Select(batch => new ImportSafetyRequest([], batch, [])))
+            .Concat(plan.Exams.Chunk(BatchSize).Select(batch => new ImportSafetyRequest([], [], batch)));
+
+        foreach (var batch in batches)
+        {
+            Progress = string.Create(CultureInfo.CurrentCulture, $"Badania i szkolenia: {sent:N0} z {total:N0} wierszy…");
+            var result = await safety.ImportAsync(batch, cancellationToken);
+            sent += batch.Courses.Count + batch.Trainings.Count + batch.Exams.Count;
+            courses += result.CoursesAdded;
+            trainings += result.TrainingsAdded;
+            exams += result.ExamsAdded;
+            existing += result.Existing;
+            problems.AddRange(result.Problems);
+            HasChanges |= result.CoursesAdded + result.TrainingsAdded + result.ExamsAdded > 0;
+        }
+
+        Progress = null;
+
+        var text = new StringBuilder();
+        text.Append(CultureInfo.CurrentCulture, $"Badania i szkolenia: lista szkoleń {courses}, ukończone szkolenia {trainings}, badania lekarskie {exams}. Już były w PersoNet: {existing}.");
         AppendProblems(text, problems);
         return text.ToString();
     }
@@ -386,7 +456,8 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
         text.Append(CultureInfo.CurrentCulture, $" Nie zaimportowano wierszy: {problems.Count}, np.:");
         foreach (var problem in problems.OrderBy(problem => problem.Line).Take(ProblemsShown))
         {
-            text.AppendLine().Append(CultureInfo.CurrentCulture, $"• wiersz {problem.Line}, pracownik {problem.Number}: {problem.Message}");
+            var who = string.IsNullOrEmpty(problem.Number) ? string.Empty : $", pracownik {problem.Number}";
+            text.AppendLine().Append(CultureInfo.CurrentCulture, $"• wiersz {problem.Line}{who}: {problem.Message}");
         }
     }
 
@@ -407,7 +478,7 @@ public sealed partial class EmployeeImportDialogViewModel(IEmployeesApi api, IAb
     private static bool Declares(string head, string table) =>
         Regex.IsMatch(head, $@"(CREATE\s+TABLE|INSERT|REPLACE)[^;(]*?`?{Regex.Escape(table)}`?\s*[(\s]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    private sealed record Loaded(EmployeeSqlImport? Import, AttendanceSqlImport? Attendance, string? Error);
+    private sealed record Loaded(EmployeeSqlImport? Import, AttendanceSqlImport? Attendance, SafetySqlImport? Safety, string? Error);
 }
 
 /// <summary>One employee of the file in the preview.</summary>

@@ -6,6 +6,7 @@ using PersoNet.Domain.Company;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
+using PersoNet.Domain.Safety;
 using PersoNet.Domain.Tenants;
 using PersoNet.Domain.WorkTime;
 
@@ -50,6 +51,15 @@ public interface IAppDbContext
 
     /// <summary>Sickness, unexcused absences and work away from the workplace, as periods.</summary>
     DbSet<Absence> Absences { get; }
+
+    /// <summary>The company's list of trainings.</summary>
+    DbSet<TrainingCourse> TrainingCourses { get; }
+
+    /// <summary>Trainings employees completed.</summary>
+    DbSet<EmployeeTraining> EmployeeTrainings { get; }
+
+    /// <summary>Occupational medical examinations of employees.</summary>
+    DbSet<MedicalExam> MedicalExams { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

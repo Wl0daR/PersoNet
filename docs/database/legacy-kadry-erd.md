@@ -296,10 +296,10 @@ erDiagram
 | `urlopy_typy` | InnoDB | Słownik rodzajów nieobecności (`nazwa_skrot`: U, UB, UM, UOK, UOP, UNŻ, UON, UOŚ, HO, UOJ, URODZ, UWYCH, SW, R, CH, CHOPD, CHOP, ZRH, CHW, NN, DEL, SZK, BAD, IN, TAR, ZP). | `LeaveType` / `Absences.AbsenceType` po skrócie |
 | `zarzadzanie_godzinami`, `rozliczone_dni` | ? | Nadgodziny i godziny urlopu do odbioru oraz ich rozliczenie (brak w zrzucie). | brak |
 | `accidents`, `accident_absences`, `severity_levels` | InnoDB | Wypadki przy pracy i powiązane nieobecności. | brak |
-| `badania` | MyISAM | Badania lekarskie (data, ważność). | brak |
-| `szkolenia_definicje`, `szkolenia_prac`, `szkolenia_rel`, `szkolenia` | MyISAM | Szkolenia: definicje, odbyte szkolenia pracowników, przypisanie do wydziałów/grup. | brak |
+| `badania` | MyISAM | Badania lekarskie (data, ważność). | `medical_exams` (rodzaj nieznany, więc „okresowe”, chyba że uwaga mówi „wstępne”/„kontrolne”; pusta uwaga `Memo1` pomijana) |
+| `szkolenia_definicje`, `szkolenia_prac`, `szkolenia_rel`, `szkolenia` | MyISAM | Szkolenia: definicje, odbyte szkolenia pracowników, przypisanie do wydziałów/grup. | `training_courses` (`waznosc` w dniach → miesiące, tylko gdy `czy_wygasa = 1`; `czy_obowiazkowe` → obowiązkowe; działy z `szkolenia_rel`: grupy po nazwie działu, a bez grup cały wydział), `employee_trainings` (z `szkolenia_prac`; `szkolenia` to starsza kopia, pomijana) |
 | `EmployeeTraining` | InnoDB | Nowsza tabela szkoleń, w zrzucie pusta. | brak |
-| `grupy` | MyISAM | Grupy produkcyjne z parametrami premii; nazwy pokrywają się z działami. | brak |
+| `grupy` | MyISAM | Grupy produkcyjne z parametrami premii; nazwy pokrywają się z działami. | tylko do przypisania szkoleń do działów (premie pominięte) |
 
 Tabele pomocnicze używane przez procedury, ale nieobecne w zrzucie: `UstawowoWolne` (dni ustawowo wolne, kolumna `data`),
 `liczby` (generator liczb `n`), `pracownik` (najstarsza kartoteka).

@@ -8,6 +8,7 @@ using PersoNet.Application.Employees;
 using PersoNet.Application.Leave;
 using PersoNet.Application.Organization;
 using PersoNet.Application.Reports;
+using PersoNet.Application.Safety;
 using PersoNet.Application.SelfService;
 using PersoNet.Application.WorkTime;
 
@@ -33,6 +34,9 @@ public static class DependencyInjection
         services.AddScoped<LeaveCalendarService>();
         services.AddScoped<LeaveHistoryImportService>();
         services.AddScoped<AbsenceService>();
+        services.AddScoped<TrainingCourseService>();
+        services.AddScoped<EmployeeSafetyService>();
+        services.AddScoped<SafetyImportService>();
         services.AddScoped<PortalService>();
         services.AddScoped<AccountService>();
         services.AddScoped<AuditQueries>();

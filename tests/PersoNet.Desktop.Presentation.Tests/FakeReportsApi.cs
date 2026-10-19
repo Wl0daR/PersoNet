@@ -12,6 +12,8 @@ internal sealed class FakeReportsApi : IReportsApi
 
     public ContractsEndingReport? ContractsEnding { get; set; }
 
+    public SafetyRenewalReport? SafetyRenewals { get; set; }
+
     public List<string> Calls { get; } = [];
 
     public Task<HeadcountReport> GetHeadcountAsync(DateOnly day, CancellationToken cancellationToken)
@@ -30,5 +32,11 @@ internal sealed class FakeReportsApi : IReportsApi
     {
         Calls.Add($"contracts {from:yyyy-MM-dd} {days}");
         return Task.FromResult((ContractsEnding ?? new ContractsEndingReport(from, from.AddDays(days - 1), [])) with { From = from, To = from.AddDays(days - 1) });
+    }
+
+    public Task<SafetyRenewalReport> GetSafetyRenewalsAsync(int days, CancellationToken cancellationToken)
+    {
+        Calls.Add($"safety {days}");
+        return Task.FromResult(SafetyRenewals ?? new SafetyRenewalReport(DateOnly.MinValue, DateOnly.MinValue.AddDays(days - 1), []));
     }
 }

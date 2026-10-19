@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PersoNet.Application.Abstractions;
 using PersoNet.Application.Common;
+using PersoNet.Application.Safety;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Reports;
 using PersoNet.Domain.Employees;
@@ -207,6 +208,85 @@ public sealed class ReportService(IAppDbContext db, TimeProvider time)
             .ToList();
 
         return new ContractsEndingReport(start, end, rows);
+    }
+
+    /// <summary>
+    /// Medical certificates and mandatory trainings of the people employed today that are missing, have expired or expire
+    /// within <paramref name="days"/> days. Only the latest examination and the latest training of each course count.
+    /// </summary>
+    public async Task<Result<SafetyRenewalReport>> GetSafetyRenewalsAsync(int? days, CancellationToken cancellationToken)
+    {
+        var length = days ?? DefaultDaysAhead;
+        if (length is < 1 or > MaxDaysAhead)
+        {
+            return ReportErrors.DaysOutOfRange;
+        }
+
+        var today = Today;
+        var end = today.AddDays(length - 1);
+        var people = await EmployedBetween(today, today)
+            .Select(employee => new
+            {
+                employee.Id,
+                employee.Number,
+                employee.FirstName,
+                employee.LastName,
+                employee.DepartmentId,
+                Department = db.Departments.Where(d => d.Id == employee.DepartmentId).Select(d => d.Name).FirstOrDefault(),
+            })
+            .ToListAsync(cancellationToken);
+        var ids = people.Select(person => person.Id).ToList();
+
+        var exams = (await db.MedicalExams.AsNoTracking()
+                .Where(exam => ids.Contains(exam.EmployeeId))
+                .Select(exam => new { exam.EmployeeId, exam.ExamDate, exam.ValidUntil, exam.CreatedAt })
+                .ToListAsync(cancellationToken))
+            .GroupBy(exam => exam.EmployeeId)
+            .ToDictionary(group => group.Key, group => group.OrderByDescending(exam => exam.ExamDate).ThenByDescending(exam => exam.CreatedAt).First());
+        var trainings = (await db.EmployeeTrainings.AsNoTracking()
+                .Where(training => ids.Contains(training.EmployeeId))
+                .Select(training => new { training.EmployeeId, training.CourseId, training.CompletedOn, training.ValidUntil, training.CreatedAt })
+                .ToListAsync(cancellationToken))
+            .GroupBy(training => (training.EmployeeId, training.CourseId))
+            .ToDictionary(group => group.Key, group => group.OrderByDescending(training => training.CompletedOn).ThenByDescending(training => training.CreatedAt).First());
+        var courses = await db.TrainingCourses.AsNoTracking().Where(course => course.IsActive && course.IsMandatory).ToListAsync(cancellationToken);
+        var departments = await DepartmentTree.LoadAsync(db, cancellationToken);
+
+        SafetyRenewalState? StateOf(DateOnly? validUntil) =>
+            validUntil is not { } until ? null : until < today ? SafetyRenewalState.Expired : until <= end ? SafetyRenewalState.Expiring : null;
+
+        var rows = new List<SafetyRenewalRow>();
+        foreach (var person in people)
+        {
+            var exam = exams.GetValueOrDefault(person.Id);
+            if ((exam is null ? SafetyRenewalState.Missing : StateOf(exam.ValidUntil)) is { } examState)
+            {
+                rows.Add(new SafetyRenewalRow(
+                    person.Id, person.Number, person.FirstName, person.LastName, person.Department, SafetyItemKind.MedicalExam, null, exam?.ExamDate, exam?.ValidUntil, examState));
+            }
+
+            var chain = departments.WithAncestors(person.DepartmentId);
+            foreach (var course in courses.Where(course => course.IsMandatoryFor(chain)))
+            {
+                var training = trainings.GetValueOrDefault((person.Id, course.Id));
+                if ((training is null ? SafetyRenewalState.Missing : StateOf(training.ValidUntil)) is { } trainingState)
+                {
+                    rows.Add(new SafetyRenewalRow(
+                        person.Id, person.Number, person.FirstName, person.LastName, person.Department, SafetyItemKind.Training, course.Name,
+                        training?.CompletedOn, training?.ValidUntil, trainingState));
+                }
+            }
+        }
+
+        // Expired first, then what runs out soonest, then what was never done.
+        var ordered = rows
+            .OrderBy(row => row.State switch { SafetyRenewalState.Expired => 0, SafetyRenewalState.Expiring => 1, _ => 2 })
+            .ThenBy(row => row.ValidUntil)
+            .ThenBy(row => row.LastName, StringComparer.CurrentCulture).ThenBy(row => row.FirstName, StringComparer.CurrentCulture)
+            .ThenBy(row => row.Item).ThenBy(row => row.Name, StringComparer.CurrentCulture)
+            .ToList();
+
+        return new SafetyRenewalReport(today, end, ordered);
     }
 
     private DateOnly Today => DateOnly.FromDateTime(time.GetLocalNow().DateTime);

@@ -209,6 +209,10 @@
                              Visibility="{Binding CanSeeWorkTime, Converter={StaticResource BoolToVisibility}}">
                         <local:EmployeeWorkTimeView DataContext="{Binding WorkTime}" />
                     </TabItem>
+                    <TabItem Header="_Badania i szkolenia" Style="{StaticResource SavedCardTab}"
+                             Visibility="{Binding CanSeeSafety, Converter={StaticResource BoolToVisibility}}">
+                        <local:EmployeeSafetyView DataContext="{Binding Safety}" />
+                    </TabItem>
                     <TabItem Header="_Konto" Style="{StaticResource SavedCardTab}"
                              Visibility="{Binding CanSeeAccessTab, Converter={StaticResource BoolToVisibility}}">
                         <!-- The portal account and the roles: what the person may sign in to, and what they may do there. -->

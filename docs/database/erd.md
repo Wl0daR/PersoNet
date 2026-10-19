@@ -42,6 +42,10 @@ erDiagram
     employees ||--o{ absences : "employee_id"
     employees ||--o{ work_days : "employee_id"
     employees ||--o{ clock_events : "employee_id"
+    employees ||--o{ medical_exams : "employee_id"
+    employees ||--o{ employee_trainings : "employee_id"
+    training_courses ||--o{ employee_trainings : "course_id"
+    departments |o..o{ training_courses : "department_ids (tablica, bez FK)"
     employees ||--o{ role_assignments : "employee_id"
     roles ||--o{ role_assignments : "role_id"
     employees |o..o{ audit_log : "employee_id (bez FK)"
@@ -158,6 +162,40 @@ erDiagram
         varchar(500) decision_note "np. powód odrzucenia"
     }
 
+    training_courses {
+        uuid id PK
+        uuid tenant_id FK
+        varchar(200) name
+        varchar(200) normalized_name "UK (tenant_id, normalized_name)"
+        int validity_months "NULL = bezterminowo"
+        boolean is_mandatory
+        uuid[] department_ids "puste = wszyscy"
+        varchar(1000) description
+        boolean is_active
+    }
+
+    employee_trainings {
+        uuid id PK
+        uuid tenant_id FK
+        uuid employee_id FK
+        uuid course_id FK
+        date completed_on
+        date valid_until "NULL = bezterminowo"
+        varchar(500) note
+        timestamptz created_at
+    }
+
+    medical_exams {
+        uuid id PK
+        uuid tenant_id FK
+        uuid employee_id FK
+        varchar(20) type "enum MedicalExamType"
+        date exam_date
+        date valid_until "z orzeczenia lekarza"
+        varchar(500) note
+        timestamptz created_at
+    }
+
     work_days {
         uuid id PK
         uuid tenant_id FK
@@ -241,6 +279,9 @@ erDiagram
 | `absences` | Nieobecności | Rejestr nieobecności, które nie są urlopem: L4 i zasiłki, nieobecność nieusprawiedliwiona i inna, delegacje, szkolenia, targi, badania, praca zdalna. Bez akceptacji, nie zużywa wymiaru. |
 | `work_days` | Czas pracy | Dzień pracy pracownika (wejście, wyjście, przerwa, nieobecność) – wynik ręczny albo wyliczony z odbić. |
 | `clock_events` | Czas pracy | Surowe odbicia RCP (wejście/wyjście), z ręki, z pliku lub z integracji (Roger PR Master). |
+| `training_courses` | BHP | Słownik szkoleń: co ile miesięcy się je powtarza i w których działach (z podległymi) jest obowiązkowe. |
+| `employee_trainings` | BHP | Szkolenia ukończone przez pracownika z datą ważności; najnowsze danego szkolenia decyduje. |
+| `medical_exams` | BHP | Badania lekarskie medycyny pracy (wstępne, okresowe, kontrolne) z ważnością orzeczenia; najnowsze decyduje. |
 | `roles` | Uprawnienia | Role z listą kodów uprawnień. |
 | `role_assignments` | Uprawnienia | Przypisanie ról pracownikom (N:M employees ↔ roles). |
 | `audit_log` | Audyt | Historia zmian encji (kto, kiedy, co) – zapisywana automatycznie przy `SaveChanges`. |
@@ -268,10 +309,11 @@ erDiagram
 | `work_days.absence` (AbsenceType) | `Sickness` (L4), `CareAllowance` (zasiłek opiekuńczy), `Excused` (usprawiedliwiona), `Unexcused` (nieusprawiedliwiona) |
 | `work_days.origin` (WorkDayOrigin) | `Manual`, `Clock` |
 | `work_days.problem` (ClockProblem) | `None`, `MissingOut`, `MissingIn`, `TooLong` |
+| `medical_exams.type` (MedicalExamType) | `Initial` (wstępne), `Periodic` (okresowe), `Control` (kontrolne) |
 | `clock_events.direction` (ClockDirection) | `In`, `Out` |
 | `clock_events.source` (ClockEventSource) | `Manual`, `File`, `Integration` |
 | `audit_log.action` (AuditAction) | `Created`, `Changed`, `Deleted` |
-| `roles.permissions` (kody) | `organization.manage`, `employees.read`, `employees.manage`, `leave.read`, `leave.manage`, `accounts.manage`, `audit.read`, `roles.manage`, `settings.manage`, `reports.read`, `worktime.read`, `worktime.manage` |
+| `roles.permissions` (kody) | `organization.manage`, `employees.read`, `employees.manage`, `leave.read`, `leave.manage`, `accounts.manage`, `audit.read`, `roles.manage`, `settings.manage`, `reports.read`, `worktime.read`, `worktime.manage`, `safety.read`, `safety.manage` |
 
 ## Indeksy unikalne (reguły biznesowe w bazie)
 
@@ -284,6 +326,7 @@ erDiagram
 - `work_days(tenant_id, employee_id, date)` – jeden dzień pracy na pracownika i datę
 - `clock_events(tenant_id, employee_id, occurred_at, direction)` – ten sam import nie dubluje odbić
 - `role_assignments(employee_id, role_id)`
+- `training_courses(tenant_id, normalized_name)`
 
 Tabele OpenIddict (`OpenIddictApplications`, `OpenIddictAuthorizations`, `OpenIddictScopes`, `OpenIddictTokens`)
 i pozostałe tabele ASP.NET Identity (`AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, …) w schemacie `identity`

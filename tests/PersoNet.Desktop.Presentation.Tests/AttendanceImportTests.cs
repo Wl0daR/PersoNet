@@ -98,7 +98,7 @@ public sealed class AttendanceImportTests : IDisposable
         files.OpenPaths.AddRange([employees, attendance]);
         var absences = new FakeAbsencesApi();
         var workTime = new FakeWorkTimeApi();
-        var viewModel = new EmployeeImportDialogViewModel(new FakeEmployeesApi(), absences, workTime, files);
+        var viewModel = new EmployeeImportDialogViewModel(new FakeEmployeesApi(), absences, workTime, new FakeSafetyApi(), files);
 
         await viewModel.ChooseFileAsync();
         await viewModel.ImportAsync(Cancellation);

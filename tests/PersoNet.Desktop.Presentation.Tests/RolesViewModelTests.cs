@@ -108,7 +108,7 @@ public sealed class RolesViewModelTests
         var employees = new FakeEmployeesApi();
         var jan = employees.Add("P001", "Jan", "Nowak");
         var screen = new EmployeesViewModel(
-            employees, new FakeOrganizationApi(), new FakeLeaveApi(), new FakeAbsencesApi(), _api, new FakeWorkTimeApi(), new FakeFileService(), UserAccessFor.With(UserAccess.EmployeesRead), TimeProvider.System, _dialogs);
+            employees, new FakeOrganizationApi(), new FakeLeaveApi(), new FakeAbsencesApi(), _api, new FakeWorkTimeApi(), new FakeSafetyApi(), new FakeFileService(), UserAccessFor.With(UserAccess.EmployeesRead), TimeProvider.System, _dialogs);
         var card = screen.CreateCard();
 
         await card.LoadAsync(jan.Id, Cancellation);

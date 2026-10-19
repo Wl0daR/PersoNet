@@ -8,6 +8,7 @@ using PersoNet.ApiClient.Access;
 using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
+using PersoNet.ApiClient.Safety;
 using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Organization;
@@ -15,6 +16,7 @@ using PersoNet.Desktop.Presentation.Absences;
 using PersoNet.Desktop.Presentation.Access;
 using PersoNet.Desktop.Presentation.Common;
 using PersoNet.Desktop.Presentation.Leave;
+using PersoNet.Desktop.Presentation.Safety;
 using PersoNet.Desktop.Presentation.WorkTime;
 
 namespace PersoNet.Desktop.Presentation.Employees;
@@ -51,6 +53,7 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         IAbsencesApi absences,
         IAccessApi access,
         IWorkTimeApi workTime,
+        ISafetyApi safety,
         IFileService files,
         UserAccess user,
         TimeProvider time,
@@ -67,10 +70,12 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
         CanSeeHistory = user.Can(UserAccess.AuditRead);
         CanSeeLeave = user.Can(UserAccess.LeaveRead);
         CanSeeWorkTime = user.Can(UserAccess.WorkTimeRead);
+        CanSeeSafety = user.Can(UserAccess.SafetyRead);
         Contracts = new ContractsViewModel(employees, time, dialogs);
         Leave = new EmployeeLeaveViewModel(leave, time, dialogs);
         Absences = new EmployeeAbsencesViewModel(absences, time, dialogs, user.Can(UserAccess.LeaveManage));
         WorkTime = new EmployeeWorkTimeViewModel(workTime, files, time, dialogs, user.Can(UserAccess.WorkTimeManage));
+        Safety = new EmployeeSafetyViewModel(safety, time, dialogs, user.Can(UserAccess.SafetyManage));
         Account = new EmployeeAccountViewModel(employees);
         Roles = new EmployeeRolesViewModel(access);
         History = new EmployeeHistoryViewModel(employees);
@@ -94,6 +99,8 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     public bool CanSeeWorkTime { get; }
 
+    public bool CanSeeSafety { get; }
+
     /// <summary>Roles of the employee, in the "Konto" tab.</summary>
     public EmployeeRolesViewModel Roles { get; }
 
@@ -108,6 +115,9 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
 
     /// <summary>"Czas pracy" tab.</summary>
     public EmployeeWorkTimeViewModel WorkTime { get; }
+
+    /// <summary>"Badania i szkolenia" tab.</summary>
+    public EmployeeSafetyViewModel Safety { get; }
 
     /// <summary>"Konto" tab: access to the employee portal.</summary>
     public EmployeeAccountViewModel Account { get; }
@@ -349,6 +359,11 @@ public sealed partial class EmployeeCardViewModel : DialogViewModel
             if (CanSeeWorkTime)
             {
                 _ = WorkTime.ShowAsync(newValue, CancellationToken.None);
+            }
+
+            if (CanSeeSafety)
+            {
+                _ = Safety.ShowAsync(newValue, CancellationToken.None);
             }
         }
 

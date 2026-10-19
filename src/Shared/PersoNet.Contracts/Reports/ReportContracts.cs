@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using PersoNet.Contracts.Employees;
 
 namespace PersoNet.Contracts.Reports;
@@ -72,3 +73,44 @@ public sealed record ContractEndingRow(
     DateOnly EndDate,
     decimal? WorkingTime,
     bool HasNextContract);
+
+/// <summary>What has to be renewed: the employee's medical certificate or a mandatory training.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<SafetyItemKind>))]
+public enum SafetyItemKind
+{
+    MedicalExam = 1,
+    Training = 2,
+}
+
+/// <summary>Why a row is in the report; sent as text, e.g. "Expired".</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<SafetyRenewalState>))]
+public enum SafetyRenewalState
+{
+    /// <summary>Never done.</summary>
+    Missing = 1,
+
+    /// <summary>Valid until a day already past.</summary>
+    Expired = 2,
+
+    /// <summary>Valid until a day in the period of the report.</summary>
+    Expiring = 3,
+}
+
+/// <summary>
+/// Medical certificates and mandatory trainings of people employed today that are missing, have expired or expire by
+/// <paramref name="To"/>; the most urgent first.
+/// </summary>
+public sealed record SafetyRenewalReport(DateOnly From, DateOnly To, IReadOnlyList<SafetyRenewalRow> Rows);
+
+/// <summary>One thing to renew; <paramref name="Name"/> is the training's name, or null for the medical certificate.</summary>
+public sealed record SafetyRenewalRow(
+    Guid EmployeeId,
+    string Number,
+    string FirstName,
+    string LastName,
+    string? DepartmentName,
+    SafetyItemKind Item,
+    string? Name,
+    DateOnly? LastDone,
+    DateOnly? ValidUntil,
+    SafetyRenewalState State);

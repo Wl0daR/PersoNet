@@ -9,6 +9,7 @@ using PersoNet.Domain.Company;
 using PersoNet.Domain.Employees;
 using PersoNet.Domain.Leave;
 using PersoNet.Domain.Organization;
+using PersoNet.Domain.Safety;
 using PersoNet.Domain.Tenants;
 using PersoNet.Domain.WorkTime;
 using PersoNet.Infrastructure.Audit;
@@ -74,6 +75,12 @@ public class PersoNetDbContext : DbContext, IAppDbContext
     public DbSet<ClockEvent> ClockEvents => Set<ClockEvent>();
 
     public DbSet<Absence> Absences => Set<Absence>();
+
+    public DbSet<TrainingCourse> TrainingCourses => Set<TrainingCourse>();
+
+    public DbSet<EmployeeTraining> EmployeeTrainings => Set<EmployeeTraining>();
+
+    public DbSet<MedicalExam> MedicalExams => Set<MedicalExam>();
 
     // Read by the query filters on every query, so each context instance sees its own tenant.
     private Guid? CurrentTenantId => _tenantContext.TenantId;

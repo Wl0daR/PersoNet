@@ -7,6 +7,7 @@ using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Reports;
+using PersoNet.Desktop.Presentation.Safety;
 using PersoNet.Desktop.Presentation.Shell;
 
 namespace PersoNet.Desktop.Presentation.Tests;
@@ -19,13 +20,13 @@ public sealed class ShellViewModelTests
     private readonly UserAccess _user = new();
 
     private EmployeesViewModel Employees(FakeOrganizationApi organization) =>
-        new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), new FakeAbsencesApi(), _access, new FakeWorkTimeApi(), new FakeFileService(), _user, TimeProvider.System, _dialogs);
+        new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), new FakeAbsencesApi(), _access, new FakeWorkTimeApi(), new FakeSafetyApi(), new FakeFileService(), _user, TimeProvider.System, _dialogs);
 
     private HomeViewModel Home(FakeOrganizationApi organization) =>
         new(new FakeEmployeesApi(), organization, new FakeLeaveApi(), _user, TimeProvider.System);
 
     private ShellViewModel Shell(FakeOrganizationApi api, FakeSignIn? signIn = null) => new(
-        signIn ?? new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new TeamCalendarViewModel(new FakeLeaveApi(), api, TimeProvider.System), Reports(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs),
+        signIn ?? new FakeSignIn(), Home(api), Employees(api), LeaveScreen(), new TeamCalendarViewModel(new FakeLeaveApi(), api, TimeProvider.System), Reports(), new DepartmentsViewModel(api, _dialogs), new PositionsViewModel(api, _dialogs), new TrainingCoursesViewModel(new FakeSafetyApi(), api, _dialogs),
         new RolesViewModel(_access, _dialogs), new CompanyViewModel(new FakeCompanyApi(), _dialogs), _access, _user, _theme);
 
     private static ReportsViewModel Reports()
@@ -35,7 +36,8 @@ public sealed class ShellViewModelTests
         return new ReportsViewModel(
             new HeadcountReportViewModel(reports, files, TimeProvider.System),
             new LeaveUsageReportViewModel(reports, files, TimeProvider.System),
-            new ContractsEndingReportViewModel(reports, files, TimeProvider.System));
+            new ContractsEndingReportViewModel(reports, files, TimeProvider.System),
+            new SafetyRenewalsReportViewModel(reports, files, TimeProvider.System));
     }
 
     private LeaveViewModel LeaveScreen() =>

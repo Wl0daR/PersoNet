@@ -10,4 +10,6 @@ public interface IReportsApi
     Task<LeaveUsageReport> GetLeaveUsageAsync(int year, CancellationToken cancellationToken);
 
     Task<ContractsEndingReport> GetContractsEndingAsync(DateOnly from, int days, CancellationToken cancellationToken);
+
+    Task<SafetyRenewalReport> GetSafetyRenewalsAsync(int days, CancellationToken cancellationToken);
 }
