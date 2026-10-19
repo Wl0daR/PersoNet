@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Pinned above the vulnerable version the Aspire SDK brings in (see Directory.Packages.props). -->
+    <PackageReference Include="MessagePack" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Hosts\PersoNet.Api\PersoNet.Api.csproj" />
     <ProjectReference Include="..\..\Hosts\PersoNet.Identity\PersoNet.Identity.csproj" />
     <ProjectReference Include="..\..\Hosts\PersoNet.Worker\PersoNet.Worker.csproj" />
