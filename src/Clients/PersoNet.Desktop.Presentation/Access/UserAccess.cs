@@ -18,6 +18,8 @@ public sealed class UserAccess
     public const string ReportsRead = "reports.read";
     public const string WorkTimeRead = "worktime.read";
     public const string WorkTimeManage = "worktime.manage";
+    public const string SafetyRead = "safety.read";
+    public const string SafetyManage = "safety.manage";
 
     private HashSet<string> _permissions = [];
 

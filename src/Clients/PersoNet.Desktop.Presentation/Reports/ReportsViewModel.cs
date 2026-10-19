@@ -5,12 +5,17 @@ namespace PersoNet.Desktop.Presentation.Reports;
 /// <summary>"Raporty" screen: the company-wide reports, one per tab, each with its own export to Excel.</summary>
 public sealed partial class ReportsViewModel : ObservableObject
 {
-    public ReportsViewModel(HeadcountReportViewModel headcount, LeaveUsageReportViewModel leaveUsage, ContractsEndingReportViewModel contractsEnding)
+    public ReportsViewModel(
+        HeadcountReportViewModel headcount,
+        LeaveUsageReportViewModel leaveUsage,
+        ContractsEndingReportViewModel contractsEnding,
+        SafetyRenewalsReportViewModel safetyRenewals)
     {
         Headcount = headcount;
         LeaveUsage = leaveUsage;
         ContractsEnding = contractsEnding;
-        Reports = [headcount, leaveUsage, contractsEnding];
+        SafetyRenewals = safetyRenewals;
+        Reports = [headcount, leaveUsage, contractsEnding, safetyRenewals];
     }
 
     public HeadcountReportViewModel Headcount { get; }
@@ -18,6 +23,8 @@ public sealed partial class ReportsViewModel : ObservableObject
     public LeaveUsageReportViewModel LeaveUsage { get; }
 
     public ContractsEndingReportViewModel ContractsEnding { get; }
+
+    public SafetyRenewalsReportViewModel SafetyRenewals { get; }
 
     public IReadOnlyList<ReportViewModel> Reports { get; }
 

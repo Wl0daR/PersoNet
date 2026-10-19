@@ -42,8 +42,14 @@ public static class Permissions
     /// <summary>Type and correct working days, import clock events and set employees' time clock identifiers.</summary>
     public const string WorkTimeManage = "worktime.manage";
 
+    /// <summary>See employees' medical examinations and trainings, and the company's list of trainings.</summary>
+    public const string SafetyRead = "safety.read";
+
+    /// <summary>Record medical examinations and completed trainings, and keep the list of trainings.</summary>
+    public const string SafetyManage = "safety.manage";
+
     public static IReadOnlyList<string> All { get; } =
-        [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage, WorkTimeRead, WorkTimeManage, AccountsManage, AuditRead, RolesManage, SettingsManage, ReportsRead];
+        [OrganizationManage, EmployeesRead, EmployeesManage, LeaveRead, LeaveManage, WorkTimeRead, WorkTimeManage, SafetyRead, SafetyManage, AccountsManage, AuditRead, RolesManage, SettingsManage, ReportsRead];
 
     /// <summary>
     /// Permissions a company role can grant. Managing portal accounts stays with the HR administrator, because the login

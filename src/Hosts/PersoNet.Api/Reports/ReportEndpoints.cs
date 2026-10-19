@@ -23,6 +23,10 @@ internal static class ReportEndpoints
                 (await service.GetContractsEndingAsync(from, days, cancellationToken)).ToOk())
             .WithName("GetContractsEndingReport").WithSummary("Umowy kończące się w okresie (domyślnie 60 dni od dziś)");
 
+        reports.MapGet("/safety-renewals", async (int? days, ReportService service, CancellationToken cancellationToken) =>
+                (await service.GetSafetyRenewalsAsync(days, cancellationToken)).ToOk())
+            .WithName("GetSafetyRenewalsReport").WithSummary("Brakujące, nieważne i kończące się badania lekarskie i szkolenia obowiązkowe (domyślnie 60 dni od dziś)");
+
         return api;
     }
 }

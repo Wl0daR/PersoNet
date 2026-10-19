@@ -16,6 +16,9 @@ internal sealed class ReportsApi(HttpClient http) : IReportsApi
     public Task<ContractsEndingReport> GetContractsEndingAsync(DateOnly from, int days, CancellationToken cancellationToken) =>
         GetAsync<ContractsEndingReport>(string.Create(CultureInfo.InvariantCulture, $"{Reports}/contracts-ending?from={Format(from)}&days={days}"), cancellationToken);
 
+    public Task<SafetyRenewalReport> GetSafetyRenewalsAsync(int days, CancellationToken cancellationToken) =>
+        GetAsync<SafetyRenewalReport>(string.Create(CultureInfo.InvariantCulture, $"{Reports}/safety-renewals?days={days}"), cancellationToken);
+
     private static string Format(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private async Task<T> GetAsync<T>(string uri, CancellationToken cancellationToken)

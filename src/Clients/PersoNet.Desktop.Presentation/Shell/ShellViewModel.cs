@@ -11,6 +11,7 @@ using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Reports;
+using PersoNet.Desktop.Presentation.Safety;
 
 namespace PersoNet.Desktop.Presentation.Shell;
 
@@ -33,6 +34,7 @@ public sealed partial class ShellViewModel : ObservableObject
         ReportsViewModel reports,
         DepartmentsViewModel departments,
         PositionsViewModel positions,
+        TrainingCoursesViewModel trainings,
         RolesViewModel roles,
         CompanyViewModel company,
         IAccessApi access,
@@ -50,6 +52,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Reports = reports;
         Departments = departments;
         Positions = positions;
+        Trainings = trainings;
         Roles = roles;
         Company = company;
 
@@ -60,6 +63,7 @@ public sealed partial class ShellViewModel : ObservableObject
         ReportsItem = new NavigationItem("Raporty", "\uE9F9", reports);
         DepartmentsItem = new NavigationItem("Działy", "\uE8B7", departments);
         PositionsItem = new NavigationItem("Stanowiska", "\uE821", positions);
+        TrainingsItem = new NavigationItem("Szkolenia", "\uE7BE", trainings);
         RolesItem = new NavigationItem("Role", "\uE8D7", roles);
         CompanyItem = new NavigationItem("Ustawienia firmy", "\uE713", company);
         Navigation = [HomeItem];
@@ -130,6 +134,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public PositionsViewModel Positions { get; }
 
+    public TrainingCoursesViewModel Trainings { get; }
+
     public RolesViewModel Roles { get; }
 
     public CompanyViewModel Company { get; }
@@ -147,6 +153,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public NavigationItem DepartmentsItem { get; }
 
     public NavigationItem PositionsItem { get; }
+
+    public NavigationItem TrainingsItem { get; }
 
     public NavigationItem RolesItem { get; }
 
@@ -274,6 +282,7 @@ public sealed partial class ShellViewModel : ObservableObject
             (ReportsItem, _user.Can(UserAccess.ReportsRead)),
             (DepartmentsItem, _user.Can(UserAccess.OrganizationManage)),
             (PositionsItem, _user.Can(UserAccess.OrganizationManage)),
+            (TrainingsItem, _user.Can(UserAccess.SafetyRead)),
             (RolesItem, _user.Can(UserAccess.RolesManage)),
             (CompanyItem, _user.Can(UserAccess.SettingsManage)),
         ];
@@ -306,6 +315,7 @@ public sealed partial class ShellViewModel : ObservableObject
         ReportsViewModel reports => reports.LoadAsync(cancellationToken),
         DepartmentsViewModel departments => departments.LoadAsync(cancellationToken),
         PositionsViewModel positions => positions.LoadAsync(cancellationToken),
+        TrainingCoursesViewModel trainings => trainings.LoadAsync(cancellationToken),
         RolesViewModel roles => roles.LoadAsync(cancellationToken),
         CompanyViewModel company => company.LoadAsync(cancellationToken),
         _ => Task.CompletedTask,

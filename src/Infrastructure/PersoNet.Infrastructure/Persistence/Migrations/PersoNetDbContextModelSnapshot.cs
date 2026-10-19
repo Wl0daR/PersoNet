@@ -669,6 +669,168 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                     b.ToTable("positions", (string)null);
                 });
 
+            modelBuilder.Entity("PersoNet.Domain.Safety.EmployeeTraining", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly>("CompletedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("completed_on");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateOnly?>("ValidUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id")
+                        .HasName("pk_employee_trainings");
+
+                    b.HasIndex("CourseId")
+                        .HasDatabaseName("ix_employee_trainings_course_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_employee_trainings_tenant_id");
+
+                    b.HasIndex("ValidUntil")
+                        .HasDatabaseName("ix_employee_trainings_valid_until");
+
+                    b.HasIndex("EmployeeId", "CourseId", "CompletedOn")
+                        .HasDatabaseName("ix_employee_trainings_employee_id_course_id_completed_on");
+
+                    b.ToTable("employee_trainings", (string)null);
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Safety.MedicalExam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateOnly>("ExamDate")
+                        .HasColumnType("date")
+                        .HasColumnName("exam_date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<DateOnly?>("ValidUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id")
+                        .HasName("pk_medical_exams");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_medical_exams_tenant_id");
+
+                    b.HasIndex("ValidUntil")
+                        .HasDatabaseName("ix_medical_exams_valid_until");
+
+                    b.HasIndex("EmployeeId", "ExamDate")
+                        .HasDatabaseName("ix_medical_exams_employee_id_exam_date");
+
+                    b.ToTable("medical_exams", (string)null);
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Safety.TrainingCourse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.PrimitiveCollection<List<Guid>>("DepartmentIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("department_ids");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsMandatory")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_mandatory");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int?>("ValidityMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("validity_months");
+
+                    b.HasKey("Id")
+                        .HasName("pk_training_courses");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_training_courses_tenant_id");
+
+                    b.HasIndex("TenantId", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_training_courses_tenant_id_normalized_name");
+
+                    b.ToTable("training_courses", (string)null);
+                });
+
             modelBuilder.Entity("PersoNet.Domain.Tenants.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -998,6 +1160,57 @@ namespace PersoNet.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_positions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Safety.EmployeeTraining", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Safety.TrainingCourse", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_employee_trainings_training_courses_course_id");
+
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_employee_trainings_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_employee_trainings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Safety.MedicalExam", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_exams_employees_employee_id");
+
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_exams_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("PersoNet.Domain.Safety.TrainingCourse", b =>
+                {
+                    b.HasOne("PersoNet.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_training_courses_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("PersoNet.Domain.WorkTime.ClockEvent", b =>

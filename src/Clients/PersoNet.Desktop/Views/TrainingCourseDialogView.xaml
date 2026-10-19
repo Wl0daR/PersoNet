@@ -1,0 +1,82 @@
+<UserControl x:Class="PersoNet.Desktop.Views.TrainingCourseDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:safety="clr-namespace:PersoNet.Desktop.Presentation.Safety;assembly=PersoNet.Desktop.Presentation"
+             xmlns:org="clr-namespace:PersoNet.Desktop.Presentation.Organization;assembly=PersoNet.Desktop.Presentation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=safety:TrainingCourseDialogViewModel}"
+             Width="560" MaxHeight="760">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsEnabled="{Binding IsIdle}">
+                <Button Content="Zapisz" Command="{Binding SaveCommand}" IsDefault="True" Style="{DynamicResource AccentButtonStyle}" MinWidth="110" Margin="0,0,8,0" />
+                <Button Content="Anuluj" IsCancel="True" MinWidth="110" ToolTip="Zamknij bez zapisywania (Esc)" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource DialogBody}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="24,20,24,20" IsEnabled="{Binding IsIdle}">
+                    <Label Content="_Nazwa szkolenia *" Target="{Binding ElementName=NameBox}" Padding="0" Margin="0,0,0,4" />
+                    <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="{x:Static safety:TrainingCourseDialogViewModel.NameMaxLength}"
+                             AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock Text="Np. BHP okresowe, Pierwsza pomoc, Obsługa wózków widłowych." Style="{StaticResource HelperText}" />
+                    <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=NameBox}" Style="{StaticResource FieldError}" />
+
+                    <!-- How often it is repeated: a number of months, or never. -->
+                    <CheckBox Content="Trzeba je _powtarzać" IsChecked="{Binding EditExpires}" Margin="0,16,0,0" MinHeight="32" />
+                    <StackPanel Visibility="{Binding EditExpires, Converter={StaticResource BoolToVisibility}}" Margin="28,0,0,0">
+                        <Label Content="_Ważne przez (miesięcy) *" Target="{Binding ElementName=MonthsBox}" Padding="0" Margin="0,8,0,4" />
+                        <TextBox x:Name="MonthsBox" Text="{Binding EditValidityMonths, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left"
+                                 MaxLength="3" AutomationProperties.HelpText="{Binding (Validation.Errors)/ErrorContent, RelativeSource={RelativeSource Self}}" />
+                        <TextBlock Text="12 = co rok, 36 = co 3 lata, 60 = co 5 lat." Style="{StaticResource HelperText}" />
+                        <TextBlock Text="{Binding (Validation.Errors)/ErrorContent, ElementName=MonthsBox}" Style="{StaticResource FieldError}" />
+                    </StackPanel>
+
+                    <!-- Mandatory: for everyone, or for the departments checked and the ones under them. -->
+                    <TextBlock Text="Dla kogo" Style="{StaticResource FormSection}" Margin="0,16,0,0" />
+                    <CheckBox Content="Szkolenie _obowiązkowe" IsChecked="{Binding EditMandatory}" MinHeight="32" />
+                    <StackPanel Visibility="{Binding EditMandatory, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Visibility="{Binding HasDepartments, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Zaznacz działy, w których szkolenie jest obowiązkowe, albo nie zaznaczaj żadnego, jeśli dotyczy wszystkich."
+                                       Style="{StaticResource HelperText}" TextWrapping="Wrap" />
+
+                            <Label Content="Szukaj _działu" Target="{Binding ElementName=DepartmentFilterBox}" Padding="0" Margin="0,8,0,4" />
+                            <TextBox x:Name="DepartmentFilterBox" Text="{Binding DepartmentFilter, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Margin="0,8,0,0">
+                                <ScrollViewer Height="200" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                    <ItemsControl ItemsSource="{Binding Departments}" Focusable="False" Margin="8,4" AutomationProperties.Name="Działy, w których szkolenie jest obowiązkowe">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type org:DepartmentOption}">
+                                                <DockPanel Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+                                                    <!-- Indent under the parent department. -->
+                                                    <Border Width="{Binding Indent}" />
+                                                    <CheckBox IsChecked="{Binding IsChecked}" MinHeight="32"
+                                                              AutomationProperties.Name="{Binding DisplayName}" ToolTip="{Binding DisplayName}">
+                                                        <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                                    </CheckBox>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="{Binding DepartmentsSummary}" Style="{StaticResource HelperText}" TextWrapping="Wrap" />
+
+                    <Label Content="_Opis" Target="{Binding ElementName=DescriptionBox}" Padding="0" Margin="0,16,0,4" />
+                    <TextBox x:Name="DescriptionBox" Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="64" MaxLength="{x:Static safety:TrainingCourseDialogViewModel.DescriptionMaxLength}" VerticalScrollBarVisibility="Auto" />
+                    <TextBlock Text="Np. kto prowadzi szkolenie i gdzie przechowywać zaświadczenia." Style="{StaticResource HelperText}" />
+
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource FormError}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</UserControl>

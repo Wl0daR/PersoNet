@@ -7,6 +7,7 @@ using PersoNet.Desktop.Presentation.Employees;
 using PersoNet.Desktop.Presentation.Employees.Import;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
+using PersoNet.Desktop.Presentation.Safety;
 using PersoNet.Desktop.Presentation.WorkTime;
 using PersoNet.Desktop.Views;
 
@@ -41,6 +42,9 @@ public sealed class DialogService : IDialogService
         WorkTimeSettingsDialogViewModel => new WorkTimeSettingsDialogView(),
         WorkDayDialogViewModel => new WorkDayDialogView(),
         ClockIdDialogViewModel => new ClockIdDialogView(),
+        MedicalExamDialogViewModel => new MedicalExamDialogView(),
+        TrainingDialogViewModel => new TrainingDialogView(),
+        TrainingCourseDialogViewModel => new TrainingCourseDialogView(),
         EmployeeImportDialogViewModel => new EmployeeImportDialogView(),
         _ => throw new ArgumentOutOfRangeException(nameof(dialog), dialog.GetType().Name, "Brak widoku dla tego okna."),
     };

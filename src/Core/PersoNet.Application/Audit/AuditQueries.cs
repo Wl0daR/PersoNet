@@ -16,7 +16,7 @@ public sealed class AuditQueries(IAppDbContext db)
         AppError.NotFound("employee.not_found", "Nie znaleziono pracownika.");
 
     // Fields that hold the id of another record; the history shows that record's name instead.
-    private static readonly HashSet<string> References = new(StringComparer.Ordinal) { "DepartmentId", "PositionId", "ManagerId", "RoleId" };
+    private static readonly HashSet<string> References = new(StringComparer.Ordinal) { "DepartmentId", "PositionId", "ManagerId", "RoleId", "CourseId" };
 
     /// <summary>Changes of the employee's card, contracts, leave and portal account, newest first.</summary>
     public async Task<Result<IReadOnlyList<HistoryEntryResponse>>> GetEmployeeHistoryAsync(Guid employeeId, CancellationToken cancellationToken)
@@ -83,7 +83,12 @@ public sealed class AuditQueries(IAppDbContext db)
             .Select(role => new { role.Id, role.Name })
             .ToListAsync(cancellationToken);
 
-        return departments.Concat(positions).Concat(managers).Concat(roles).ToDictionary(item => item.Id, item => item.Name);
+        var courses = await db.TrainingCourses.AsNoTracking()
+            .Where(course => ids.Contains(course.Id))
+            .Select(course => new { course.Id, course.Name })
+            .ToListAsync(cancellationToken);
+
+        return departments.Concat(positions).Concat(managers).Concat(roles).Concat(courses).ToDictionary(item => item.Id, item => item.Name);
     }
 
     private static HistoryEntryResponse ToResponse(

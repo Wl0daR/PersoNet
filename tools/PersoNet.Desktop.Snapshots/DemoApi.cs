@@ -5,6 +5,7 @@ using PersoNet.ApiClient.Employees;
 using PersoNet.ApiClient.Leave;
 using PersoNet.ApiClient.Organization;
 using PersoNet.ApiClient.Reports;
+using PersoNet.ApiClient.Safety;
 using PersoNet.ApiClient.WorkTime;
 using PersoNet.Contracts.Access;
 using PersoNet.Contracts.Account;
@@ -22,7 +23,7 @@ using PersoNet.Desktop.Presentation.Common;
 namespace PersoNet.Desktop.Snapshots;
 
 /// <summary>In-memory company with realistic names and lengths, so the screenshots show real-world text.</summary>
-internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAbsencesApi, IAccessApi, ICompanyApi, IReportsApi, IWorkTimeApi, ISignInService, IThemeService
+internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveApi, IAbsencesApi, IAccessApi, ICompanyApi, IReportsApi, IWorkTimeApi, ISafetyApi, ISignInService, IThemeService
 {
     private static readonly IReadOnlyList<PermissionResponse> Catalog =
     [
@@ -33,6 +34,8 @@ internal sealed partial class DemoApi : IEmployeesApi, IOrganizationApi, ILeaveA
         new("leave.manage", "Urlopy", "Decyzje urlopowe", "Wpisywanie, zatwierdzanie, odrzucanie i anulowanie wniosków oraz ustalanie wymiaru.", true),
         new("worktime.read", "Czas pracy", "Przeglądanie czasu pracy", "Karty ewidencji czasu pracy: godziny, nadgodziny, nieobecności i odbicia z czytników.", true),
         new("worktime.manage", "Czas pracy", "Ewidencja czasu pracy", "Wpisywanie i poprawianie dni pracy, import odbić z systemu RCP i identyfikatory pracowników w tym systemie.", true),
+        new("safety.read", "BHP", "Przeglądanie badań i szkoleń", "Badania lekarskie i szkolenia pracowników oraz lista szkoleń.", true),
+        new("safety.manage", "BHP", "Badania i szkolenia", "Wpisywanie badań lekarskich i szkoleń pracowników oraz prowadzenie listy szkoleń.", true),
         new("reports.read", "Raporty", "Raporty kadrowe", "Stan zatrudnienia, wykorzystanie urlopów i kończące się umowy w całej firmie, z eksportem do Excela.", true),
         new("organization.manage", "Firma", "Struktura firmy", "Dodawanie i zmiana działów oraz stanowisk.", true),
         new("settings.manage", "Firma", "Ustawienia firmy", "Dane firmy oraz rodzaje urlopów, o które pracownicy proszą w portalu.", true),

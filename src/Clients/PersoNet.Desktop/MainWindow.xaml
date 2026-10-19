@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:shell="clr-namespace:PersoNet.Desktop.Presentation.Shell;assembly=PersoNet.Desktop.Presentation"
+        xmlns:safety="clr-namespace:PersoNet.Desktop.Presentation.Safety;assembly=PersoNet.Desktop.Presentation"
         xmlns:home="clr-namespace:PersoNet.Desktop.Presentation.Home;assembly=PersoNet.Desktop.Presentation"
         xmlns:emp="clr-namespace:PersoNet.Desktop.Presentation.Employees;assembly=PersoNet.Desktop.Presentation"
         xmlns:org="clr-namespace:PersoNet.Desktop.Presentation.Organization;assembly=PersoNet.Desktop.Presentation"
@@ -40,6 +41,9 @@
         <DataTemplate DataType="{x:Type org:PositionsViewModel}">
             <views:PositionsView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type safety:TrainingCoursesViewModel}">
+            <views:TrainingCoursesView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type acc:RolesViewModel}">
             <views:RolesView />
         </DataTemplate>
@@ -48,7 +52,7 @@
         </DataTemplate>
     </Window.Resources>
 
-    <!-- Ctrl+1…9 switch screens, in the order of the side menu (screens the user may not open are skipped). -->
+    <!-- Ctrl+1…9 switch screens, in the order of the side menu (screens the user may not open are skipped); Ctrl+0 opens the trainings, added last. -->
     <Window.InputBindings>
         <KeyBinding Key="D1" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding HomeItem}" />
         <KeyBinding Key="D2" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding EmployeesItem}" />
@@ -59,6 +63,7 @@
         <KeyBinding Key="D7" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding PositionsItem}" />
         <KeyBinding Key="D8" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding RolesItem}" />
         <KeyBinding Key="D9" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding CompanyItem}" />
+        <KeyBinding Key="D0" Modifiers="Control" Command="{Binding NavigateCommand}" CommandParameter="{Binding TrainingsItem}" />
     </Window.InputBindings>
 
     <Grid>

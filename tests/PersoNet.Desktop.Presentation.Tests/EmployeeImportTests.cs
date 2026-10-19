@@ -92,7 +92,7 @@ public sealed class EmployeeImportTests : IDisposable
         await File.WriteAllTextAsync(path, Dump, Cancellation);
         _files.OpenPaths.Add(path);
         _api.ImportRejects[26] = "Numer telefonu może mieć najwyżej 30 znaków.";
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), new FakeSafetyApi(), _files);
 
         viewModel.ImportCommand.CanExecute(null).ShouldBeFalse();
         await viewModel.ChooseFileAsync();
@@ -181,7 +181,7 @@ public sealed class EmployeeImportTests : IDisposable
         await File.WriteAllTextAsync(other, Organization, Cancellation);
         await File.WriteAllTextAsync(attendance, "CREATE TABLE IF NOT EXISTS `obecnosc` (`id` int);\nREPLACE INTO `obecnosc` (`id`) VALUES (1);", Cancellation);
         _files.OpenPaths.AddRange([employees, other, attendance]);
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), new FakeSafetyApi(), _files);
 
         await viewModel.ChooseFileAsync();
 
@@ -229,7 +229,7 @@ public sealed class EmployeeImportTests : IDisposable
         await File.WriteAllTextAsync(employees, Dump, Cancellation);
         await File.WriteAllTextAsync(history, History, Cancellation);
         _files.OpenPaths.AddRange([employees, history]);
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), new FakeSafetyApi(), _files);
 
         await viewModel.ChooseFileAsync();
         await viewModel.ImportAsync(Cancellation);
@@ -246,7 +246,7 @@ public sealed class EmployeeImportTests : IDisposable
     {
         var path = Path.Combine(_folder, "inne.sql");
         await File.WriteAllTextAsync(path, "INSERT INTO `Positions` VALUES (1, 'Magazynier');", Cancellation);
-        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), _files);
+        var viewModel = new EmployeeImportDialogViewModel(_api, _absences, new FakeWorkTimeApi(), new FakeSafetyApi(), _files);
 
         viewModel.LoadFile(path);
 

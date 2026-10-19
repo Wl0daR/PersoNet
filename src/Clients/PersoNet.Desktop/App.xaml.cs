@@ -14,6 +14,7 @@ using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Reports;
+using PersoNet.Desktop.Presentation.Safety;
 using PersoNet.Desktop.Presentation.Shell;
 using PersoNet.Desktop.Settings;
 
@@ -54,12 +55,14 @@ public partial class App : Application
         builder.Services.AddSingleton<LeaveViewModel>();
         builder.Services.AddSingleton<DepartmentsViewModel>();
         builder.Services.AddSingleton<PositionsViewModel>();
+        builder.Services.AddSingleton<TrainingCoursesViewModel>();
         builder.Services.AddSingleton<RolesViewModel>();
         builder.Services.AddSingleton<CompanyViewModel>();
         builder.Services.AddSingleton<TeamCalendarViewModel>();
         builder.Services.AddSingleton<HeadcountReportViewModel>();
         builder.Services.AddSingleton<LeaveUsageReportViewModel>();
         builder.Services.AddSingleton<ContractsEndingReportViewModel>();
+        builder.Services.AddSingleton<SafetyRenewalsReportViewModel>();
         builder.Services.AddSingleton<ReportsViewModel>();
         builder.Services.AddSingleton<UserAccess>();
         builder.Services.AddSingleton<ShellViewModel>();

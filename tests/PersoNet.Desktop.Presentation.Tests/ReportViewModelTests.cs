@@ -3,6 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using PersoNet.Contracts.Employees;
 using PersoNet.Contracts.Reports;
 using PersoNet.Desktop.Presentation.Reports;
+using PersoNet.Desktop.Presentation.Safety;
 
 namespace PersoNet.Desktop.Presentation.Tests;
 
@@ -132,21 +133,49 @@ public sealed class ReportViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Safety_renewals_say_what_is_missing_expired_or_running_out_for_whom()
+    {
+        _reports.SafetyRenewals = new SafetyRenewalReport(new DateOnly(2025, 6, 2), new DateOnly(2025, 8, 1),
+        [
+            Renewal("Nowak", SafetyItemKind.MedicalExam, null, new DateOnly(2025, 5, 31), SafetyRenewalState.Expired),
+            Renewal("Nowak", SafetyItemKind.Training, "BHP okresowe", new DateOnly(2025, 7, 10), SafetyRenewalState.Expiring),
+            Renewal("Adamski", SafetyItemKind.Training, "Suwnice", null, SafetyRenewalState.Missing),
+        ]);
+        var report = new SafetyRenewalsReportViewModel(_reports, _files, _time);
+
+        await report.LoadAsync(Cancellation);
+
+        report.Summary.ShouldBe("Nieważne: 1, tracą ważność do 1 sierpnia 2025: 1, brak: 1 · 2 osoby");
+        report.Rows.Select(row => (row.Item, row.State, row.When)).ShouldBe(
+        [
+            ("Badania lekarskie", "nieważne", "od 1 cze 2025"),
+            ("Szkolenie: BHP okresowe", "traci ważność", "do 10 lip 2025"),
+            ("Szkolenie: Suwnice", "brak", "nigdy"),
+        ]);
+        report.Rows[1].Tone.ShouldBe(SafetyTone.Warning);
+    }
+
+    [Fact]
     public void The_reports_screen_acts_on_the_open_tab()
     {
         var screen = new ReportsViewModel(
             new HeadcountReportViewModel(_reports, _files, _time),
             new LeaveUsageReportViewModel(_reports, _files, _time),
-            new ContractsEndingReportViewModel(_reports, _files, _time));
+            new ContractsEndingReportViewModel(_reports, _files, _time),
+            new SafetyRenewalsReportViewModel(_reports, _files, _time));
 
         screen.SelectedIndex = 2;
 
         screen.Selected.ShouldBe(screen.ContractsEnding);
-        screen.Reports.Select(report => report.Name).ShouldBe(["Stan zatrudnienia", "Wykorzystanie urlopów", "Kończące się umowy"]);
+        screen.Reports.Select(report => report.Name).ShouldBe(["Stan zatrudnienia", "Wykorzystanie urlopów", "Kończące się umowy", "Badania i szkolenia"]);
     }
 
     private static HeadcountPerson Person(string number, string lastName, string? department, ContractKind? kind, DateOnly? end, decimal? workingTime) =>
         new(Guid.NewGuid(), number, "Imię", lastName, department, "Handlowiec", new DateOnly(2024, 1, 1), kind, end, workingTime);
+
+    private static SafetyRenewalRow Renewal(string lastName, SafetyItemKind item, string? name, DateOnly? until, SafetyRenewalState state) =>
+        new(Guid.Parse(lastName == "Nowak" ? "00000000-0000-0000-0000-000000000001" : "00000000-0000-0000-0000-000000000002"),
+            "P1", "Imię", lastName, "Produkcja", item, name, until?.AddYears(-1), until, state);
 
     private static ContractEndingRow Ending(string lastName, DateOnly end, bool hasNext) =>
         new(Guid.NewGuid(), Guid.NewGuid(), "P1", "Imię", lastName, "Sprzedaż", "Handlowiec", ContractKind.FixedTerm, new DateOnly(2024, 1, 1), end, 1m, hasNext);

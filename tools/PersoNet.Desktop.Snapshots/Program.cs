@@ -16,6 +16,7 @@ using PersoNet.Desktop.Presentation.Home;
 using PersoNet.Desktop.Presentation.Leave;
 using PersoNet.Desktop.Presentation.Organization;
 using PersoNet.Desktop.Presentation.Reports;
+using PersoNet.Desktop.Presentation.Safety;
 using PersoNet.Desktop.Presentation.Shell;
 using PersoNet.Desktop.Snapshots;
 
@@ -68,16 +69,18 @@ namespace PersoNet.Desktop.Snapshots
             var dialogs = new SnapshotDialogs();
             var user = new UserAccess();
             var files = new SnapshotFiles();
-            var employees = new EmployeesViewModel(api, api, api, api, api, api, files, user, time, dialogs);
+            var employees = new EmployeesViewModel(api, api, api, api, api, api, api, files, user, time, dialogs);
             var leave = new LeaveViewModel(api, api, time, dialogs);
             var departments = new DepartmentsViewModel(api, dialogs);
             var positions = new PositionsViewModel(api, dialogs);
+            var trainings = new TrainingCoursesViewModel(api, api, dialogs);
             var roles = new RolesViewModel(api, dialogs);
             var company = new CompanyViewModel(api, dialogs);
             var reports = new ReportsViewModel(
-                new HeadcountReportViewModel(api, files, time), new LeaveUsageReportViewModel(api, files, time), new ContractsEndingReportViewModel(api, files, time));
+                new HeadcountReportViewModel(api, files, time), new LeaveUsageReportViewModel(api, files, time), new ContractsEndingReportViewModel(api, files, time),
+                new SafetyRenewalsReportViewModel(api, files, time));
             var shell = new ShellViewModel(
-                api, new HomeViewModel(api, api, api, user, time), employees, leave, new TeamCalendarViewModel(api, api, time), reports, departments, positions, roles, company, api, user, api);
+                api, new HomeViewModel(api, api, api, user, time), employees, leave, new TeamCalendarViewModel(api, api, time), reports, departments, positions, trainings, roles, company, api, user, api);
 
             var window = new MainWindow(shell)
             {
@@ -165,12 +168,23 @@ namespace PersoNet.Desktop.Snapshots
                     };
                     await card.WorkTime.OpenDayAsync(card.WorkTime.Rows.First(row => row.HasIssue));
 
-                    // The portal account tab.
+                    // The medical examinations and trainings tab, and an examination in its window over the card.
                     Tabs(dialogWindow).SelectedIndex = 5;
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"34-karta-badania-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"34-karta-badania-laptop150-{suffix}.png"));
+                    dialogs.Script = async (_, examWindow) =>
+                        await RenderDialogAsync(window, examWindow, Sizes[1], Path.Combine(output, $"35-badanie-srodek-{suffix}.png"), dialogWindow);
+                    await card.Safety.EditAsync(card.Safety.Items.First(row => row.IsExam), CancellationToken.None);
+                    dialogs.Script = async (_, trainingWindow) =>
+                        await RenderDialogAsync(window, trainingWindow, Sizes[2], Path.Combine(output, $"35-szkolenie-pracownika-laptop150-{suffix}.png"), dialogWindow);
+                    await card.Safety.EditAsync(card.Safety.Items.First(row => !row.IsExam), CancellationToken.None);
+
+                    // The portal account tab.
+                    Tabs(dialogWindow).SelectedIndex = 6;
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"21-karta-konto-laptop150-{suffix}.png"));
 
                     // The history of changes.
-                    Tabs(dialogWindow).SelectedIndex = 6;
+                    Tabs(dialogWindow).SelectedIndex = 7;
                     await card.History.RefreshAsync(CancellationToken.None);
                     await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"22-karta-historia-srodek-{suffix}.png"));
                     await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"22-karta-historia-laptop150-{suffix}.png"));
@@ -259,6 +273,17 @@ namespace PersoNet.Desktop.Snapshots
                 };
                 await positions.EditAsync(null, CancellationToken.None);
 
+                // A training mandatory in some departments, in its window over the list of trainings.
+                shell.NavigateCommand.Execute(shell.TrainingsItem);
+                await trainings.LoadAsync(CancellationToken.None);
+                trainings.Selected = trainings.Courses.First(course => course.Course.DepartmentIds.Count > 0);
+                dialogs.Script = async (_, dialogWindow) =>
+                {
+                    await RenderDialogAsync(window, dialogWindow, Sizes[1], Path.Combine(output, $"37-szkolenie-srodek-{suffix}.png"));
+                    await RenderDialogAsync(window, dialogWindow, Sizes[2], Path.Combine(output, $"37-szkolenie-laptop150-{suffix}.png"));
+                };
+                await trainings.EditAsync(null, CancellationToken.None);
+
                 // A role with its permissions, in its window over the list of roles.
                 shell.NavigateCommand.Execute(shell.RolesItem);
                 roles.Selected = roles.Items.First();
@@ -296,9 +321,9 @@ namespace PersoNet.Desktop.Snapshots
                 };
                 await employees.ImportAsync(CancellationToken.None);
 
-                // The other two reports, each on its own tab.
+                // The other reports, each on its own tab.
                 shell.NavigateCommand.Execute(shell.ReportsItem);
-                foreach (var (tab, name) in new[] { (1, "26-raport-urlopy"), (2, "27-raport-umowy") })
+                foreach (var (tab, name) in new[] { (1, "26-raport-urlopy"), (2, "27-raport-umowy"), (3, "38-raport-badania") })
                 {
                     reports.SelectedIndex = tab;
                     await RenderAsync(window, Sizes[1], Path.Combine(output, $"{name}-srodek-{suffix}.png"));
@@ -311,7 +336,7 @@ namespace PersoNet.Desktop.Snapshots
             window.Close();
         }
 
-        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 7);
+        private static TabControl Tabs(Window dialogWindow) => FindAll<TabControl>(dialogWindow).First(tabs => tabs.Items.Count == 8);
 
         internal static IntPtr AllowLargerThanScreen(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
